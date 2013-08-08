@@ -2,7 +2,9 @@ from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.label import Label
+from kivy.uix.scatter import Scatter
 from kivy.config import Config
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
@@ -16,6 +18,27 @@ from ConfigParser import ConfigParser
 
 from os.path import isdir, isfile, join, exists
 from os import listdir, walk, stat, chown, getcwd
+
+class BaseObject:
+
+	def __init__(self, baseImage, identifier):
+		self.__identifier = identifier
+		self.__baseImage = baseImage
+		self.__fullPath = baseImage.source
+		self.__size = baseImage.texture.size
+
+	def getIdentifier(self):
+		return self.__identifier
+
+	def getSize(self):
+		return self.__size
+	
+	def getPath(self):
+		return self.__fullPath
+
+	def getBaseImage(self):
+		return self.__baseImage
+	
 
 class RenderedObject:
 
@@ -37,7 +60,7 @@ class SceneHandler:
 		self.maxWidthProportion = maxWidthProportion
 		self.maxHeightProportion = maxHeightProportion
 				
-		self.layout = FloatLayout(size=(5000, 5000), size_hint = (None, None))
+		self.layout = RelativeLayout(size=(1000, 1000), size_hint = (None, None))
 		self.scrollView = ScrollView(size_hint=(None, None))
 		self.scrollView.add_widget(self.layout)
 		rightScreen.add_widget(self.scrollView)
@@ -53,9 +76,23 @@ class SceneHandler:
 		
 		self.scrollView.size = (xSize, ySize)
 
+	def draw(self, path, size):
+		image = Image(source = path, size = size)
+		scatterObject = Scatter()
+		scatterObject.add_widget(image)
+		self.layout.add_widget(scatterObject)
+
+	def getLayout(self):
+		return self.scrollView
+	
+	def handleTouch(self, touch):
+		pass
+
 class ObjectDescriptor:
-	def __init__(self, rightScreen, maxWidthProportion = 0.75, maxHeightProportion = 0.333):
+	def __init__(self, rightScreen, sceneHandler, maxWidthProportion = 0.75, maxHeightProportion = 0.333):
 		
+		self.sceneHandlerReference = sceneHandler
+		self.currentObjectIdentifier = -1
 		self.maxWidthProportion = maxWidthProportion
 		self.maxHeightProportion = maxHeightProportion
 
@@ -72,10 +109,23 @@ class ObjectDescriptor:
 
 		self.updateLayoutSizes()
 
-	def setObject (self, path, size, collidable):
+	def setOrDrawObject(self, identifier, path, size):
+		if (self.currentObjectIdentifier == identifier):
+			self.__drawObject(path, size)
+		else:
+			self.__setObject(identifier, path, size)
+
+	def __drawObject(self, path, size):
+		self.sceneHandlerReference.draw(path, size)
+
+	def __setObject(self, identifier, path, size):
+		
+		cwd = getcwd() + '/'
+		if (cwd == path[:len(cwd)]):
+			path = path[len(cwd):]
 		self.pathLabel.text = 'Path: ' + str(path)
 		self.sizeLabel.text = 'Size: ' + str(size)
-		self.collisionLabel.text = 'Collision:' + str(collidable)
+		self.currentObjectIdentifier = identifier
 
 	def updateLayoutSizes(self):
 		
@@ -90,7 +140,7 @@ class ObjectDescriptor:
 class LeftMenuHandler:
 	
 	def __init__(self, leftMenu, objectHandler, maxWidthProportion = 0.25, maxHeightProportion = 1.0):
-		self.imageList = []
+		self.menuObjectsList = []
 		self.objectHandlerReference = objectHandler
 		self.maxWidthProportion = maxWidthProportion
 		self.maxHeightProportion = maxHeightProportion
@@ -100,14 +150,14 @@ class LeftMenuHandler:
 		for item in l:
 			if (item[-4:] == '.png'):
 				img = Image(source = join(getcwd(), 'tiles' ,item))
-				self.imageList.append(img)
+				obj = BaseObject(img, self.numberOfItems)
+				self.menuObjectsList.append(obj)
 				self.numberOfItems += 1
-
 		
 
 		self.layout = GridLayout(cols=1, rows = self.numberOfItems, size_hint = (None, None))
-		for item in self.imageList:
-			self.layout.add_widget(item)
+		for menuObject in self.menuObjectsList:
+			self.layout.add_widget(menuObject.getBaseImage())
 
 		self.scrollView = ScrollView(size_hint = (None, None) )
 		self.scrollView.add_widget(self.layout)
@@ -134,11 +184,15 @@ class LeftMenuHandler:
 
 
 	def handleTouch(self, touch):
-		for image in self.imageList:
-			
-			if (touch.is_mouse_scrolling == False and image.collide_point(*touch.pos) == True):
+		
+		for menuObject in self.menuObjectsList:
+			if (touch.is_mouse_scrolling == False and menuObject.getBaseImage().collide_point(*touch.pos) == True):
 				if (touch.is_double_tap == True):
-					self.objectHandlerReference.setObject(image.source, image.texture.size, 1)
+					self.objectHandlerReference.setOrDrawObject(
+						menuObject.getIdentifier(), 
+						menuObject.getPath(), 
+						menuObject.getSize()
+					)
 				
 class TileEditor(App):
 	
@@ -148,6 +202,9 @@ class TileEditor(App):
 		if (self.leftMenuBase.collide_point(*touch.pos) == True):
 			self.leftMenuHandler.handleTouch(touch)
 
+		if (self.sceneHandler.getLayout().collide_point(*touch.pos) == True):
+			self.sceneHandler.handleTouch(touch)
+
 	def build_config(self, c):
 		Config.set('graphics', 'width', 800)
 		Config.set('graphics', 'height', 600)
@@ -156,7 +213,6 @@ class TileEditor(App):
 
 	@staticmethod
 	def resizeTest(x, y):
-		print "resize! "+str((x, y))
 		for widget in TileEditor.resizeList:
 			widget.updateLayoutSizes()
 
@@ -182,13 +238,15 @@ class TileEditor(App):
 		self.root.add_widget(self.rightScreen)
 		
 		self.sceneHandler = SceneHandler(self.rightScreen)
-		self.objectHandler = ObjectDescriptor(self.rightScreen)
+		self.objectHandler = ObjectDescriptor(self.rightScreen, self.sceneHandler)
 		self.leftMenuHandler = LeftMenuHandler(self.leftMenuBase, self.objectHandler)
 	
 		TileEditor.resizeList.append(self.sceneHandler)
 		TileEditor.resizeList.append(self.objectHandler)
 		TileEditor.resizeList.append(self.leftMenuHandler)
 
+		#self.root.on_touch_down = self.dispatchTouch
+		#self.root.on_touch_move = self.dispatchTouch
 		self.root.on_touch_up = self.dispatchTouch
 		Window.on_resize = self.resizeTest
 
