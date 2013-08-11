@@ -21,7 +21,7 @@ from kivy.core.window import Window
 from ConfigParser import ConfigParser
 
 from os.path import isdir, isfile, join, exists
-from os import listdir, walk, stat, chown, getcwd
+from os import listdir, getcwd
 
 class ObjectTypes:
 	baseObject = 1
@@ -37,10 +37,28 @@ class KeyboardShortcutHandler:
 	
 	def __init__(self, scene):
 		self.__scene = scene
+		self.__keyboard = Window.request_keyboard(self.__finishKeyboard, self)
+		self.__keyboard.bind(on_key_down=self.__processKeyboard)
+
+	def __finishKeyboard(self):
+		self.__keyboard.unbind(on_key_down=self.__processKeyboard)
+		self.__keyboard = None
+
+	def __processKeyboard(self, keyboard, keycode, text, modifiers):
+		#print('The key', keycode, 'have been pressed')
+		#print(' - text is %r' % text)
+		#print(' - modifiers are %r' % modifiers)
+
+		if (keycode[1] == 'q'):
+			self.__scene.alignToGrid()
+
+		return True
+
 
 class TileEditorConfig:
 
-	def __init__(self, confFile = 'config.ini'):
+	def __init__(self, confFile = join ('..\orxEditor\config.ini')):
+		assert (isfile(confFile))
 		self.__configParser = ConfigParser()
 		self.__configParser.read(confFile)
 		self.__valuesDict = { 
@@ -77,6 +95,9 @@ class BaseObject:
 
 	def getBaseImage(self):
 		return self.__baseImage
+
+	def getType(self):
+		return self.__objectType
 	
 
 class RenderedObject (Scatter):
@@ -100,21 +121,29 @@ class RenderedObject (Scatter):
 
 	def alignToGrid(self):
 		x, y = self.bbox[0]
+		print ((x, y, self.__tileSize))
+
 		distX = x % self.__tileSize
-		if (distX < __tileSize/2):
+		if (distX < self.__tileSize/2):
 			x -= x % self.__tileSize
 		else:
 			x += self.__tileSize - (x % self.__tileSize)
 		
 		distY = y % self.__tileSize
-		if (distY < __tileSize/2):
+		if (distY < self.__tileSize/2):
 			y -= y % self.__tileSize
 		else:
 			y += self.__tileSize - (y % self.__tileSize)
 
-	def __init__(self, identifier, path, size, pos, tileSize, alignToPixel, maxX, maxY):
+		self._set_pos((x, y))
+
+	def __handleTouch(self, *args, **kwargs):
+		self.__objectDescriptorReference.setObject(self)
+		self.__defaultTouchDown(*args, **kwargs)
+
+	def __init__(self, identifier, path, size, pos, tileSize, alignToPixel, maxX, maxY, objectDescriptorRef):
 		
-		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False)
+		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size = size)
 		image = Image(source = path, size = size)
 		self.add_widget(image)
 
@@ -126,10 +155,24 @@ class RenderedObject (Scatter):
 		self.__tileSize = tileSize
 		self.__maxX = maxX
 		self.__maxY = maxY
+		self.__path = path
 		self._set_pos(pos)
 
+		self.__defaultTouchDown = self.on_touch_down
+		self.on_touch_down = self.__handleTouch
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
+		self.__objectDescriptorReference = objectDescriptorRef
+
+	def getType(self):
+		return self.__objectType
+
+	def getPath(self):
+		return self.__path
+
+	def getSize(self):
+		return (self.__sx, self.__sy)
+
 
 class Scene (ConfigurationAccess):
 	
@@ -154,21 +197,28 @@ class Scene (ConfigurationAccess):
 		self.__objectDescriptorReference = value
 
 	def alignToGrid(self):
-		pass
+		obj = self.__objectDescriptorReference.getCurrentObject()
+		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
+			obj.alignToGrid()
+
 
 	def getLayout(self):
 		return self.__layout
 
 	def addObject(self, path, size, relativeX, relaviveY):
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
-		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToPixel, self.__maxX, self.__maxY)
+		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToPixel, self.__maxX, self.__maxY, self.__objectDescriptorReference)
 		self.__layout.add_widget(renderedObject)
 
 		self.__objectDict[self.__id] = renderedObject
 		self.__id += 1
-		
-
+	
 class SceneHandler :
+
+	def __handleScroll(self, touch):
+		
+		self.__defaultTouchMove(touch)
+	
 	def __init__(self, rightScreen, scene, maxWidthProportion = 0.75, maxHeightProportion = 0.667):
 		
 		self.maxWidthProportion = maxWidthProportion
@@ -177,6 +227,8 @@ class SceneHandler :
 		self.sceneReference = scene
 		
 		self.scrollView = ScrollView(size_hint=(None, None),  scroll_timeout = 100)
+		self.__defaultTouchMove = self.scrollView.on_touch_move
+		self.scrollView.on_touch_move = self.__handleScroll
 		self.scrollView.add_widget(self.sceneReference.getLayout())
 		rightScreen.add_widget(self.scrollView)
 		
@@ -227,12 +279,12 @@ class ObjectDescriptor:
 		if (self.currentObject == obj):
 			self.__drawObject(obj)
 		else:
-			self.__setObject(obj)
+			self.setObject(obj)
 
 	def __drawObject(self, obj):
 		self.sceneHandlerReference.draw(obj.getPath(), obj.getSize())
 
-	def __setObject(self, obj):
+	def setObject(self, obj):
 
 		path = obj.getPath()
 		size = obj.getSize()
@@ -242,6 +294,9 @@ class ObjectDescriptor:
 		self.pathLabel.text = 'Path: ' + str(path)
 		self.sizeLabel.text = 'Size: ' + str(size)
 		self.currentObject = obj
+
+	def getCurrentObject(self):
+		return self.currentObject
 
 	def updateLayoutSizes(self):
 		
@@ -360,6 +415,7 @@ class TileEditor(App):
 		self.objectHandler = ObjectDescriptor(self.rightScreen, self.sceneHandler)
 		self.leftMenuHandler = LeftMenuHandler(self.leftMenuBase, self.objectHandler)
 		self.scene.setObjectDescriptorReference(self.objectHandler) # unfortunate reference here
+		self.shortcutHandler = KeyboardShortcutHandler(self.scene)
 
 		TileEditor.resizeList.append(self.sceneHandler)
 		TileEditor.resizeList.append(self.objectHandler)
@@ -369,7 +425,8 @@ class TileEditor(App):
 		#self.root.on_touch_move = self.dispatchTouch
 		self.__defaultTouchUp = self.root.on_touch_up 
 		self.root.on_touch_up = self.dispatchTouch
-		
+	
+
 		Window.on_resize = self.resizeTest
 
 		return self.root
