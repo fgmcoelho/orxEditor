@@ -3,7 +3,6 @@ from kivy import require
 require('1.7.2')
 
 from kivy.app import App
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.relativelayout import RelativeLayout
@@ -18,10 +17,11 @@ from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
 from kivy.core.window import Window
 
+from sys import argv
 from ConfigParser import ConfigParser
-
 from os.path import isdir, isfile, join, exists
 from os import listdir, getcwd
+
 
 class ObjectTypes:
 	baseObject = 1
@@ -33,31 +33,79 @@ class ConfigurationAccess:
 		global ConfigObject
 		return ConfigObject.getValue(value)
 
-class KeyboardShortcutHandler:
+class KeyboardAccess:
 	
-	def __init__(self, scene):
-		self.__scene = scene
+	def getKeyboardAccess(self, keyDownMethod = None, keyUpMethod = None):
+		self.__keyDownMethod = keyDownMethod
+		self.__keyUpMethod = keyUpMethod
 		self.__keyboard = Window.request_keyboard(self.__finishKeyboard, self)
-		self.__keyboard.bind(on_key_down=self.__processKeyboard)
+	
+		if (self.__keyDownMethod != None):
+			self.__keyboard.bind(on_key_down=self.__keyDownMethod)
+
+		if (self.__keyUpMethod != None):
+			self.__keyboard.bind(on_key_up=self.__keyUpMethod)
+
 
 	def __finishKeyboard(self):
-		self.__keyboard.unbind(on_key_down=self.__processKeyboard)
+		if (self.__keyDownMethod != None):
+			self.__keyboard.unbind(on_key_down=self.__keyDownMethod)
+
+		if (self.__keyUpMethod != None):
+			self.__keyboard.unbind(on_key_up=self.__keyUpMethod)
+				
 		self.__keyboard = None
 
-	def __processKeyboard(self, keyboard, keycode, text, modifiers):
+
+class KeyboardShortcutHandler (KeyboardAccess):
+	
+	def __init__(self, scene, sceneHandler):
+		self.__sceneReference= scene
+		self.__sceneHandlerReference = sceneHandler
+		self.getKeyboardAccess(self.__processKeyDown, self.__processKeyUp)
+	
+	def __processKeyUp(self, keyboard, keycode):
+		#print('The key', keycode, 'have been released.')
+		
+		if (keycode[1] == 'shift'):
+			self.__sceneHandlerReference.setIsShiftPressed(False)
+
+		
+
+	def __processKeyDown(self, keyboard, keycode, text, modifiers):
 		#print('The key', keycode, 'have been pressed')
 		#print(' - text is %r' % text)
 		#print(' - modifiers are %r' % modifiers)
 
 		if (keycode[1] == 'q'):
-			self.__scene.alignToGrid()
+			self.__sceneReference.alignToGrid()
 
+		elif (keycode[1] == 'a'):
+			self.__sceneReference.alignAndCopyObject("left")
+
+		elif (keycode[1] == 's'):
+			self.__sceneReference.alignAndCopyObject("down")
+		
+		
+		elif (keycode[1] == 'd'):
+			self.__sceneReference.alignAndCopyObject("right")
+		
+		elif (keycode[1] == 'w'):
+			self.__sceneReference.alignAndCopyObject("up")
+
+		elif (keycode[1] == 'shift'):
+			self.__sceneHandlerReference.setIsShiftPressed(True)
+
+		elif (keycode[1] == 'delete'):
+			self.__sceneReference.removeObject()
+
+		
 		return True
 
 
 class TileEditorConfig:
 
-	def __init__(self, confFile = join ('..\orxEditor\config.ini')):
+	def __init__(self, confFile = 'config.ini'):
 		assert (isfile(confFile))
 		self.__configParser = ConfigParser()
 		self.__configParser.read(confFile)
@@ -121,7 +169,6 @@ class RenderedObject (Scatter):
 
 	def alignToGrid(self):
 		x, y = self.bbox[0]
-		print ((x, y, self.__tileSize))
 
 		distX = x % self.__tileSize
 		if (distX < self.__tileSize/2):
@@ -137,15 +184,18 @@ class RenderedObject (Scatter):
 
 		self._set_pos((x, y))
 
-	def __handleTouch(self, *args, **kwargs):
-		self.__objectDescriptorReference.setObject(self)
-		self.__defaultTouchDown(*args, **kwargs)
+	def __handleTouch(self, touch):
+
+		if (self.collide_point(*touch.pos) == True):
+			self.__objectDescriptorReference.setObject(self)
+
+		self.__defaultTouchDown(touch)
 
 	def __init__(self, identifier, path, size, pos, tileSize, alignToPixel, maxX, maxY, objectDescriptorRef):
 		
-		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size = size)
-		image = Image(source = path, size = size)
-		self.add_widget(image)
+		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), size = size, auto_bring_to_front = False)
+		self.image = Image(source = path, size = size)
+		self.add_widget(self.image)
 
 		self.__id = identifier
 		self.__objectType = ObjectTypes.renderedObject
@@ -164,6 +214,9 @@ class RenderedObject (Scatter):
 		self.apply_transform = self.__checkAndTransform
 		self.__objectDescriptorReference = objectDescriptorRef
 
+	def getIdentifier(self):
+		return self.__id
+
 	def getType(self):
 		return self.__objectType
 
@@ -172,6 +225,9 @@ class RenderedObject (Scatter):
 
 	def getSize(self):
 		return (self.__sx, self.__sy)
+
+	def getPos(self):
+		return self.bbox[0]
 
 
 class Scene (ConfigurationAccess):
@@ -196,10 +252,60 @@ class Scene (ConfigurationAccess):
 	def setObjectDescriptorReference(self, value):
 		self.__objectDescriptorReference = value
 
+	def removeObject(self):
+		obj = self.__objectDescriptorReference.getCurrentObject()
+		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
+			self.__layout.remove_widget(obj)
+			identifier = obj.getIdentifier()
+			del self.__objectDict[identifier]
+			obj = None
+			self.__objectDescriptorReference.clearCurrentObject()
+		
+	
 	def alignToGrid(self):
 		obj = self.__objectDescriptorReference.getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
 			obj.alignToGrid()
+
+	def alignAndCopyObject(self, direction):
+		obj = self.__objectDescriptorReference.getCurrentObject()
+		if (obj == None or obj.getType() != ObjectTypes.renderedObject):
+			return None
+		
+		obj.alignToGrid()
+		pos = obj.getPos()
+		size = obj.getSize()
+
+		if (direction == "left") and (pos[0] >= size[0]):
+			newPos = (pos[0] - size[0], pos[1])
+			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), size, newPos)
+			self.__objectDescriptorReference.setObject(newRenderedObject)
+
+		elif (direction == "right") and (pos[0] + size[0]*2 <= self.__maxX):
+			newPos = (pos[0] + size[0], pos[1])
+			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), size, newPos)
+			self.__objectDescriptorReference.setObject(newRenderedObject)
+
+		elif (direction == "up" and pos[1] + size[1] * 2 <= self.__maxY):
+			newPos = (pos[0], pos[1] + size[1])
+			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), size, newPos)
+			self.__objectDescriptorReference.setObject(newRenderedObject)
+		
+		elif (direction == "down" and pos[1] >= size[1]):
+			newPos = (pos[0], pos[1] - size[1])
+			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), size, newPos)
+			self.__objectDescriptorReference.setObject(newRenderedObject)
+
+		
+
+	def __createNewObjectAndAddToScene(self, path, size, pos):
+		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToPixel, self.__maxX, self.__maxY, self.__objectDescriptorReference)
+		self.__layout.add_widget(renderedObject)
+
+		self.__objectDict[self.__id] = renderedObject
+		self.__id += 1
+
+		return renderedObject
 
 
 	def getLayout(self):
@@ -207,28 +313,54 @@ class Scene (ConfigurationAccess):
 
 	def addObject(self, path, size, relativeX, relaviveY):
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
-		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToPixel, self.__maxX, self.__maxY, self.__objectDescriptorReference)
-		self.__layout.add_widget(renderedObject)
-
-		self.__objectDict[self.__id] = renderedObject
-		self.__id += 1
+		self.__createNewObjectAndAddToScene(path, size, pos)
 	
-class SceneHandler :
+class SceneHandler:
 
-	def __handleScroll(self, touch):
+	def setIsShiftPressed(self, value):
+		self.__isShiftPressed = value
+	
+	def __ignoreMoves(self, touch):
+		return None
+
+	def __handleScrollAndPassTouchesToChildren(self, touch):
+
+		if (self.scrollView.collide_point(*touch.pos) == False):
+			return
+
+		if (touch.is_mouse_scrolling == True):
+			if (self.__isShiftPressed == False):
+				if (touch.button == "scrollup" and self.scrollView.scroll_y > 0):
+					self.scrollView.scroll_y -= 0.05
+				elif (touch.button == "scrolldown" and self.scrollView.scroll_y < 1.0):
+					self.scrollView.scroll_y += 0.05
+			else:
+				if (touch.button == "scrollup" and self.scrollView.scroll_x > 0):
+					self.scrollView.scroll_x -= 0.05
+				elif (touch.button == "scrolldown" and self.scrollView.scroll_x < 1.0):
+					self.scrollView.scroll_x += 0.05
+
+			return 
+
+		self.__defaultTouchDown(touch)
 		
-		self.__defaultTouchMove(touch)
 	
 	def __init__(self, rightScreen, scene, maxWidthProportion = 0.75, maxHeightProportion = 0.667):
 		
+
+		self.__isShiftPressed = False
+
 		self.maxWidthProportion = maxWidthProportion
 		self.maxHeightProportion = maxHeightProportion
 		
 		self.sceneReference = scene
 		
-		self.scrollView = ScrollView(size_hint=(None, None),  scroll_timeout = 100)
-		self.__defaultTouchMove = self.scrollView.on_touch_move
-		self.scrollView.on_touch_move = self.__handleScroll
+		self.scrollView = ScrollView(size_hint=(None, None),  scroll_timeout = 0)
+		self.scrollView.on_touch_move = self.__ignoreMoves
+		self.__defaultTouchDown = self.scrollView.on_touch_down
+		self.scrollView.on_touch_down = self.__handleScrollAndPassTouchesToChildren
+
+
 		self.scrollView.add_widget(self.sceneReference.getLayout())
 		rightScreen.add_widget(self.scrollView)
 		
@@ -297,6 +429,11 @@ class ObjectDescriptor:
 
 	def getCurrentObject(self):
 		return self.currentObject
+
+	def clearCurrentObject(self):
+		self.pathLabel.text = 'Path: '
+		self.sizeLabel.text = 'Size: '
+		self.currentObject = None
 
 	def updateLayoutSizes(self):
 		
@@ -415,7 +552,7 @@ class TileEditor(App):
 		self.objectHandler = ObjectDescriptor(self.rightScreen, self.sceneHandler)
 		self.leftMenuHandler = LeftMenuHandler(self.leftMenuBase, self.objectHandler)
 		self.scene.setObjectDescriptorReference(self.objectHandler) # unfortunate reference here
-		self.shortcutHandler = KeyboardShortcutHandler(self.scene)
+		self.shortcutHandler = KeyboardShortcutHandler(self.scene, self.sceneHandler)
 
 		TileEditor.resizeList.append(self.sceneHandler)
 		TileEditor.resizeList.append(self.objectHandler)
@@ -430,8 +567,13 @@ class TileEditor(App):
 		Window.on_resize = self.resizeTest
 
 		return self.root
-
+	
 global ConfigObject
 if __name__ == '__main__':
-	ConfigObject = TileEditorConfig()
+	if (len(argv) >= 2):
+		ConfigObject = TileEditorConfig(argv[1])
+		
+	else:
+		ConfigObject = TileEditorConfig()
+	
 	TileEditor().run()
