@@ -17,7 +17,7 @@ from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
 from kivy.core.window import Window
 
-from sys import argv
+from sys import argv, exit
 from ConfigParser import ConfigParser
 from os.path import isdir, isfile, join, exists
 from os import listdir, getcwd
@@ -59,9 +59,10 @@ class KeyboardAccess:
 
 class KeyboardShortcutHandler (KeyboardAccess):
 	
-	def __init__(self, scene, sceneHandler):
+	def __init__(self, scene, sceneHandler, objectDescriptor):
 		self.__sceneReference= scene
 		self.__sceneHandlerReference = sceneHandler
+		self.__objectDescriptorReference =  objectDescriptor
 		self.getKeyboardAccess(self.__processKeyDown, self.__processKeyUp)
 	
 	def __processKeyUp(self, keyboard, keycode):
@@ -69,8 +70,6 @@ class KeyboardShortcutHandler (KeyboardAccess):
 		
 		if (keycode[1] == 'shift'):
 			self.__sceneHandlerReference.setIsShiftPressed(False)
-
-		
 
 	def __processKeyDown(self, keyboard, keycode, text, modifiers):
 		#print('The key', keycode, 'have been pressed')
@@ -86,12 +85,14 @@ class KeyboardShortcutHandler (KeyboardAccess):
 		elif (keycode[1] == 's'):
 			self.__sceneReference.alignAndCopyObject("down")
 		
-		
 		elif (keycode[1] == 'd'):
 			self.__sceneReference.alignAndCopyObject("right")
 		
 		elif (keycode[1] == 'w'):
 			self.__sceneReference.alignAndCopyObject("up")
+
+		elif (keycode[1] == 'e'):
+			self.__objectDescriptorReference.clearCurrentObject()
 
 		elif (keycode[1] == 'shift'):
 			self.__sceneHandlerReference.setIsShiftPressed(True)
@@ -99,7 +100,9 @@ class KeyboardShortcutHandler (KeyboardAccess):
 		elif (keycode[1] == 'delete'):
 			self.__sceneReference.removeObject()
 
-		
+		elif (keycode[1] == 'escape'):
+			exit()
+
 		return True
 
 
@@ -167,6 +170,12 @@ class RenderedObject (Scatter):
 		if (self.__alignToPixel == True):
 			self._set_pos((int(x), int(y)))
 
+	def setMarked(self):
+		self.image.color[3] = 0.7
+
+	def unsetMarked(self):
+		self.image.color[3] = 1.0
+
 	def alignToGrid(self):
 		x, y = self.bbox[0]
 
@@ -193,7 +202,8 @@ class RenderedObject (Scatter):
 
 	def __init__(self, identifier, path, size, pos, tileSize, alignToPixel, maxX, maxY, objectDescriptorRef):
 		
-		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), size = size, auto_bring_to_front = False)
+		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
+			size = size, auto_bring_to_front = False)
 		self.image = Image(source = path, size = size)
 		self.add_widget(self.image)
 
@@ -261,7 +271,6 @@ class Scene (ConfigurationAccess):
 			obj = None
 			self.__objectDescriptorReference.clearCurrentObject()
 		
-	
 	def alignToGrid(self):
 		obj = self.__objectDescriptorReference.getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
@@ -296,12 +305,11 @@ class Scene (ConfigurationAccess):
 			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), size, newPos)
 			self.__objectDescriptorReference.setObject(newRenderedObject)
 
-		
-
 	def __createNewObjectAndAddToScene(self, path, size, pos):
-		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToPixel, self.__maxX, self.__maxY, self.__objectDescriptorReference)
+		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToPixel, 
+			self.__maxX, self.__maxY, self.__objectDescriptorReference)
+		
 		self.__layout.add_widget(renderedObject)
-
 		self.__objectDict[self.__id] = renderedObject
 		self.__id += 1
 
@@ -349,7 +357,7 @@ class SceneHandler:
 		
 
 		self.__isShiftPressed = False
-
+		
 		self.maxWidthProportion = maxWidthProportion
 		self.maxHeightProportion = maxHeightProportion
 		
@@ -418,6 +426,9 @@ class ObjectDescriptor:
 
 	def setObject(self, obj):
 
+		if (self.currentObject != None and self.currentObject.getType() == ObjectTypes.renderedObject):
+			self.currentObject.unsetMarked()
+
 		path = obj.getPath()
 		size = obj.getSize()
 		cwd = getcwd() + '/'
@@ -427,10 +438,16 @@ class ObjectDescriptor:
 		self.sizeLabel.text = 'Size: ' + str(size)
 		self.currentObject = obj
 
+		if (self.currentObject.getType() == ObjectTypes.renderedObject):
+			obj.setMarked()
+
 	def getCurrentObject(self):
 		return self.currentObject
 
 	def clearCurrentObject(self):
+		if (self.currentObject != None and self.currentObject.getType() == ObjectTypes.renderedObject):
+			self.currentObject.unsetMarked()
+		
 		self.pathLabel.text = 'Path: '
 		self.sizeLabel.text = 'Size: '
 		self.currentObject = None
@@ -516,9 +533,11 @@ class TileEditor(App):
 			self.__defaultTouchUp(touch)
 
 	def build_config(self, c):
+		
 		Config.set('graphics', 'width', 800)
 		Config.set('graphics', 'height', 600)
 		Config.set('graphics', 'fullscreen', 0)
+		Config.set('input', 'mouse', 'mouse,disable_multitouch')
 		Config.write()
 
 	@staticmethod
@@ -552,7 +571,7 @@ class TileEditor(App):
 		self.objectHandler = ObjectDescriptor(self.rightScreen, self.sceneHandler)
 		self.leftMenuHandler = LeftMenuHandler(self.leftMenuBase, self.objectHandler)
 		self.scene.setObjectDescriptorReference(self.objectHandler) # unfortunate reference here
-		self.shortcutHandler = KeyboardShortcutHandler(self.scene, self.sceneHandler)
+		self.shortcutHandler = KeyboardShortcutHandler(self.scene, self.sceneHandler, self.objectHandler)
 
 		TileEditor.resizeList.append(self.sceneHandler)
 		TileEditor.resizeList.append(self.objectHandler)
