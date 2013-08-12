@@ -217,6 +217,8 @@ class RenderedObject (Scatter):
 		self.__maxX = maxX
 		self.__maxY = maxY
 		self.__path = path
+		self.__scale = 1.0
+		self.__layer = 1
 		self._set_pos(pos)
 
 		self.__defaultTouchDown = self.on_touch_down
@@ -417,10 +419,32 @@ class BaseObjectDescriptor:
 class RenderedObjectDescriptor:
 	def __init__(self, accordionItem):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.5))
-		self.__sizeLabel = Label(text = 'Size: ', size_hint = (1.0, 0.5))
+		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.333))
+		
+		self.__sizeScaleLabelBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.333))
+		self.__sizeLabel = Label(text = 'Size: ', size_hint = (0.333, 1.0))
+		self.__scaleLabel = Label(text = 'Scale: ', size_hint = (0.333, 1.0))
+		self.__labelLabel = Label(text = 'Label: ', size_hint = (0.3334, 1.0))
+		
+		self.__sizeScaleLabelBox.add_widget(self.__sizeLabel)
+		self.__sizeScaleLabelBox.add_widget(self.__scaleLabel)
+		self.__sizeScaleLabelBox.add_widget(self.__labelLabel)
+
+		self.__collisionBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.334))
+		self.__collisionLabelsBox = BoxLayout (orientation = 'vertical', size_hint = (0.7, 1.0))
+		self.__collisionSelfLabel = Label(text = 'Collision SelfFlags: 0x0000')
+		self.__collisionCheckLabel = Label(text = 'Collision CheckFlags: 0x0000')
+		self.__collisionHandler = Button(text = 'Edit Collision', size_hint = (0.3, 1.0))
+		
+		self.__collisionLabelsBox.add_widget(self.__collisionSelfLabel)
+		self.__collisionLabelsBox.add_widget(self.__collisionCheckLabel)
+		
+		self.__collisionBox.add_widget(self.__collisionLabelsBox)
+		self.__collisionBox.add_widget(self.__collisionHandler)
+
 		self.__layout.add_widget(self.__pathLabel)
-		self.__layout.add_widget(self.__sizeLabel)
+		self.__layout.add_widget(self.__sizeScaleLabelBox)
+		self.__layout.add_widget(self.__collisionBox)
 		self.__accordionItemReference = accordionItem
 		self.__accordionItemReference.add_widget(self.__layout)
 	
