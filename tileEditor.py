@@ -15,6 +15,7 @@ from kivy.uix.image import Image
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
+from kivy.uix.accordion import Accordion, AccordionItem
 from kivy.core.window import Window
 
 from sys import argv, exit
@@ -333,20 +334,20 @@ class SceneHandler:
 
 	def __handleScrollAndPassTouchesToChildren(self, touch):
 
-		if (self.scrollView.collide_point(*touch.pos) == False):
+		if (self.__scrollView.collide_point(*touch.pos) == False):
 			return
 
 		if (touch.is_mouse_scrolling == True):
 			if (self.__isShiftPressed == False):
-				if (touch.button == "scrollup" and self.scrollView.scroll_y > 0):
-					self.scrollView.scroll_y -= 0.05
-				elif (touch.button == "scrolldown" and self.scrollView.scroll_y < 1.0):
-					self.scrollView.scroll_y += 0.05
+				if (touch.button == "scrollup" and self.__scrollView.scroll_y > 0):
+					self.__scrollView.scroll_y -= 0.05
+				elif (touch.button == "scrolldown" and self.__scrollView.scroll_y < 1.0):
+					self.__scrollView.scroll_y += 0.05
 			else:
-				if (touch.button == "scrollup" and self.scrollView.scroll_x > 0):
-					self.scrollView.scroll_x -= 0.05
-				elif (touch.button == "scrolldown" and self.scrollView.scroll_x < 1.0):
-					self.scrollView.scroll_x += 0.05
+				if (touch.button == "scrollup" and self.__scrollView.scroll_x > 0):
+					self.__scrollView.scroll_x -= 0.05
+				elif (touch.button == "scrolldown" and self.__scrollView.scroll_x < 1.0):
+					self.__scrollView.scroll_x += 0.05
 
 			return 
 
@@ -358,19 +359,19 @@ class SceneHandler:
 
 		self.__isShiftPressed = False
 		
-		self.maxWidthProportion = maxWidthProportion
-		self.maxHeightProportion = maxHeightProportion
+		self.__maxWidthProportion = maxWidthProportion
+		self.__maxHeightProportion = maxHeightProportion
 		
-		self.sceneReference = scene
+		self.__sceneReference = scene
 		
-		self.scrollView = ScrollView(size_hint=(None, None),  scroll_timeout = 0)
-		self.scrollView.on_touch_move = self.__ignoreMoves
-		self.__defaultTouchDown = self.scrollView.on_touch_down
-		self.scrollView.on_touch_down = self.__handleScrollAndPassTouchesToChildren
+		self.__scrollView = ScrollView(size_hint=(None, None),  scroll_timeout = 0)
+		self.__scrollView.on_touch_move = self.__ignoreMoves
+		self.__defaultTouchDown = self.__scrollView.on_touch_down
+		self.__scrollView.on_touch_down = self.__handleScrollAndPassTouchesToChildren
 
 
-		self.scrollView.add_widget(self.sceneReference.getLayout())
-		rightScreen.add_widget(self.scrollView)
+		self.__scrollView.add_widget(self.__sceneReference.getLayout())
+		rightScreen.add_widget(self.__scrollView)
 		
 		self.updateLayoutSizes()
 
@@ -378,21 +379,83 @@ class SceneHandler:
 		
 		wx, wy = Window.size
 		
-		xSize = wx * self.maxWidthProportion
-		ySize = wy * self.maxHeightProportion
+		xSize = wx * self.__maxWidthProportion
+		ySize = wy * self.__maxHeightProportion
 		
-		self.scrollView.size = (xSize, ySize)
+		self.__scrollView.size = (xSize, ySize)
 
 	def draw(self, path, size):
-		relativeX = self.scrollView.hbar[0]
-		relaviveY = self.scrollView.vbar[0]
-		self.sceneReference.addObject(path, size, relativeX, relaviveY)
+		relativeX = self.__scrollView.hbar[0]
+		relaviveY = self.__scrollView.vbar[0]
+		self.__sceneReference.addObject(path, size, relativeX, relaviveY)
 
 	def getLayout(self):
-		return self.scrollView
+		return self.__scrollView
+
+class BaseObjectDescriptor:
 	
-	def handleTouch(self, touch):
-		pass
+	def __init__(self, accordionItem):
+		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
+		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.5))
+		self.__sizeLabel = Label(text = 'Size: ', size_hint = (1.0, 0.5))
+		self.__layout.add_widget(self.__pathLabel)
+		self.__layout.add_widget(self.__sizeLabel)
+		self.__accordionItemReference = accordionItem
+		self.__accordionItemReference.add_widget(self.__layout)
+
+	def getLayout(self):
+		return self.__layout
+
+	def setActive(self):
+		self.__accordionItemReference.collapse = False
+
+	def setValues(self, path, size):
+		self.__pathLabel.text = 'Path: ' + str(path)
+		self.__sizeLabel.text = 'Size: ' + str(size)
+		self.setActive()
+
+class RenderedObjectDescriptor:
+	def __init__(self, accordionItem):
+		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
+		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.5))
+		self.__sizeLabel = Label(text = 'Size: ', size_hint = (1.0, 0.5))
+		self.__layout.add_widget(self.__pathLabel)
+		self.__layout.add_widget(self.__sizeLabel)
+		self.__accordionItemReference = accordionItem
+		self.__accordionItemReference.add_widget(self.__layout)
+	
+	def getLayout(self):
+		return self.__layout
+
+	def setActive(self):
+		self.__accordionItemReference.collapse = False
+
+	def setValues(self, path, size):
+		self.__pathLabel.text = 'Path: ' + str(path)
+		self.__sizeLabel.text = 'Size: ' + str(size)
+		self.setActive()
+
+class OptionsMenu:
+	def __init__(self, accordionItem):
+		self.__layout = GridLayout(rows = 4, cols = 1, size_hint = (1.0, 1.0))
+		self.__newButton = Button(text = 'New Scene', size_hint = (1.0, 0.25))
+		self.__loadButton = Button(text = 'Load Scene', size_hint = (1.0, 0.25))
+		self.__saveButton = Button(text = 'Save Scene', size_hint = (1.0, 0.25))
+		self.__exportButton = Button(text = 'Export Scene', size_hint = (1.0, 0.25))
+		
+		self.__layout.add_widget(self.__newButton)
+		self.__layout.add_widget(self.__loadButton)
+		self.__layout.add_widget(self.__saveButton)
+		self.__layout.add_widget(self.__exportButton)
+
+		self.__accordionItemReference = accordionItem
+		self.__accordionItemReference.add_widget(self.__layout)
+
+	def getLayout(self):
+		return self.__layout
+
+	def setActive(self):
+		self.__accordionItemReference.collapse = False
 
 class ObjectDescriptor:
 	def __init__(self, rightScreen, sceneHandler, maxWidthProportion = 0.75, maxHeightProportion = 0.333):
@@ -402,18 +465,26 @@ class ObjectDescriptor:
 		self.maxWidthProportion = maxWidthProportion
 		self.maxHeightProportion = maxHeightProportion
 
-		self.layout = BoxLayout(orientation = 'vertical', size_hint = (None, None))
-		self.pathLabel = Label(text = 'Path: ')
-		self.sizeLabel = Label(text = 'Size: ')
-		self.collisionLabel = Label(text = 'Collision: ')
-		
-		self.layout.add_widget(self.pathLabel)
-		self.layout.add_widget(self.sizeLabel)
-		self.layout.add_widget(self.collisionLabel)
-
-		rightScreen.add_widget(self.layout)
-
+		self.__layout = Accordion(orientation = 'horizontal')
 		self.updateLayoutSizes()
+
+		self.__accordionItems = {
+			'BaseObject' : AccordionItem(title = 'Base Objects', size_hint = (None, None)),
+			'RenderedObject' : AccordionItem (title = 'Rendered Object', size_hint = (None, None)),
+			'Options' : AccordionItem(title = 'Options', size_hint = (None, None)),
+		}
+
+		self.__baseObjectDescriptor = BaseObjectDescriptor(self.__accordionItems['BaseObject'])
+		self.__renderedObjectDescriptor = RenderedObjectDescriptor(self.__accordionItems['RenderedObject'])
+		self.__optionsMenu = OptionsMenu(self.__accordionItems['Options'])
+
+		self.__layout.add_widget(self.__accordionItems['BaseObject'])
+		self.__layout.add_widget(self.__accordionItems['RenderedObject'])
+		self.__layout.add_widget(self.__accordionItems['Options'])
+
+		self.__baseObjectDescriptor.setActive()
+
+		rightScreen.add_widget(self.__layout)
 
 	def setOrDrawObject(self, obj):
 		if (self.currentObject == obj):
@@ -434,12 +505,15 @@ class ObjectDescriptor:
 		cwd = getcwd() + '/'
 		if (cwd == path[:len(cwd)]):
 			path = path[len(cwd):]
-		self.pathLabel.text = 'Path: ' + str(path)
-		self.sizeLabel.text = 'Size: ' + str(size)
-		self.currentObject = obj
 
-		if (self.currentObject.getType() == ObjectTypes.renderedObject):
+		if (obj.getType() == ObjectTypes.renderedObject):
+			self.__renderedObjectDescriptor.setValues(path, size)
 			obj.setMarked()
+		
+		else:
+			self.__baseObjectDescriptor.setValues(path, size)
+
+		self.currentObject = obj
 
 	def getCurrentObject(self):
 		return self.currentObject
@@ -448,8 +522,7 @@ class ObjectDescriptor:
 		if (self.currentObject != None and self.currentObject.getType() == ObjectTypes.renderedObject):
 			self.currentObject.unsetMarked()
 		
-		self.pathLabel.text = 'Path: '
-		self.sizeLabel.text = 'Size: '
+		self.__baseObjectDescriptor.setValues('', '')
 		self.currentObject = None
 
 	def updateLayoutSizes(self):
@@ -459,7 +532,7 @@ class ObjectDescriptor:
 		xSize = wx * self.maxWidthProportion
 		ySize = wy * self.maxHeightProportion
 		
-		self.layout.size = (xSize, ySize)
+		self.__layout.size = (xSize, ySize)
 
 
 class LeftMenuHandler (ConfigurationAccess):
@@ -525,9 +598,6 @@ class TileEditor(App):
 		res = False
 		if (self.leftMenuBase.collide_point(*touch.pos) == True):
 			res = self.leftMenuHandler.handleTouch(touch)
-
-		#if (self.sceneHandler.getLayout().collide_point(*touch.pos) == True):
-		#	self.sceneHandler.handleTouch(touch)
 
 		if (res == False):
 			self.__defaultTouchUp(touch)
