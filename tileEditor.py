@@ -17,6 +17,7 @@ from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
 from kivy.uix.accordion import Accordion, AccordionItem
 from kivy.core.window import Window
+from kivy.graphics.texture import Texture
 
 from sys import argv, exit
 from ConfigParser import ConfigParser
@@ -104,6 +105,18 @@ class KeyboardShortcutHandler (KeyboardAccess):
 		elif (keycode[1] == 'escape'):
 			exit()
 
+		elif (keycode[1] == 'r'):
+			self.__sceneReference.increaseScale()
+
+		elif (keycode[1] == 't'):
+			self.__sceneReference.decreaseScale()
+
+		#elif (keycode[1] == 'f'):
+		#	self.__sceneReference.flipOnX()
+		
+		#elif (keycode[1] == 'g'):
+		#	self.__sceneReference.flipOnY()
+
 		return True
 
 
@@ -155,6 +168,7 @@ class BaseObject:
 class RenderedObject (Scatter):
 
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
+		
 		self.__defaultApplyTransform(trans, post_multiply, anchor)
 		x, y = self.bbox[0]
 
@@ -171,11 +185,53 @@ class RenderedObject (Scatter):
 		if (self.__alignToPixel == True):
 			self._set_pos((int(x), int(y)))
 
+
 	def setMarked(self):
 		self.image.color[3] = 0.7
 
 	def unsetMarked(self):
 		self.image.color[3] = 1.0
+
+	def increaseScale(self):
+		self.setScale (self.__scale + 0.25, True)
+
+	
+	def decreaseScale(self):
+		self.setScale (self.__scale - 0.25, True)
+
+	def setScale(self, newScale, preservePos = False):
+		if (preservePos == True):
+			oldPos = self.bbox[0]
+		
+		self.__scale = newScale
+		self.scale = self.__scale
+		self.__sx, self.__sy = self.bbox[1]
+
+		if (preservePos == True):
+			print self.bbox
+			self._set_pos(oldPos)
+
+
+	def __flipVertical(self):
+
+		print self.bbox
+		self.remove_widget(self.image)
+		newTexture = self.image.texture
+		newTexture.flip_vertical()
+		self.image = None
+		self.image = Image(texture = newTexture, size_hint = (None, None))
+		self.add_widget(self.image)
+		print self.bbox
+
+	def flipOnX(self):
+		self.__flipX = not self.__flipX
+	
+		self.__flipVertical()
+		self.rotation = (self.rotation + 180) % 360
+
+	def flipOnY(self):
+		self.__flipY = not self.__flipY
+		self.__flipVertical()
 
 	def alignToGrid(self):
 		x, y = self.bbox[0]
@@ -194,20 +250,32 @@ class RenderedObject (Scatter):
 
 		self._set_pos((x, y))
 
-	def __handleTouch(self, touch):
+	def __handleTouchDown(self, touch):
 
 		if (self.collide_point(*touch.pos) == True):
 			self.__objectDescriptorReference.setObject(self)
 
 		self.__defaultTouchDown(touch)
 
-	def __init__(self, identifier, path, size, pos, tileSize, alignToPixel, maxX, maxY, objectDescriptorRef):
+	def __handleTouchUp(self, touch):
+		
+		#if (self.collide_point(*touch.pos) == True):
+		#	self.alignToGrid()
+
+		self.__defaultTouchUp(touch)
+
+	def __init__(self, identifier, path, baseSize, pos, tileSize, alignToPixel, maxX, maxY, 
+		objectDescriptorRef, scale = 1.0, layer = 1, flipX = False, flipY = False):
+		
+		self.__baseSize = baseSize
+		size  = (self.__baseSize[0] * scale, self.__baseSize[1] * scale)
 		
 		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
-			size = size, auto_bring_to_front = False)
-		self.image = Image(source = path, size = size)
+			size = self.__baseSize, auto_bring_to_front = False)
+		self.image = Image(source = path, size = self.__baseSize)
+		
 		self.add_widget(self.image)
-
+		self.__lastTransform = None
 		self.__id = identifier
 		self.__objectType = ObjectTypes.renderedObject
 		self.__sx = size[0]
@@ -217,15 +285,21 @@ class RenderedObject (Scatter):
 		self.__maxX = maxX
 		self.__maxY = maxY
 		self.__path = path
-		self.__scale = 1.0
-		self.__layer = 1
+		self.__scale = scale
+		self.__layer = layer
+		self.__flipX = flipX
+		self.__flipY = flipY
 		self._set_pos(pos)
 
 		self.__defaultTouchDown = self.on_touch_down
-		self.on_touch_down = self.__handleTouch
+		self.on_touch_down = self.__handleTouchDown
+		self.__defaultTouchUp = self.on_touch_up
+		self.on_touch_up = self.__handleTouchUp
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
 		self.__objectDescriptorReference = objectDescriptorRef
+
+		self.setScale(self.__scale, True)
 
 	def getIdentifier(self):
 		return self.__id
@@ -239,8 +313,23 @@ class RenderedObject (Scatter):
 	def getSize(self):
 		return (self.__sx, self.__sy)
 
+	def getBaseSize(self):
+		return self.__baseSize
+
 	def getPos(self):
 		return self.bbox[0]
+
+	def getScale(self):
+		return self.__scale
+
+	def getLayer(self):
+		return self.__layer
+
+	def getFlipX(self):
+		return self.__flipX
+
+	def getFlipY(self):
+		return self.__flipY
 
 
 class Scene (ConfigurationAccess):
@@ -265,6 +354,31 @@ class Scene (ConfigurationAccess):
 	def setObjectDescriptorReference(self, value):
 		self.__objectDescriptorReference = value
 
+	def increaseScale(self):
+		obj = self.__objectDescriptorReference.getCurrentObject()
+		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
+			obj.increaseScale()
+			self.__objectDescriptorReference.setObject(obj)
+	
+	def decreaseScale(self):
+		obj = self.__objectDescriptorReference.getCurrentObject()
+		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
+			obj.decreaseScale()
+			self.__objectDescriptorReference.setObject(obj)
+
+	def flipOnX(self):
+		obj = self.__objectDescriptorReference.getCurrentObject()
+		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
+			obj.flipOnX()
+			self.__objectDescriptorReference.setObject(obj)
+		
+	def flipOnY(self):
+		obj = self.__objectDescriptorReference.getCurrentObject()
+		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
+			obj.flipOnY()
+			self.__objectDescriptorReference.setObject(obj)
+
+
 	def removeObject(self):
 		obj = self.__objectDescriptorReference.getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
@@ -284,33 +398,37 @@ class Scene (ConfigurationAccess):
 		if (obj == None or obj.getType() != ObjectTypes.renderedObject):
 			return None
 		
-		obj.alignToGrid()
+		#obj.alignToGrid()
 		pos = obj.getPos()
 		size = obj.getSize()
+		scale = obj.getScale()
+		layer = obj.getLayer()
+		flipX = obj.getFlipX()
+		flipY = obj.getFlipY()
+		baseSize = obj.getBaseSize()
 
+
+		newPos = None
 		if (direction == "left") and (pos[0] >= size[0]):
 			newPos = (pos[0] - size[0], pos[1])
-			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), size, newPos)
-			self.__objectDescriptorReference.setObject(newRenderedObject)
 
 		elif (direction == "right") and (pos[0] + size[0]*2 <= self.__maxX):
 			newPos = (pos[0] + size[0], pos[1])
-			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), size, newPos)
-			self.__objectDescriptorReference.setObject(newRenderedObject)
 
 		elif (direction == "up" and pos[1] + size[1] * 2 <= self.__maxY):
 			newPos = (pos[0], pos[1] + size[1])
-			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), size, newPos)
-			self.__objectDescriptorReference.setObject(newRenderedObject)
 		
 		elif (direction == "down" and pos[1] >= size[1]):
 			newPos = (pos[0], pos[1] - size[1])
-			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), size, newPos)
+	
+		if (newPos != None):
+			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), baseSize, newPos, scale, layer, flipX, flipY)
 			self.__objectDescriptorReference.setObject(newRenderedObject)
 
-	def __createNewObjectAndAddToScene(self, path, size, pos):
+	
+	def __createNewObjectAndAddToScene(self, path, size, pos, scale = 1.0, layer = 1, flipX = False, flipY = False):
 		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToPixel, 
-			self.__maxX, self.__maxY, self.__objectDescriptorReference)
+			self.__maxX, self.__maxY, self.__objectDescriptorReference, scale, layer, flipX, flipY)
 		
 		self.__layout.add_widget(renderedObject)
 		self.__objectDict[self.__id] = renderedObject
@@ -324,7 +442,8 @@ class Scene (ConfigurationAccess):
 
 	def addObject(self, path, size, relativeX, relaviveY):
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
-		self.__createNewObjectAndAddToScene(path, size, pos)
+		newRenderedObject = self.__createNewObjectAndAddToScene(path, size, pos)
+		self.__objectDescriptorReference.setObject(newRenderedObject)
 	
 class SceneHandler:
 
@@ -394,6 +513,11 @@ class SceneHandler:
 	def getLayout(self):
 		return self.__scrollView
 
+class CollisionInformationPopup:
+
+	def __init__(self):
+		pass
+
 class BaseObjectDescriptor:
 	
 	def __init__(self, accordionItem):
@@ -421,14 +545,14 @@ class RenderedObjectDescriptor:
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.333))
 		
-		self.__sizeScaleLabelBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.333))
+		self.__sizeScaleLayerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.333))
 		self.__sizeLabel = Label(text = 'Size: ', size_hint = (0.333, 1.0))
 		self.__scaleLabel = Label(text = 'Scale: ', size_hint = (0.333, 1.0))
-		self.__labelLabel = Label(text = 'Label: ', size_hint = (0.3334, 1.0))
+		self.__layerLabel = Label(text = 'Layer: ', size_hint = (0.3334, 1.0))
 		
-		self.__sizeScaleLabelBox.add_widget(self.__sizeLabel)
-		self.__sizeScaleLabelBox.add_widget(self.__scaleLabel)
-		self.__sizeScaleLabelBox.add_widget(self.__labelLabel)
+		self.__sizeScaleLayerBox.add_widget(self.__sizeLabel)
+		self.__sizeScaleLayerBox.add_widget(self.__scaleLabel)
+		self.__sizeScaleLayerBox.add_widget(self.__layerLabel)
 
 		self.__collisionBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.334))
 		self.__collisionLabelsBox = BoxLayout (orientation = 'vertical', size_hint = (0.7, 1.0))
@@ -443,7 +567,7 @@ class RenderedObjectDescriptor:
 		self.__collisionBox.add_widget(self.__collisionHandler)
 
 		self.__layout.add_widget(self.__pathLabel)
-		self.__layout.add_widget(self.__sizeScaleLabelBox)
+		self.__layout.add_widget(self.__sizeScaleLayerBox)
 		self.__layout.add_widget(self.__collisionBox)
 		self.__accordionItemReference = accordionItem
 		self.__accordionItemReference.add_widget(self.__layout)
@@ -454,9 +578,11 @@ class RenderedObjectDescriptor:
 	def setActive(self):
 		self.__accordionItemReference.collapse = False
 
-	def setValues(self, path, size):
+	def setValues(self, path, size, scale, layer):
 		self.__pathLabel.text = 'Path: ' + str(path)
 		self.__sizeLabel.text = 'Size: ' + str(size)
+		self.__scaleLabel.text = 'Scale: ' + str(scale)
+		self.__layerLabel.text = 'Layer: ' + str(layer)
 		self.setActive()
 
 class OptionsMenu:
@@ -531,7 +657,7 @@ class ObjectDescriptor:
 			path = path[len(cwd):]
 
 		if (obj.getType() == ObjectTypes.renderedObject):
-			self.__renderedObjectDescriptor.setValues(path, size)
+			self.__renderedObjectDescriptor.setValues(path, size, obj.getScale(), obj.getLayer())
 			obj.setMarked()
 		
 		else:
