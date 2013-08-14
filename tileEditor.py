@@ -15,6 +15,8 @@ from kivy.uix.image import Image
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
+from kivy.uix.checkbox import CheckBox
+from kivy.uix.switch import Switch
 from kivy.uix.accordion import Accordion, AccordionItem
 from kivy.core.window import Window
 from kivy.graphics.texture import Texture
@@ -130,7 +132,7 @@ class TileEditorConfig:
 			'TilesMaxX'  : int(self.__configParser.get('TileEditor', 'maxX')),
 			'TilesMaxY'  : int(self.__configParser.get('TileEditor', 'maxY')),
 			'TilesSize'  : int(self.__configParser.get('TileEditor', 'size')),
-			'TilesAlignToPixel' : bool(self.__configParser.get('TileEditor', 'alignToPixel')),
+			'TilesAlignToGrid' : bool(self.__configParser.get('TileEditor', 'alignToGrid')),
 			'AssetsPath' : str(self.__configParser.get('Assets', 'path')),
 		}
 
@@ -182,9 +184,7 @@ class RenderedObject (Scatter):
 		elif (y + self.__sy > self.__maxY):
 			y = self.__maxY - self.__sy
 
-		if (self.__alignToPixel == True):
-			self._set_pos((int(x), int(y)))
-
+		self._set_pos((int(x), int(y)))
 
 	def setMarked(self):
 		self.image.color[3] = 0.7
@@ -194,7 +194,6 @@ class RenderedObject (Scatter):
 
 	def increaseScale(self):
 		self.setScale (self.__scale + 0.25, True)
-
 	
 	def decreaseScale(self):
 		self.setScale (self.__scale - 0.25, True)
@@ -208,9 +207,7 @@ class RenderedObject (Scatter):
 		self.__sx, self.__sy = self.bbox[1]
 
 		if (preservePos == True):
-			print self.bbox
 			self._set_pos(oldPos)
-
 
 	def __flipVertical(self):
 
@@ -259,13 +256,13 @@ class RenderedObject (Scatter):
 
 	def __handleTouchUp(self, touch):
 		
-		#if (self.collide_point(*touch.pos) == True):
-		#	self.alignToGrid()
+		if (self.__alignToGrid == True and self.collide_point(*touch.pos) == True):
+			self.alignToGrid()
 
 		self.__defaultTouchUp(touch)
 
-	def __init__(self, identifier, path, baseSize, pos, tileSize, alignToPixel, maxX, maxY, 
-		objectDescriptorRef, scale = 1.0, layer = 1, flipX = False, flipY = False):
+	def __init__(self, identifier, path, baseSize, pos, tileSize, alignToGrid, maxX, maxY, 
+		objectDescriptorRef, scale = 1.0, layer = 1, flipX = False, flipY = False, collisionInfo = None):
 		
 		self.__baseSize = baseSize
 		size  = (self.__baseSize[0] * scale, self.__baseSize[1] * scale)
@@ -280,7 +277,7 @@ class RenderedObject (Scatter):
 		self.__objectType = ObjectTypes.renderedObject
 		self.__sx = size[0]
 		self.__sy = size[1]
-		self.__alignToPixel = alignToPixel
+		self.__alignToGrid = alignToGrid
 		self.__tileSize = tileSize
 		self.__maxX = maxX
 		self.__maxY = maxY
@@ -290,6 +287,7 @@ class RenderedObject (Scatter):
 		self.__flipX = flipX
 		self.__flipY = flipY
 		self._set_pos(pos)
+		self.__collisionInfo = collisionInfo
 
 		self.__defaultTouchDown = self.on_touch_down
 		self.on_touch_down = self.__handleTouchDown
@@ -340,7 +338,7 @@ class Scene (ConfigurationAccess):
 		sx = self.getConfigValue('TilesMaxX') * self.__tileSize
 		sy = self.getConfigValue('TilesMaxY') * self.__tileSize
 
-		self.__alignToPixel = self.getConfigValue('TilesAlignToPixel')
+		self.__alignToGrid = self.getConfigValue('TilesAlignToGrid')
 		self.__layout = RelativeLayout(size=(sx, sy), size_hint = (None, None))
 		
 		self.__id = 0
@@ -398,7 +396,8 @@ class Scene (ConfigurationAccess):
 		if (obj == None or obj.getType() != ObjectTypes.renderedObject):
 			return None
 		
-		#obj.alignToGrid()
+		if (self.__alignToGrid == True):
+			obj.alignToGrid()
 		pos = obj.getPos()
 		size = obj.getSize()
 		scale = obj.getScale()
@@ -406,7 +405,6 @@ class Scene (ConfigurationAccess):
 		flipX = obj.getFlipX()
 		flipY = obj.getFlipY()
 		baseSize = obj.getBaseSize()
-
 
 		newPos = None
 		if (direction == "left") and (pos[0] >= size[0]):
@@ -427,7 +425,7 @@ class Scene (ConfigurationAccess):
 
 	
 	def __createNewObjectAndAddToScene(self, path, size, pos, scale = 1.0, layer = 1, flipX = False, flipY = False):
-		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToPixel, 
+		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToGrid, 
 			self.__maxX, self.__maxY, self.__objectDescriptorReference, scale, layer, flipX, flipY)
 		
 		self.__layout.add_widget(renderedObject)
@@ -513,10 +511,159 @@ class SceneHandler:
 	def getLayout(self):
 		return self.__scrollView
 
+class CollisionFlag:
+	def __init__(self, name, hexValue):
+		self.__name = name
+		self.__hexValue = hexValue
+
+	def getName(self):
+		return self.__name
+
+	def getHexValue(self):
+		return self.__hexValue
+
+	def collides(self, other):
+		return self.__hexValue | other
+
+class CollisionInformation:
+
+	def __init__(self, selfFlag, checkMask, isSolid, isDynamic, allowSleep, collisionType):
+		self.__selfFlag = selfFlag
+		self.__checkMask = checkMask
+		self.__isSolid = isSolid
+		self.__isDynamic = isDynamic
+		self.__allowSleep = allowSleep
+		self.__collisionType = collisionType
+
+	def getSelfFlag(self):
+		return self.__selfFlag
+
+	def getCheckMask(self):
+		return self.__checkMask
+
+	def getIsSolid(self):
+		return self.__isSolid
+
+	def getIsDynamic(self):
+		return self.__isDynamic
+
+	def getAllowSleep(self):
+		return self.__allowSleep
+
+	def getCollisionType(self):
+		return self.__collisionType
+	
+	def setSelfFlag(self, value):
+		self.__selfFlag = value
+
+	def setCheckMask(self, value):
+		self.__checkMask = value
+
+	def setIsSolid(self, value):
+		self.__isSolid = value
+
+	def setIsDynamic(self, value):
+		self.__isDynamic = value
+
+	def setAllowSleep(self, value):
+		self.__allowSleep = value
+
+	def setCollisionType(self, value):
+		self.__collisionType = value
+
+	def copy(self):
+		return CollisionInformation(self.getSelfFlag(), self.getCheckMask(), self.getIsSolid(), self.getIsDynamic(),
+			self.getAllowSleep(), self.getCollisionType())
+
+	def isEquals(self, other):
+		return (self.getSelfFlag() == other.getSelfFlag() & 
+			self.getCheckMask() == other.getCheckMask() &
+			self.getIsSolid() == other.getIsSolid() &
+			self.getIsDynamic() == other.getIsDynamic() &
+			self.getAllowSleep() == other.getAllowSleep() &
+			self.getCollisionType() == other.getCollisionType())
+
 class CollisionInformationPopup:
 
+	@staticmethod
+	def validateMask(inputReference):
+		value = inputReference.text
+		valid = True
+		
+		if (value == ''):
+			valid = False
+
+		value = value.strip()
+
+		base = 10
+		if (value[0:2] == '0x' or value[0:2] == '0X'):
+			base = 16
+		
+		elif (value[0:2] == '0b' or value[0:2] == '0B'):
+			base = 2
+
+		elif (value[0] == '0'):
+			base = 8
+
+		try:
+			x = int (value, base)
+			valid = True
+			if (x < 0 or x > 0xFFFF):
+				valid = False
+		except:
+			valid = False
+
+		if (valid == False):
+			inputReference.background_color = [1, 0, 0, 1]
+		else:
+			inputReference.background_color = [1, 1, 1, 1]
+
 	def __init__(self):
-		pass
+		self.__collisionPopUp = Popup (title = 'Collision configs', auto_dismiss = False)
+		self.__collisionGrid = GridLayout(cols = 2, rows = 7, size_hint = (1.0, 1.0))
+		
+		self.__collisionGrid.add_widget(Label(text = 'SelfFlag:'))
+		self.__selfFlagInput = TextInput(text='0xFFFF', multiline = False)
+		self.__selfFlagInput.bind(on_text_validate=CollisionInformationPopup.validateMask)
+		self.__collisionGrid.add_widget(self.__selfFlagInput)
+
+		self.__collisionGrid.add_widget(Label(text = 'Check Mask:'))
+		self.__checkMastInput = TextInput(text='0xFFFF', multiline = False, on_text_validate=CollisionInformationPopup.validateMask)
+		self.__collisionGrid.add_widget(self.__checkMastInput)
+		
+		self.__collisionGrid.add_widget(Label(text = 'Solid?'))
+		self.__solidSwitch = Switch(active = False)
+		self.__collisionGrid.add_widget(self.__solidSwitch)
+
+		self.__collisionGrid.add_widget(Label(text = 'Dynamic?'))
+		self.__dynamicSwitch = Switch(active = False)
+		self.__collisionGrid.add_widget(self.__dynamicSwitch)
+
+		self.__collisionGrid.add_widget(Label(text = 'Allow sleep?'))
+		self.__allowSleepSwitch = Switch(active = False)
+		self.__collisionGrid.add_widget(self.__allowSleepSwitch)
+		
+		self.__collisionGrid.add_widget(Label(text = 'Type:'))
+		self.__typesGrid = GridLayout (cols = 2, rows = 2)
+		self.__typeBoxSelect = CheckBox(active = True, group = 'collision_type')
+		self.__typesGrid.add_widget(self.__typeBoxSelect)
+		self.__typesGrid.add_widget(Label(text = 'Box'))
+		self.__typeSphereSelect = CheckBox(active = False, group = 'collision_type')
+		self.__typesGrid.add_widget(self.__typeSphereSelect)
+		self.__typesGrid.add_widget(Label(text = 'Sphere'))
+		self.__collisionGrid.add_widget(self.__typesGrid)
+
+		self.__okButton = Button(text = 'Done')
+		self.__cancelButton = Button (text = 'Cancel')
+		self.__cancelButton.bind(on_press=self.__collisionPopUp.dismiss)
+		self.__collisionGrid.add_widget(self.__okButton)
+		self.__collisionGrid.add_widget(self.__cancelButton)
+		
+		self.__collisionPopUp.content = self.__collisionGrid
+	
+	def getPopUp(self):
+		return self.__collisionPopUp
+
 
 class BaseObjectDescriptor:
 	
@@ -541,7 +688,7 @@ class BaseObjectDescriptor:
 		self.setActive()
 
 class RenderedObjectDescriptor:
-	def __init__(self, accordionItem):
+	def __init__(self, accordionItem, popUpMethod):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.333))
 		
@@ -555,15 +702,11 @@ class RenderedObjectDescriptor:
 		self.__sizeScaleLayerBox.add_widget(self.__layerLabel)
 
 		self.__collisionBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.334))
-		self.__collisionLabelsBox = BoxLayout (orientation = 'vertical', size_hint = (0.7, 1.0))
-		self.__collisionSelfLabel = Label(text = 'Collision SelfFlags: 0x0000')
-		self.__collisionCheckLabel = Label(text = 'Collision CheckFlags: 0x0000')
+		self.__collisionInfoLabel = Label(text = 'Has collision info: ')
 		self.__collisionHandler = Button(text = 'Edit Collision', size_hint = (0.3, 1.0))
+		self.__collisionHandler.bind(on_press=popUpMethod)
 		
-		self.__collisionLabelsBox.add_widget(self.__collisionSelfLabel)
-		self.__collisionLabelsBox.add_widget(self.__collisionCheckLabel)
-		
-		self.__collisionBox.add_widget(self.__collisionLabelsBox)
+		self.__collisionBox.add_widget(self.__collisionInfoLabel)
 		self.__collisionBox.add_widget(self.__collisionHandler)
 
 		self.__layout.add_widget(self.__pathLabel)
@@ -608,8 +751,13 @@ class OptionsMenu:
 		self.__accordionItemReference.collapse = False
 
 class ObjectDescriptor:
-	def __init__(self, rightScreen, sceneHandler, maxWidthProportion = 0.75, maxHeightProportion = 0.333):
+	
+	def openCollisionPopUp(self, ignore):
+		self.__collisionPopUpReference.getPopUp().open()
+
+	def __init__(self, rightScreen, sceneHandler, collisionPopUp, maxWidthProportion = 0.75, maxHeightProportion = 0.333):
 		
+		self.__collisionPopUpReference = collisionPopUp
 		self.sceneHandlerReference = sceneHandler
 		self.currentObject = None
 		self.maxWidthProportion = maxWidthProportion
@@ -625,7 +773,7 @@ class ObjectDescriptor:
 		}
 
 		self.__baseObjectDescriptor = BaseObjectDescriptor(self.__accordionItems['BaseObject'])
-		self.__renderedObjectDescriptor = RenderedObjectDescriptor(self.__accordionItems['RenderedObject'])
+		self.__renderedObjectDescriptor = RenderedObjectDescriptor(self.__accordionItems['RenderedObject'], self.openCollisionPopUp)
 		self.__optionsMenu = OptionsMenu(self.__accordionItems['Options'])
 
 		self.__layout.add_widget(self.__accordionItems['BaseObject'])
@@ -787,8 +935,10 @@ class TileEditor(App):
 		self.root.add_widget(self.rightScreen)
 		
 		self.scene = Scene()
+		self.collisionPopUp = CollisionInformationPopup()
+
 		self.sceneHandler = SceneHandler(self.rightScreen, self.scene)
-		self.objectHandler = ObjectDescriptor(self.rightScreen, self.sceneHandler)
+		self.objectHandler = ObjectDescriptor(self.rightScreen, self.sceneHandler, self.collisionPopUp)
 		self.leftMenuHandler = LeftMenuHandler(self.leftMenuBase, self.objectHandler)
 		self.scene.setObjectDescriptorReference(self.objectHandler) # unfortunate reference here
 		self.shortcutHandler = KeyboardShortcutHandler(self.scene, self.sceneHandler, self.objectHandler)
