@@ -24,7 +24,7 @@ from kivy.graphics.texture import Texture
 from sys import argv, exit
 from ConfigParser import ConfigParser
 from os.path import isdir, isfile, join, exists
-from os import listdir, getcwd
+from os import listdir, getcwd, sep as pathSeparator
 
 
 class ObjectTypes:
@@ -113,11 +113,11 @@ class KeyboardShortcutHandler (KeyboardAccess):
 		elif (keycode[1] == 't'):
 			self.__sceneReference.decreaseScale()
 
-		#elif (keycode[1] == 'f'):
-		#	self.__sceneReference.flipOnX()
+		elif (keycode[1] == 'f'):
+			self.__sceneReference.flipOnX()
 		
-		#elif (keycode[1] == 'g'):
-		#	self.__sceneReference.flipOnY()
+		elif (keycode[1] == 'g'):
+			self.__sceneReference.flipOnY()
 
 		return True
 
@@ -171,8 +171,14 @@ class RenderedObject (Scatter):
 
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
 		
+		xBefore, yBefore = self.bbox[0]
+
 		self.__defaultApplyTransform(trans, post_multiply, anchor)
+		
 		x, y = self.bbox[0]
+
+		if (xBefore == x and yBefore == y):
+			return
 
 		if (x < 0):
 			x = 0
@@ -185,6 +191,7 @@ class RenderedObject (Scatter):
 			y = self.__maxY - self.__sy
 
 		self._set_pos((int(x), int(y)))
+
 
 	def setMarked(self):
 		self.image.color[3] = 0.7
@@ -211,24 +218,39 @@ class RenderedObject (Scatter):
 
 	def __flipVertical(self):
 
-		print self.bbox
-		self.remove_widget(self.image)
 		newTexture = self.image.texture
 		newTexture.flip_vertical()
-		self.image = None
-		self.image = Image(texture = newTexture, size_hint = (None, None))
+		sizeToUse = self.image.size
+		self.remove_widget(self.image)
+		self.image = Image(texture = newTexture, size = (sizeToUse))
 		self.add_widget(self.image)
-		print self.bbox
+
+	def __flipHorizontal(self):
+		newTexture = self.image.texture
+		uvx, uvy = newTexture.uvpos
+		uvw, uvh = newTexture.uvsize
+		uvx += uvw
+		uvw = -uvw
+		newTexture.uvpos = (uvx, uvy)
+		newTexture.uvsize = (uvw, uvh)
+		sizeToUse = self.image.size
+		self.remove_widget(self.image)
+		self.image = Image(texture = newTexture, size = (sizeToUse))
+		self.add_widget(self.image)
 
 	def flipOnX(self):
 		self.__flipX = not self.__flipX
 	
-		self.__flipVertical()
-		self.rotation = (self.rotation + 180) % 360
+		x, y = self.bbox[0]
+		self.__flipHorizontal()
+		self._set_pos((x,y))
 
 	def flipOnY(self):
 		self.__flipY = not self.__flipY
+		
+		x, y = self.bbox[0]
 		self.__flipVertical()
+		self._set_pos((x,y))
 
 	def alignToGrid(self):
 		x, y = self.bbox[0]
@@ -261,6 +283,10 @@ class RenderedObject (Scatter):
 
 		self.__defaultTouchUp(touch)
 
+	def __handleTouchMove(self, touch):
+
+		self.__defaultTouchMove(touch)
+
 	def __init__(self, identifier, path, baseSize, pos, tileSize, alignToGrid, maxX, maxY, 
 		objectDescriptorRef, scale = 1.0, layer = 1, flipX = False, flipY = False, collisionInfo = None):
 		
@@ -269,8 +295,15 @@ class RenderedObject (Scatter):
 		
 		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
 			size = self.__baseSize, auto_bring_to_front = False)
-		self.image = Image(source = path, size = self.__baseSize)
+		self.image = Image(source = path, size = self.__baseSize, noCache = True)
+		self.image.reload()
 		
+		sepIndex = path.rfind(pathSeparator)
+		if (sepIndex != -1):
+			self.__name = path[sepIndex+1:-4] + '_' + str(identifier)
+		else:
+			self.__name = path[0:-4] + '_' + str(identifier)
+
 		self.add_widget(self.image)
 		self.__lastTransform = None
 		self.__id = identifier
@@ -295,8 +328,10 @@ class RenderedObject (Scatter):
 		self.on_touch_up = self.__handleTouchUp
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
-		self.__objectDescriptorReference = objectDescriptorRef
+		self.__defaultTouchMove = self.on_touch_move
+		self.on_touch_move = self.__handleTouchMove
 
+		self.__objectDescriptorReference = objectDescriptorRef
 		self.setScale(self.__scale, True)
 
 	def getIdentifier(self):
@@ -328,7 +363,12 @@ class RenderedObject (Scatter):
 
 	def getFlipY(self):
 		return self.__flipY
-
+	
+	def getName(self):
+		return self.__name
+	
+	def getCollisionInfo(self):
+		return self.__collisionInfo
 
 class Scene (ConfigurationAccess):
 	
@@ -405,6 +445,7 @@ class Scene (ConfigurationAccess):
 		flipX = obj.getFlipX()
 		flipY = obj.getFlipY()
 		baseSize = obj.getBaseSize()
+		collisionInfo = obj.getCollisionInfo()
 
 		newPos = None
 		if (direction == "left") and (pos[0] >= size[0]):
@@ -420,13 +461,14 @@ class Scene (ConfigurationAccess):
 			newPos = (pos[0], pos[1] - size[1])
 	
 		if (newPos != None):
-			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), baseSize, newPos, scale, layer, flipX, flipY)
+			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), baseSize, newPos, scale, layer, 
+				flipX, flipY, collisionInfo)
 			self.__objectDescriptorReference.setObject(newRenderedObject)
 
 	
-	def __createNewObjectAndAddToScene(self, path, size, pos, scale = 1.0, layer = 1, flipX = False, flipY = False):
+	def __createNewObjectAndAddToScene(self, path, size, pos, scale = 1.0, layer = 1, flipX = False, flipY = False, colInfo = None):
 		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToGrid, 
-			self.__maxX, self.__maxY, self.__objectDescriptorReference, scale, layer, flipX, flipY)
+			self.__maxX, self.__maxY, self.__objectDescriptorReference, scale, layer, flipX, flipY, colInfo)
 		
 		self.__layout.add_widget(renderedObject)
 		self.__objectDict[self.__id] = renderedObject
@@ -463,9 +505,9 @@ class SceneHandler:
 				elif (touch.button == "scrolldown" and self.__scrollView.scroll_y < 1.0):
 					self.__scrollView.scroll_y += 0.05
 			else:
-				if (touch.button == "scrollup" and self.__scrollView.scroll_x > 0):
+				if (touch.button == "scrolldown" and self.__scrollView.scroll_x > 0):
 					self.__scrollView.scroll_x -= 0.05
-				elif (touch.button == "scrolldown" and self.__scrollView.scroll_x < 1.0):
+				elif (touch.button == "scrollup" and self.__scrollView.scroll_x < 1.0):
 					self.__scrollView.scroll_x += 0.05
 
 			return 
@@ -690,9 +732,17 @@ class BaseObjectDescriptor:
 class RenderedObjectDescriptor:
 	def __init__(self, accordionItem, popUpMethod):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.333))
-		
-		self.__sizeScaleLayerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.333))
+		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.2))
+
+		self.__nameLabel = Label(text = 'Name: ', size_hint = (1.0, 0.2))
+
+		self.__flipBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		self.__flipxLabel = Label(text = 'Flipped on X: ', size_hint = (0.5, 1.0))
+		self.__flipyLabel = Label(text = 'Flipped on Y: ', size_hint = (0.5, 1.0))
+		self.__flipBox.add_widget(self.__flipxLabel)
+		self.__flipBox.add_widget(self.__flipyLabel)
+
+		self.__sizeScaleLayerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__sizeLabel = Label(text = 'Size: ', size_hint = (0.333, 1.0))
 		self.__scaleLabel = Label(text = 'Scale: ', size_hint = (0.333, 1.0))
 		self.__layerLabel = Label(text = 'Layer: ', size_hint = (0.3334, 1.0))
@@ -701,7 +751,7 @@ class RenderedObjectDescriptor:
 		self.__sizeScaleLayerBox.add_widget(self.__scaleLabel)
 		self.__sizeScaleLayerBox.add_widget(self.__layerLabel)
 
-		self.__collisionBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.334))
+		self.__collisionBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__collisionInfoLabel = Label(text = 'Has collision info: ')
 		self.__collisionHandler = Button(text = 'Edit Collision', size_hint = (0.3, 1.0))
 		self.__collisionHandler.bind(on_press=popUpMethod)
@@ -710,8 +760,11 @@ class RenderedObjectDescriptor:
 		self.__collisionBox.add_widget(self.__collisionHandler)
 
 		self.__layout.add_widget(self.__pathLabel)
+		self.__layout.add_widget(self.__nameLabel)
+		self.__layout.add_widget(self.__flipBox)
 		self.__layout.add_widget(self.__sizeScaleLayerBox)
 		self.__layout.add_widget(self.__collisionBox)
+
 		self.__accordionItemReference = accordionItem
 		self.__accordionItemReference.add_widget(self.__layout)
 	
@@ -721,11 +774,19 @@ class RenderedObjectDescriptor:
 	def setActive(self):
 		self.__accordionItemReference.collapse = False
 
-	def setValues(self, path, size, scale, layer):
+	def setValues(self, path, size, scale, layer, name, flipX, flipY, collisionInfo):
 		self.__pathLabel.text = 'Path: ' + str(path)
 		self.__sizeLabel.text = 'Size: ' + str(size)
 		self.__scaleLabel.text = 'Scale: ' + str(scale)
 		self.__layerLabel.text = 'Layer: ' + str(layer)
+		self.__nameLabel.text = 'Name: ' + str(name)
+		self.__flipxLabel.text = 'Flipped on X: ' + str(flipX)
+		self.__flipyLabel.text = 'Flipped on Y: ' + str(flipY)
+		if (collisionInfo == None):
+			self.__collisionInfoLabel.text = 'Has collision info: None'
+		else:
+			self.__collisionInfoLabel.text = 'Has collision info: Available'
+		
 		self.setActive()
 
 class OptionsMenu:
@@ -805,7 +866,8 @@ class ObjectDescriptor:
 			path = path[len(cwd):]
 
 		if (obj.getType() == ObjectTypes.renderedObject):
-			self.__renderedObjectDescriptor.setValues(path, size, obj.getScale(), obj.getLayer())
+			self.__renderedObjectDescriptor.setValues(path, size, obj.getScale(), obj.getLayer(), obj.getName(), obj.getFlipX(),
+				obj.getFlipY(), obj.getCollisionInfo())
 			obj.setMarked()
 		
 		else:
