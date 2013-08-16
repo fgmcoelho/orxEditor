@@ -31,6 +31,10 @@ class ObjectTypes:
 	baseObject = 1
 	renderedObject = 2
 
+class CollisionTypes:
+	box = 1
+	sphere = 2
+
 class ConfigurationAccess:
 	
 	def getConfigValue(self, value):
@@ -215,6 +219,9 @@ class RenderedObject (Scatter):
 
 		if (preservePos == True):
 			self._set_pos(oldPos)
+
+	def setCollisionInfo(self, value):
+		self.__collisionInfo = value
 
 	def __flipVertical(self):
 
@@ -416,7 +423,6 @@ class Scene (ConfigurationAccess):
 			obj.flipOnY()
 			self.__objectDescriptorReference.setObject(obj)
 
-
 	def removeObject(self):
 		obj = self.__objectDescriptorReference.getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
@@ -446,6 +452,8 @@ class Scene (ConfigurationAccess):
 		flipY = obj.getFlipY()
 		baseSize = obj.getBaseSize()
 		collisionInfo = obj.getCollisionInfo()
+		if (collisionInfo != None):
+			collisionInfo = collisionInfo.copy()
 
 		newPos = None
 		if (direction == "left") and (pos[0] >= size[0]):
@@ -660,6 +668,39 @@ class CollisionInformationPopup:
 		else:
 			inputReference.background_color = [1, 1, 1, 1]
 
+	def __setDefaultValues(self):
+		self.__selfFlagInput.text = '0xFFFF'
+		self.__checkMaskInput.text = '0xFFFF'
+		self.__solidSwitch.active = False
+		self.__dynamicSwitch.active = False
+		self.__allowSleepSwitch.active = False
+		self.__typeBoxSelect.active = True
+		self.__typeSphereSelect.active = False
+
+	def __setObjectValues(self, obj):
+		self.__selfFlagInput.text = obj.getSelfFlag()
+		self.__checkMaskInput.text = obj.getCheckMask()
+		self.__solidSwitch.active = obj.getIsSolid()
+		self.__dynamicSwitch.active = obj.getIsDynamic()
+		self.__allowSleepSwitch.active = obj.getAllowSleep()
+		if (obj.getCollisionType() == CollisionTypes.box):
+			self.__typeBoxSelect.active = True
+			self.__typeSphereSelect.active = False
+		else:
+			self.__typeBoxSelect.active = False
+			self.__typeSphereSelect.active = True
+
+	def __reloadValues(self):
+		if (self.__editingObject == None):
+			self.__setDefaultValues()
+
+		else:
+			collisionInfo = self.__editingObject.getCollisionInfo()
+			if (collisionInfo == None):
+				self.__setDefaultValues()
+			else:
+				self.__setObjectValues(collisionInfo)
+
 	def __init__(self):
 		self.__collisionPopUp = Popup (title = 'Collision configs', auto_dismiss = False)
 		self.__collisionGrid = GridLayout(cols = 2, rows = 7, size_hint = (1.0, 1.0))
@@ -670,8 +711,8 @@ class CollisionInformationPopup:
 		self.__collisionGrid.add_widget(self.__selfFlagInput)
 
 		self.__collisionGrid.add_widget(Label(text = 'Check Mask:'))
-		self.__checkMastInput = TextInput(text='0xFFFF', multiline = False, on_text_validate=CollisionInformationPopup.validateMask)
-		self.__collisionGrid.add_widget(self.__checkMastInput)
+		self.__checkMaskInput = TextInput(text='0xFFFF', multiline = False, on_text_validate=CollisionInformationPopup.validateMask)
+		self.__collisionGrid.add_widget(self.__checkMaskInput)
 		
 		self.__collisionGrid.add_widget(Label(text = 'Solid?'))
 		self.__solidSwitch = Switch(active = False)
@@ -696,17 +737,86 @@ class CollisionInformationPopup:
 		self.__collisionGrid.add_widget(self.__typesGrid)
 
 		self.__okButton = Button(text = 'Done')
+		self.__okButton.bind(on_press=self.__createOrEditCollisionInfo)
 		self.__cancelButton = Button (text = 'Cancel')
 		self.__cancelButton.bind(on_press=self.__collisionPopUp.dismiss)
 		self.__collisionGrid.add_widget(self.__okButton)
 		self.__collisionGrid.add_widget(self.__cancelButton)
 		
 		self.__collisionPopUp.content = self.__collisionGrid
+		self.__editingObject = None
 	
+		self.__errorPopUp = Popup(
+			title = 'Error', 
+			auto_dismiss = False,
+			size_hint = (0.5, 0.5)
+		)
+		errorPopUpBox = BoxLayout(orientation = 'vertical')
+		self.__errorPopUpText = Label(
+			text = 'No Object selected!\nYou need to select one object from the scene', size_hint = (1.0, 0.7)
+		)
+		errorPopUpBox.add_widget(self.__errorPopUpText)
+		errorPopUpBox.add_widget(Button(text = 'Ok', size_hint = (1.0, 0.3), on_press = self.__errorPopUp.dismiss))
+		self.__errorPopUp.content = errorPopUpBox
+
+		self.__postCreateOrEditMethod = None
+		
+	def __createOrEditCollisionInfo(self, useless):
+		if (self.__editingObject != None):
+			if (self.__selfFlagInput.background_color==[1, 0, 0, 1] or self.__checkMaskInput.background_color==[1, 0, 0, 1]):
+				self.__errorPopUpText.text = 'Invalid flag input.'
+				self.__errorPopUp.open()
+				return
+			
+			if (self.__typeBoxSelect.active == True):
+				collisionType = CollisionTypes.box
+			else:
+				collisionType = CollisionTypes.sphere
+
+			if (self.__editingObject.getCollisionInfo() == None):
+
+				newCollisionInfo = CollisionInformation(
+					self.__selfFlagInput.text, 
+					self.__checkMaskInput.text, 
+					self.__solidSwitch.active, 
+					self.__dynamicSwitch.active, 
+					self.__allowSleepSwitch.active, 
+					collisionType
+				)
+				self.__editingObject.setCollisionInfo(newCollisionInfo)
+			
+			else:
+				collisionObject = self.__editingObject.getCollisionInfo()
+				collisionObject.setSelfFlag(self.__selfFlagInput.text)
+				collisionObject.setCheckMask(self.__checkMaskInput.text)
+				collisionObject.setIsSolid(self.__solidSwitch.active)
+				collisionObject.setIsDynamic(self.__dynamicSwitch.active)
+				collisionObject.setAllowSleep(self.__allowSleepSwitch.active)
+				collisionObject.setCollisionType(collisionType)
+
+		self.__editingObject = None
+		self.getPopUp().dismiss()
+
+		if (self.__postCreateOrEditMethod != None):
+			self.__postCreateOrEditMethod()
+				
+	def setPostCreateOrEditMethod(self, value):
+		self.__postCreateOrEditMethod = value
+
 	def getPopUp(self):
 		return self.__collisionPopUp
 
-
+	def showPopUp(self, obj):
+		
+		if (obj == None or (obj != None and obj.getType() != ObjectTypes.renderedObject)):
+			self.__errorPopUpText.text = 'No Object selected!\nYou need to select one object from the scene'
+			self.__errorPopUp.open()
+		
+		else:
+			self.__editingObject = obj
+			self.__reloadValues()
+			self.__collisionPopUp.open()
+			
 class BaseObjectDescriptor:
 	
 	def __init__(self, accordionItem):
@@ -724,7 +834,7 @@ class BaseObjectDescriptor:
 	def setActive(self):
 		self.__accordionItemReference.collapse = False
 
-	def setValues(self, path, size):
+	def setValues(self, path = '', size=''):
 		self.__pathLabel.text = 'Path: ' + str(path)
 		self.__sizeLabel.text = 'Size: ' + str(size)
 		self.setActive()
@@ -774,7 +884,7 @@ class RenderedObjectDescriptor:
 	def setActive(self):
 		self.__accordionItemReference.collapse = False
 
-	def setValues(self, path, size, scale, layer, name, flipX, flipY, collisionInfo):
+	def setValues(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '', collisionInfo = None):
 		self.__pathLabel.text = 'Path: ' + str(path)
 		self.__sizeLabel.text = 'Size: ' + str(size)
 		self.__scaleLabel.text = 'Scale: ' + str(scale)
@@ -813,12 +923,20 @@ class OptionsMenu:
 
 class ObjectDescriptor:
 	
+	def updateObjectDescriptors(self):
+		self.setObject(self.currentObject)
+
 	def openCollisionPopUp(self, ignore):
-		self.__collisionPopUpReference.getPopUp().open()
+		
+		self.__collisionPopUpReference.showPopUp(self.currentObject)
+		
+		if (self.currentObject != None):
+			self.setObject(self.currentObject)
 
 	def __init__(self, rightScreen, sceneHandler, collisionPopUp, maxWidthProportion = 0.75, maxHeightProportion = 0.333):
 		
 		self.__collisionPopUpReference = collisionPopUp
+		self.__collisionPopUpReference.setPostCreateOrEditMethod(self.updateObjectDescriptors)
 		self.sceneHandlerReference = sceneHandler
 		self.currentObject = None
 		self.maxWidthProportion = maxWidthProportion
@@ -879,10 +997,17 @@ class ObjectDescriptor:
 		return self.currentObject
 
 	def clearCurrentObject(self):
-		if (self.currentObject != None and self.currentObject.getType() == ObjectTypes.renderedObject):
-			self.currentObject.unsetMarked()
+		if (self.currentObject == None):
+			return
 		
-		self.__baseObjectDescriptor.setValues('', '')
+		if (self.currentObject.getType() == ObjectTypes.renderedObject):
+			self.currentObject.unsetMarked()
+			self.__renderedObjectDescriptor.setValues()
+			self.__baseObjectDescriptor.setValues()
+		else:
+			self.__baseObjectDescriptor.setValues()
+			self.__renderedObjectDescriptor.setValues()
+		
 		self.currentObject = None
 
 	def updateLayoutSizes(self):
