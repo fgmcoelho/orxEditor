@@ -1,0 +1,12 @@
+[TileEditor]
+maxx = 20
+maxy = 20
+size = 64
+aligntogrid = True
+
+[Assets]
+path = tiles
+
+[ObjectList]
+objectnames = 
+

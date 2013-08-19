@@ -340,6 +340,10 @@ class RenderedObject (Scatter):
 
 		self.__objectDescriptorReference = objectDescriptorRef
 		self.setScale(self.__scale, True)
+		if (self.__flipX == True):
+			self.flipOnX()
+		if (self.__flipY == True):
+			self.flipOnY()
 
 	def resetAllWidgets(self):
 		self.remove_widget(self.image)
@@ -646,6 +650,48 @@ class CollisionInformation:
 			self.getAllowSleep() == other.getAllowSleep() &
 			self.getCollisionType() == other.getCollisionType())
 
+class BasePopUpMethods:
+	def open(self):
+		self.mainPopUp.open()
+
+	def setTitle(self, value):
+		self.mainPopUp.title = value
+
+	def setText(self, value):
+		self.mainPopUpText.text = value
+
+
+class Dialog (BasePopUpMethods):
+
+	def __init__(self, okMethod, dialogTitle = '', dialogText = '', dialogOkButtonText = '', dialogCancelButtonText = ''):
+		self.mainPopUp = Popup(title = dialogTitle, auto_dismiss = False, size_hint = (0.7, 0.5))
+		self.mainPopUpLabel = Label(text = '')
+		popUpLayout = BoxLayout(orientation = 'vertical')
+		yesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.3))
+		self.__confirmPopUpButton = Button(text = dialogOkButtonText, on_release = okMethod)
+		popUpLayout.add_widget(self.mainPopUpLabel)
+		yesNoLayout.add_widget(self.__confirmPopUpButton)
+		yesNoLayout.add_widget(Button(text = dialogCancelButtonText, on_release = self.__confirmPopUp.dismiss))
+		popUpLayout.add_widget(yesNoLayout)
+		self.mainPopUp.content = popUpLayout
+
+class AlertPopUp (BasePopUpMethods):
+	
+	def __init__(self, alertTitle = '', alertText = '', closeButtonText = ''):
+		self.mainPopUp = Popup(
+			title = alertTitle, 
+			auto_dismiss = False,
+			size_hint = (0.5, 0.5)
+		)
+		mainPopUpBox = BoxLayout(orientation = 'vertical')
+		self.mainPopUpText = Label(
+			text = alertText, size_hint = (1.0, 0.7)
+		)
+		mainPopUpBox.add_widget(self.mainPopUpText)
+		mainPopUpBox.add_widget(Button(text = closeButtonText, size_hint = (1.0, 0.3), on_release = self.mainPopUp.dismiss))
+		self.mainPopUp.content = mainPopUpBox
+
+
 class CollisionInformationPopup:
 
 	@staticmethod
@@ -656,25 +702,25 @@ class CollisionInformationPopup:
 		if (value == ''):
 			valid = False
 
-		value = value.strip()
+		else:
+			value = value.strip()
+			base = 10
+			if (value[0:2] == '0x' or value[0:2] == '0X'):
+				base = 16
+			
+			elif (value[0:2] == '0b' or value[0:2] == '0B'):
+				base = 2
 
-		base = 10
-		if (value[0:2] == '0x' or value[0:2] == '0X'):
-			base = 16
-		
-		elif (value[0:2] == '0b' or value[0:2] == '0B'):
-			base = 2
+			elif (value[0] == '0'):
+				base = 8
 
-		elif (value[0] == '0'):
-			base = 8
-
-		try:
-			x = int (value, base)
-			valid = True
-			if (x < 0 or x > 0xFFFF):
+			try:
+				x = int (value, base)
+				valid = True
+				if (x < 0 or x > 0xFFFF):
+					valid = False
+			except:
 				valid = False
-		except:
-			valid = False
 
 		if (valid == False):
 			inputReference.background_color = [1, 0, 0, 1]
@@ -750,34 +796,25 @@ class CollisionInformationPopup:
 		self.__collisionGrid.add_widget(self.__typesGrid)
 
 		self.__okButton = Button(text = 'Done')
-		self.__okButton.bind(on_press=self.__createOrEditCollisionInfo)
+		self.__okButton.bind(on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton = Button (text = 'Cancel')
-		self.__cancelButton.bind(on_press=self.__collisionPopUp.dismiss)
+		self.__cancelButton.bind(on_release=self.__collisionPopUp.dismiss)
 		self.__collisionGrid.add_widget(self.__okButton)
 		self.__collisionGrid.add_widget(self.__cancelButton)
 		
 		self.__collisionPopUp.content = self.__collisionGrid
 		self.__editingObject = None
 	
-		self.__errorPopUp = Popup(
-			title = 'Error', 
-			auto_dismiss = False,
-			size_hint = (0.5, 0.5)
-		)
-		errorPopUpBox = BoxLayout(orientation = 'vertical')
-		self.__errorPopUpText = Label(
-			text = 'No Object selected!\nYou need to select one object from the scene', size_hint = (1.0, 0.7)
-		)
-		errorPopUpBox.add_widget(self.__errorPopUpText)
-		errorPopUpBox.add_widget(Button(text = 'Ok', size_hint = (1.0, 0.3), on_press = self.__errorPopUp.dismiss))
-		self.__errorPopUp.content = errorPopUpBox
+	
+		# TODO: HERE ERROR POPUP!!!1111
+		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene', 'Ok')
 
 		self.__postCreateOrEditMethod = None
 		
 	def __createOrEditCollisionInfo(self, useless):
 		if (self.__editingObject != None):
 			if (self.__selfFlagInput.background_color==[1, 0, 0, 1] or self.__checkMaskInput.background_color==[1, 0, 0, 1]):
-				self.__errorPopUpText.text = 'Invalid flag input.'
+				self.__errorPopUp.setText('Invalid flag input.')
 				self.__errorPopUp.open()
 				return
 			
@@ -822,7 +859,7 @@ class CollisionInformationPopup:
 	def showPopUp(self, obj):
 		
 		if (obj == None or (obj != None and obj.getType() != ObjectTypes.renderedObject)):
-			self.__errorPopUpText.text = 'No Object selected!\nYou need to select one object from the scene'
+			self.__errorPopUp.setText('No Object selected!\nYou need to select one object from the scene')
 			self.__errorPopUp.open()
 		
 		else:
@@ -877,7 +914,7 @@ class RenderedObjectDescriptor:
 		self.__collisionBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__collisionInfoLabel = Label(text = 'Has collision info: ')
 		self.__collisionHandler = Button(text = 'Edit Collision', size_hint = (0.3, 1.0))
-		self.__collisionHandler.bind(on_press=popUpMethod)
+		self.__collisionHandler.bind(on_release=popUpMethod)
 		
 		self.__collisionBox.add_widget(self.__collisionInfoLabel)
 		self.__collisionBox.add_widget(self.__collisionHandler)
@@ -898,6 +935,14 @@ class RenderedObjectDescriptor:
 		self.__accordionItemReference.collapse = False
 
 	def setValues(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '', collisionInfo = None):
+		self.__setValues(path, size, scale, layer, name, flipX, flipY, collisionInfo)
+		self.setActive()
+
+	def setValueNoActive(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '', 
+			collisionInfo = None):
+		self.__setValues(path, size, scale, layer, name, flipX, flipY, collisionInfo)
+
+	def __setValues(self, path, size, scale, layer, name, flipX, flipY, collisionInfo):
 		self.__pathLabel.text = 'Path: ' + str(path)
 		self.__sizeLabel.text = 'Size: ' + str(size)
 		self.__scaleLabel.text = 'Scale: ' + str(scale)
@@ -910,21 +955,103 @@ class RenderedObjectDescriptor:
 		else:
 			self.__collisionInfoLabel.text = 'Has collision info: Available'
 		
-		self.setActive()
 
 class OptionsMenu:
-	def __init__(self, accordionItem, newSceneMethod):
-		self.__layout = GridLayout(rows = 4, cols = 1, size_hint = (1.0, 1.0))
-		self.__newButton = Button(text = 'New Scene', size_hint = (1.0, 0.25))
-		self.__loadButton = Button(text = 'Load Scene', size_hint = (1.0, 0.25))
-		self.__saveButton = Button(text = 'Save Scene', size_hint = (1.0, 0.25))
-		self.__exportButton = Button(text = 'Export Scene', size_hint = (1.0, 0.25))
-		self.__newButton.bind(on_release = newSceneMethod)
+	
+	def __newSceneFinish(self, notUsed):
+		self.__newSceneMethodReference(notUsed)
+		self.__confirmPopUp.dismiss()
 
+	def __newScene(self, notUsed):
+		self.__confirmPopUpLabel.text = 'Starting a new scene will remove all the\nnon saved changes.\nAre you sure?'
+		self.__confirmPopUp.open()
+
+	def __validateSelectedOsf(self, entry, notUsed):
+		if (isfile(entry[0]) == True):
+			sepIndex = entry[0].rfind(pathSeparator)
+			if (sepIndex != -1):
+				self.__fileChooserInput.text = entry[0][sepIndex+1:]
+			else:
+				self.__fileChooserInput.text = entry[0]
+		else:
+			self.__errorPopUp.setText('Invalid file selected.')
+			self.__errorPopUp.open()
+
+	def __validateAndContinue(self, notUsed):
+		if (self.__fileChooserInput.text == ''):
+			self.__errorPopUp.setText('No file selected.')
+			self.__errorPopUp.open()
+			return
+
+		#TODO: create a confirmation class and ask confirmation here.
+
+		self.__saveSceneMethodReference(join(self.__fileChooser.path, self.__fileChooserInput.text))
+		self.__fileChooserPopUp.dismiss()
+
+	def __saveScene(self, notUsed):
+		self.__fileChooser.path = self.__lastPath
+		self.__fileChooser.filters = ['*.osf']
+		self.__fileChooser.on_submit = self.__validateSelectedOsf
+		self.__fileChooserOkButton.bind(on_release = self.__validateAndContinue)
+		self.__fileChooserPopUp.open()
+
+	def __startBasicButtonsLayout(self):
+		self.__layout = GridLayout(rows = 4, cols = 1, size_hint = (1.0, 1.0))
+		self.__newButton = Button(text = 'New Scene', size_hint = (1.0, 0.25), on_release = self.__newScene)
+		self.__loadButton = Button(text = 'Load Scene', size_hint = (1.0, 0.25))
+		self.__saveButton = Button(text = 'Save Scene', size_hint = (1.0, 0.25), on_release = self.__saveScene)
+		self.__exportButton = Button(text = 'Export Scene', size_hint = (1.0, 0.25))
+		
 		self.__layout.add_widget(self.__newButton)
 		self.__layout.add_widget(self.__loadButton)
 		self.__layout.add_widget(self.__saveButton)
 		self.__layout.add_widget(self.__exportButton)
+
+	def __startConfirmationPopUp(self):
+		self.__confirmPopUp = Popup(title = 'Confirmation', auto_dismiss = False, size_hint = (0.7, 0.5))
+		self.__confirmPopUpLabel = Label(text = '')
+		popUpLayout = BoxLayout(orientation = 'vertical')
+		yesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.3))
+		self.__confirmPopUpButton = Button(text = 'Ok', on_release = self.__newSceneFinish)
+		self.__cancelPopUpButton = Button(text = 'Cancel', on_release = self.__confirmPopUp.dismiss)
+		popUpLayout.add_widget(self.__confirmPopUpLabel)
+		yesNoLayout.add_widget(self.__confirmPopUpButton)
+		yesNoLayout.add_widget(self.__cancelPopUpButton)
+		popUpLayout.add_widget(yesNoLayout)
+		self.__confirmPopUp.content = popUpLayout
+
+	def __startFileChooser(self):
+		self.__fileChooserLayout = BoxLayout(orientation = 'vertical')
+		self.__fileChooserPopUp = Popup(auto_dismiss = False, title = 'Select the file:')
+		self.__fileChooserInputLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		filenameLabel = Label(text = 'File:', size_hint = (0.3, 1.0))
+		self.__fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0))
+		self.__fileChooserInputLayout.add_widget(filenameLabel)
+		self.__fileChooserInputLayout.add_widget(self.__fileChooserInput)
+		self.__fileChooser = FileChooserIconView(size_hint = (1.0, 0.9))
+
+		self.__fileChooserYesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		self.__fileChooserOkButton = Button(text = 'Ok')
+		self.__fileChooserCancelButton = Button(text = 'Cancel', on_release = self.__fileChooserPopUp.dismiss)
+		self.__fileChooserYesNoLayout.add_widget(self.__fileChooserOkButton)
+		self.__fileChooserYesNoLayout.add_widget(self.__fileChooserCancelButton)
+
+		self.__fileChooserLayout.add_widget(self.__fileChooserInputLayout)
+		self.__fileChooserLayout.add_widget(self.__fileChooser)
+		self.__fileChooserLayout.add_widget(self.__fileChooserYesNoLayout)
+		self.__fileChooserPopUp.content = self.__fileChooserLayout
+		self.__lastPath = getcwd()
+
+
+	def __init__(self, accordionItem, newSceneMethod, saveSceneMethod):
+
+		self.__newSceneMethodReference = newSceneMethod
+		self.__saveSceneMethodReference = saveSceneMethod
+
+		self.__startBasicButtonsLayout()	
+		self.__startConfirmationPopUp()	
+		self.__startFileChooser()
+		self.__errorPopUp = AlertPopUp('Error', '', 'Ok')
 
 		self.__accordionItemReference = accordionItem
 		self.__accordionItemReference.add_widget(self.__layout)
@@ -947,7 +1074,8 @@ class ObjectDescriptor:
 		if (self.__currentObject != None):
 			self.setObject(self.__currentObject)
 
-	def __init__(self, rightScreen, sceneHandler, collisionPopUp, newSceneMethod, maxWidthProportion = 0.75, maxHeightProportion = 0.333):
+	def __init__(self, rightScreen, sceneHandler, collisionPopUp, newSceneMethod, saveSceneMethod,
+			maxWidthProportion = 0.75, maxHeightProportion = 0.333):
 		
 		self.__collisionPopUpReference = collisionPopUp
 		self.__collisionPopUpReference.setPostCreateOrEditMethod(self.updateObjectDescriptors)
@@ -967,7 +1095,7 @@ class ObjectDescriptor:
 
 		self.__baseObjectDescriptor = BaseObjectDescriptor(self.__accordionItems['BaseObject'])
 		self.__renderedObjectDescriptor = RenderedObjectDescriptor(self.__accordionItems['RenderedObject'], self.openCollisionPopUp)
-		self.__optionsMenu = OptionsMenu(self.__accordionItems['Options'], newSceneMethod)
+		self.__optionsMenu = OptionsMenu(self.__accordionItems['Options'], newSceneMethod, saveSceneMethod)
 
 		self.__layout.add_widget(self.__accordionItems['BaseObject'])
 		self.__layout.add_widget(self.__accordionItems['RenderedObject'])
@@ -978,30 +1106,8 @@ class ObjectDescriptor:
 		rightScreen.add_widget(self.__layout)
 
 	def resetAllWidgets(self):
-			
-		self.__optionsMenu.setActive()
 		self.__baseObjectDescriptor.setValues()
-		self.__renderedObjectDescriptor.setValues()
-		self.__currentObject = None
-		
-		self.__layout.remove_widget(self.__accordionItems['BaseObject'])
-		self.__layout.remove_widget(self.__accordionItems['RenderedObject'])
-		self.__layout.remove_widget(self.__accordionItems['Options'])
-		
-		self.__layout.add_widget(self.__accordionItems['BaseObject'])
-		self.__layout.add_widget(self.__accordionItems['RenderedObject'])
-		self.__layout.add_widget(self.__accordionItems['Options'])
-		
-		self.__accordionItems['Options'].collapse = True
-		self.__accordionItems['RenderedObject'].collapse = True
-		self.__accordionItems['BaseObject'].collapse = False
-
-		self.__layout.canvas.ask_update()
-
-		self.__optionsMenu.setActive()
-
-
-
+		self.__renderedObjectDescriptor.setValueNoActive()
 			
 	def setOrDrawObject(self, obj):
 		if (self.__currentObject == obj):
@@ -1062,13 +1168,9 @@ class ObjectDescriptor:
 
 class LeftMenuHandler (ConfigurationAccess):
 	
-	def __init__(self, leftMenu, objectHandler, maxWidthProportion = 0.25, maxHeightProportion = 1.0):
-		self.__menuObjectsList = []
-		self.__objectHandlerReference = objectHandler
-		self.__maxWidthProportion = maxWidthProportion
-		self.__maxHeightProportion = maxHeightProportion
-
+	def __loadItems(self):
 		l = listdir(join(getcwd(), self.getConfigValue('AssetsPath')))
+		self.__menuObjectsList = []
 		self.__numberOfItems = 0
 		for item in l:
 			if (item[-4:] == '.png'):
@@ -1077,14 +1179,28 @@ class LeftMenuHandler (ConfigurationAccess):
 				self.__menuObjectsList.append(obj)
 				self.__numberOfItems += 1
 		
+		if (self.__layout == None):
+			self.__layout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None))
+		else:
+			self.__layout.rows = self.__numberOfItems 
 
-		self.__layout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None))
 		for menuObject in self.__menuObjectsList:
 			self.__layout.add_widget(menuObject.getBaseImage())
+		
+	def __init__(self, leftMenu, objectHandler, maxWidthProportion = 0.25, maxHeightProportion = 1.0):
+		self.__objectHandlerReference = objectHandler
+		self.__maxWidthProportion = maxWidthProportion
+		self.__maxHeightProportion = maxHeightProportion
+		self.__layout = None
+
+		self.__loadItems()
 
 		self.__scrollView = ScrollView(size_hint = (None, None) )
 		self.__scrollView.add_widget(self.__layout)
 		self.__scrollView.do_scroll_x = False
+		self.__defaultTouchDown = leftMenu.on_touch_down
+		leftMenu.on_touch_down = self.__handleTouchDown
+
 
 		leftMenu.add_widget(self.__scrollView)
 
@@ -1095,8 +1211,7 @@ class LeftMenuHandler (ConfigurationAccess):
 			self.__layout.remove_widget(menuObject.getBaseImage())
 			menuObject = None
 
-		self.__menuObjectsList = []
-		self.__numberOfItems = 0
+		self.__loadItems()
 		
 
 	def updateLayoutSizes(self):
@@ -1115,26 +1230,18 @@ class LeftMenuHandler (ConfigurationAccess):
 		self.__scrollView.size = (xSize, ySize)
 
 
-	def handleTouch(self, touch):
+	def __handleTouchDown(self, touch):
 		for menuObject in self.__menuObjectsList:
 			if (touch.is_mouse_scrolling == False and menuObject.getBaseImage().collide_point(*touch.pos) == True and 
 					touch.is_double_tap == True):
 				self.__objectHandlerReference.setOrDrawObject(menuObject)
-				return True
 
-		return False
+		self.__defaultTouchDown(touch)
+
 				
 class TileEditor(App, ConfigurationAccess):
 	
 	resizeList = []
-
-	def dispatchTouch(self, touch):
-		res = False
-		if (self.leftMenuBase.collide_point(*touch.pos) == True):
-			res = self.leftMenuHandler.handleTouch(touch)
-
-		if (res == False):
-			self.__defaultTouchUp(touch)
 
 	def build_config(self, c):
 		
@@ -1151,6 +1258,7 @@ class TileEditor(App, ConfigurationAccess):
 	
 	def saveScene(self, filename):
 		
+
 		parser = ConfigParser()
 
 		tileEditorSectionName = 'TileEditor'
@@ -1168,13 +1276,13 @@ class TileEditor(App, ConfigurationAccess):
 
 		renderedObjectsDict = self.scene.getObjectsDict()
 		objectsInScene = ''
-		for inSceneId in renderedObjectsDict.keys:
+		for inSceneId in renderedObjectsDict.keys():
 			objectsInScene += renderedObjectsDict[inSceneId].getName() + ' # '
 
 		parser.add_section(objectListName)
 		parser.set(objectListName, 'ObjectNames', objectsInScene)
 
-		for inSceneId in renderedObjectsDict.keys:
+		for inSceneId in renderedObjectsDict.keys():
 			newSectionName = renderedObjectsDict[inSceneId].getName() 
 			parser.add_section(newSectionName)
 			parser.set(newSectionName, 'path', str(renderedObjectsDict[inSceneId].getPath()))
@@ -1238,7 +1346,9 @@ class TileEditor(App, ConfigurationAccess):
 		self.collisionPopUp = CollisionInformationPopup()
 
 		self.sceneHandler = SceneHandler(self.rightScreen, self.scene)
-		self.objectHandler = ObjectDescriptor(self.rightScreen, self.sceneHandler, self.collisionPopUp, self.newScene)
+		self.objectHandler = ObjectDescriptor(
+			self.rightScreen, self.sceneHandler, self.collisionPopUp, self.newScene, self.saveScene
+		)
 		self.leftMenuHandler = LeftMenuHandler(self.leftMenuBase, self.objectHandler)
 		self.scene.setObjectDescriptorReference(self.objectHandler) # unfortunate cross reference here
 		self.shortcutHandler = KeyboardShortcutHandler(self.scene, self.sceneHandler, self.objectHandler)
@@ -1246,12 +1356,6 @@ class TileEditor(App, ConfigurationAccess):
 		TileEditor.resizeList.append(self.sceneHandler)
 		TileEditor.resizeList.append(self.objectHandler)
 		TileEditor.resizeList.append(self.leftMenuHandler)
-
-		#self.root.on_touch_down = self.dispatchTouch
-		#self.root.on_touch_move = self.dispatchTouch
-		self.__defaultTouchUp = self.root.on_touch_up 
-		self.root.on_touch_up = self.dispatchTouch
-	
 
 		Window.on_resize = self.resizeTest
 
