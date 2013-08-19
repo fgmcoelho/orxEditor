@@ -341,6 +341,9 @@ class RenderedObject (Scatter):
 		self.__objectDescriptorReference = objectDescriptorRef
 		self.setScale(self.__scale, True)
 
+	def resetAllWidgets(self):
+		self.remove_widget(self.image)
+
 	def getIdentifier(self):
 		return self.__id
 
@@ -472,7 +475,15 @@ class Scene (ConfigurationAccess):
 			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), baseSize, newPos, scale, layer, 
 				flipX, flipY, collisionInfo)
 			self.__objectDescriptorReference.setObject(newRenderedObject)
+	
+	def resetAllWidgets(self):
+		for objectId in self.__objectDict.keys():
+			self.__objectDict[objectId].resetAllWidgets()
+			self.__objectDict[objectId] = None
+			del self.__objectDict[objectId] 
 
+		self.__objectDict = {}
+		self.__id = 0
 	
 	def __createNewObjectAndAddToScene(self, path, size, pos, scale = 1.0, layer = 1, flipX = False, flipY = False, colInfo = None):
 		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToGrid, 
@@ -484,7 +495,6 @@ class Scene (ConfigurationAccess):
 
 		return renderedObject
 
-
 	def getLayout(self):
 		return self.__layout
 
@@ -492,6 +502,9 @@ class Scene (ConfigurationAccess):
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
 		newRenderedObject = self.__createNewObjectAndAddToScene(path, size, pos)
 		self.__objectDescriptorReference.setObject(newRenderedObject)
+
+	def getObjectsDict(self):
+		return self.__objectDict
 	
 class SceneHandler:
 
@@ -900,13 +913,14 @@ class RenderedObjectDescriptor:
 		self.setActive()
 
 class OptionsMenu:
-	def __init__(self, accordionItem):
+	def __init__(self, accordionItem, newSceneMethod):
 		self.__layout = GridLayout(rows = 4, cols = 1, size_hint = (1.0, 1.0))
 		self.__newButton = Button(text = 'New Scene', size_hint = (1.0, 0.25))
 		self.__loadButton = Button(text = 'Load Scene', size_hint = (1.0, 0.25))
 		self.__saveButton = Button(text = 'Save Scene', size_hint = (1.0, 0.25))
 		self.__exportButton = Button(text = 'Export Scene', size_hint = (1.0, 0.25))
-		
+		self.__newButton.bind(on_release = newSceneMethod)
+
 		self.__layout.add_widget(self.__newButton)
 		self.__layout.add_widget(self.__loadButton)
 		self.__layout.add_widget(self.__saveButton)
@@ -924,23 +938,23 @@ class OptionsMenu:
 class ObjectDescriptor:
 	
 	def updateObjectDescriptors(self):
-		self.setObject(self.currentObject)
+		self.setObject(self.__currentObject)
 
 	def openCollisionPopUp(self, ignore):
 		
-		self.__collisionPopUpReference.showPopUp(self.currentObject)
+		self.__collisionPopUpReference.showPopUp(self.__currentObject)
 		
-		if (self.currentObject != None):
-			self.setObject(self.currentObject)
+		if (self.__currentObject != None):
+			self.setObject(self.__currentObject)
 
-	def __init__(self, rightScreen, sceneHandler, collisionPopUp, maxWidthProportion = 0.75, maxHeightProportion = 0.333):
+	def __init__(self, rightScreen, sceneHandler, collisionPopUp, newSceneMethod, maxWidthProportion = 0.75, maxHeightProportion = 0.333):
 		
 		self.__collisionPopUpReference = collisionPopUp
 		self.__collisionPopUpReference.setPostCreateOrEditMethod(self.updateObjectDescriptors)
-		self.sceneHandlerReference = sceneHandler
-		self.currentObject = None
-		self.maxWidthProportion = maxWidthProportion
-		self.maxHeightProportion = maxHeightProportion
+		self.__sceneHandlerReference = sceneHandler
+		self.__currentObject = None
+		self.__maxWidthProportion = maxWidthProportion
+		self.__maxHeightProportion = maxHeightProportion
 
 		self.__layout = Accordion(orientation = 'horizontal')
 		self.updateLayoutSizes()
@@ -953,7 +967,7 @@ class ObjectDescriptor:
 
 		self.__baseObjectDescriptor = BaseObjectDescriptor(self.__accordionItems['BaseObject'])
 		self.__renderedObjectDescriptor = RenderedObjectDescriptor(self.__accordionItems['RenderedObject'], self.openCollisionPopUp)
-		self.__optionsMenu = OptionsMenu(self.__accordionItems['Options'])
+		self.__optionsMenu = OptionsMenu(self.__accordionItems['Options'], newSceneMethod)
 
 		self.__layout.add_widget(self.__accordionItems['BaseObject'])
 		self.__layout.add_widget(self.__accordionItems['RenderedObject'])
@@ -963,19 +977,45 @@ class ObjectDescriptor:
 
 		rightScreen.add_widget(self.__layout)
 
+	def resetAllWidgets(self):
+			
+		self.__optionsMenu.setActive()
+		self.__baseObjectDescriptor.setValues()
+		self.__renderedObjectDescriptor.setValues()
+		self.__currentObject = None
+		
+		self.__layout.remove_widget(self.__accordionItems['BaseObject'])
+		self.__layout.remove_widget(self.__accordionItems['RenderedObject'])
+		self.__layout.remove_widget(self.__accordionItems['Options'])
+		
+		self.__layout.add_widget(self.__accordionItems['BaseObject'])
+		self.__layout.add_widget(self.__accordionItems['RenderedObject'])
+		self.__layout.add_widget(self.__accordionItems['Options'])
+		
+		self.__accordionItems['Options'].collapse = True
+		self.__accordionItems['RenderedObject'].collapse = True
+		self.__accordionItems['BaseObject'].collapse = False
+
+		self.__layout.canvas.ask_update()
+
+		self.__optionsMenu.setActive()
+
+
+
+			
 	def setOrDrawObject(self, obj):
-		if (self.currentObject == obj):
+		if (self.__currentObject == obj):
 			self.__drawObject(obj)
 		else:
 			self.setObject(obj)
 
 	def __drawObject(self, obj):
-		self.sceneHandlerReference.draw(obj.getPath(), obj.getSize())
+		self.__sceneHandlerReference.draw(obj.getPath(), obj.getSize())
 
 	def setObject(self, obj):
 
-		if (self.currentObject != None and self.currentObject.getType() == ObjectTypes.renderedObject):
-			self.currentObject.unsetMarked()
+		if (self.__currentObject != None and self.__currentObject.getType() == ObjectTypes.renderedObject):
+			self.__currentObject.unsetMarked()
 
 		path = obj.getPath()
 		size = obj.getSize()
@@ -991,31 +1031,31 @@ class ObjectDescriptor:
 		else:
 			self.__baseObjectDescriptor.setValues(path, size)
 
-		self.currentObject = obj
+		self.__currentObject = obj
 
 	def getCurrentObject(self):
-		return self.currentObject
+		return self.__currentObject
 
 	def clearCurrentObject(self):
-		if (self.currentObject == None):
+		if (self.__currentObject == None):
 			return
 		
-		if (self.currentObject.getType() == ObjectTypes.renderedObject):
-			self.currentObject.unsetMarked()
+		if (self.__currentObject.getType() == ObjectTypes.renderedObject):
+			self.__currentObject.unsetMarked()
 			self.__renderedObjectDescriptor.setValues()
 			self.__baseObjectDescriptor.setValues()
 		else:
 			self.__baseObjectDescriptor.setValues()
 			self.__renderedObjectDescriptor.setValues()
 		
-		self.currentObject = None
+		self.__currentObject = None
 
 	def updateLayoutSizes(self):
 		
 		wx, wy = Window.size
 		
-		xSize = wx * self.maxWidthProportion
-		ySize = wy * self.maxHeightProportion
+		xSize = wx * self.__maxWidthProportion
+		ySize = wy * self.__maxHeightProportion
 		
 		self.__layout.size = (xSize, ySize)
 
@@ -1023,59 +1063,68 @@ class ObjectDescriptor:
 class LeftMenuHandler (ConfigurationAccess):
 	
 	def __init__(self, leftMenu, objectHandler, maxWidthProportion = 0.25, maxHeightProportion = 1.0):
-		self.menuObjectsList = []
-		self.objectHandlerReference = objectHandler
-		self.maxWidthProportion = maxWidthProportion
-		self.maxHeightProportion = maxHeightProportion
+		self.__menuObjectsList = []
+		self.__objectHandlerReference = objectHandler
+		self.__maxWidthProportion = maxWidthProportion
+		self.__maxHeightProportion = maxHeightProportion
 
 		l = listdir(join(getcwd(), self.getConfigValue('AssetsPath')))
-		self.numberOfItems = 0
+		self.__numberOfItems = 0
 		for item in l:
 			if (item[-4:] == '.png'):
 				img = Image(source = join(getcwd(), self.getConfigValue('AssetsPath'),item))
-				obj = BaseObject(img, self.numberOfItems)
-				self.menuObjectsList.append(obj)
-				self.numberOfItems += 1
+				obj = BaseObject(img, self.__numberOfItems)
+				self.__menuObjectsList.append(obj)
+				self.__numberOfItems += 1
 		
 
-		self.layout = GridLayout(cols=1, rows = self.numberOfItems, size_hint = (None, None))
-		for menuObject in self.menuObjectsList:
-			self.layout.add_widget(menuObject.getBaseImage())
+		self.__layout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None))
+		for menuObject in self.__menuObjectsList:
+			self.__layout.add_widget(menuObject.getBaseImage())
 
-		self.scrollView = ScrollView(size_hint = (None, None) )
-		self.scrollView.add_widget(self.layout)
-		self.scrollView.do_scroll_x = False
+		self.__scrollView = ScrollView(size_hint = (None, None) )
+		self.__scrollView.add_widget(self.__layout)
+		self.__scrollView.do_scroll_x = False
 
-		leftMenu.add_widget(self.scrollView)
+		leftMenu.add_widget(self.__scrollView)
 
 		self.updateLayoutSizes()
+
+	def resetAllWidgets(self):
+		for menuObject in self.__menuObjectsList:
+			self.__layout.remove_widget(menuObject.getBaseImage())
+			menuObject = None
+
+		self.__menuObjectsList = []
+		self.__numberOfItems = 0
+		
 
 	def updateLayoutSizes(self):
 		wx, wy = Window.size
 		
-		xSize = wx * self.maxWidthProportion
-		ySize = wy * self.maxHeightProportion
+		xSize = wx * self.__maxWidthProportion
+		ySize = wy * self.__maxHeightProportion
 
 		scrollViewWidth = 0
-		if (self.numberOfItems * xSize < ySize):
+		if (self.__numberOfItems * xSize < ySize):
 			scrollViewWidth = ySize
 		else:
-			scrollViewWidth = xSize * self.numberOfItems
+			scrollViewWidth = xSize * self.__numberOfItems
 
-		self.layout.size = (xSize, scrollViewWidth)
-		self.scrollView.size = (xSize, ySize)
+		self.__layout.size = (xSize, scrollViewWidth)
+		self.__scrollView.size = (xSize, ySize)
 
 
 	def handleTouch(self, touch):
-		for menuObject in self.menuObjectsList:
+		for menuObject in self.__menuObjectsList:
 			if (touch.is_mouse_scrolling == False and menuObject.getBaseImage().collide_point(*touch.pos) == True and 
 					touch.is_double_tap == True):
-				self.objectHandlerReference.setOrDrawObject(menuObject)
+				self.__objectHandlerReference.setOrDrawObject(menuObject)
 				return True
 
 		return False
 				
-class TileEditor(App):
+class TileEditor(App, ConfigurationAccess):
 	
 	resizeList = []
 
@@ -1100,6 +1149,70 @@ class TileEditor(App):
 		for widget in TileEditor.resizeList:
 			widget.updateLayoutSizes()
 	
+	def saveScene(self, filename):
+		
+		parser = ConfigParser()
+
+		tileEditorSectionName = 'TileEditor'
+		assetsSectionName = 'Assets'
+		objectListName = 'ObjectList'
+		
+		parser.add_section(tileEditorSectionName)
+		parser.set(tileEditorSectionName, 'maxX', self.getConfigValue('TilesMaxX'))
+		parser.set(tileEditorSectionName, 'maxY', self.getConfigValue('TilesMaxY'))
+		parser.set(tileEditorSectionName, 'size', self.getConfigValue('TilesSize'))
+		parser.set(tileEditorSectionName, 'alignToGrid', self.getConfigValue('TilesAlignToGrid'))
+
+		parser.add_section(assetsSectionName)
+		parser.set(assetsSectionName, 'path', self.getConfigValue('AssetsPath'))
+
+		renderedObjectsDict = self.scene.getObjectsDict()
+		objectsInScene = ''
+		for inSceneId in renderedObjectsDict.keys:
+			objectsInScene += renderedObjectsDict[inSceneId].getName() + ' # '
+
+		parser.add_section(objectListName)
+		parser.set(objectListName, 'ObjectNames', objectsInScene)
+
+		for inSceneId in renderedObjectsDict.keys:
+			newSectionName = renderedObjectsDict[inSceneId].getName() 
+			parser.add_section(newSectionName)
+			parser.set(newSectionName, 'path', str(renderedObjectsDict[inSceneId].getPath()))
+			parser.set(newSectionName, 'pos', str(renderedObjectsDict[inSceneId].getPos()))
+			parser.set(newSectionName, 'flipX', str(renderedObjectsDict[inSceneId].getFlipX()))
+			parser.set(newSectionName, 'flipY', str(renderedObjectsDict[inSceneId].getFlipY()))
+			parser.set(newSectionName, 'scale', str(renderedObjectsDict[inSceneId].getScale()))
+			parser.set(newSectionName, 'layer', str(renderedObjectsDict[inSceneId].getLayer()))
+			parser.set(newSectionName, 'size', str(renderedObjectsDict[inSceneId].getBaseSize()))
+			
+			collisionObject = renderedObjectsDict[inSceneId].getCollisionInfo()
+			if (collisionObject == None):
+				parser.set(newSectionName, 'HasCollisionInfo', 0)
+			else:
+				parser.set(newSectionName, 'HasCollisionInfo', 1)
+				collisionInfoSectionName = newSectionName + '_collision_info'
+				parser.add_section(collisionInfoSectionName)
+				parser.set(collisionInfoSectionName, 'selfFlag', str(collisionObject.getSelfFlag()))
+				parser.set(collisionInfoSectionName, 'checkMask', str(collisionObject.getCheckMask()))
+				parser.set(collisionInfoSectionName, 'Solid', str(collisionObject.getIsSolid()))
+				parser.set(collisionInfoSectionName, 'dynamic', str(collisionObject.getIsDynamic()))
+				parser.set(collisionInfoSectionName, 'allowSleep', str(collisionObject.getAllowSleep()))
+				parser.set(collisionInfoSectionName, 'type', str(collisionObject.getCollisionType()))
+
+		f = open(filename, 'w')
+		parser.write(f)
+
+	def loadScene(self, filename):
+		pass
+
+	def newScene(self, filename):
+		self.resetAllWidgets()
+
+	def resetAllWidgets(self, useless = None):
+		self.objectHandler.resetAllWidgets()
+		self.leftMenuHandler.resetAllWidgets()
+		self.scene.resetAllWidgets()
+
 	def build(self):
 
 		self.root = BoxLayout(orientation='horizontal', padding = 0, spacing = 0)
@@ -1125,9 +1238,9 @@ class TileEditor(App):
 		self.collisionPopUp = CollisionInformationPopup()
 
 		self.sceneHandler = SceneHandler(self.rightScreen, self.scene)
-		self.objectHandler = ObjectDescriptor(self.rightScreen, self.sceneHandler, self.collisionPopUp)
+		self.objectHandler = ObjectDescriptor(self.rightScreen, self.sceneHandler, self.collisionPopUp, self.newScene)
 		self.leftMenuHandler = LeftMenuHandler(self.leftMenuBase, self.objectHandler)
-		self.scene.setObjectDescriptorReference(self.objectHandler) # unfortunate reference here
+		self.scene.setObjectDescriptorReference(self.objectHandler) # unfortunate cross reference here
 		self.shortcutHandler = KeyboardShortcutHandler(self.scene, self.sceneHandler, self.objectHandler)
 
 		TileEditor.resizeList.append(self.sceneHandler)
