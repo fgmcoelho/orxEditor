@@ -12,7 +12,7 @@ class orxEditor(App):
     def build_config(self, c):
         Config.set('graphics', 'width', 1280)
         Config.set('graphics', 'height', 1024)
-        Config.set('graphics', 'fullscreen', 1)
+        Config.set('graphics', 'fullscreen', 0)
         #Config.set('graphics', 'width', 320)
         #Config.set('graphics', 'height', 480)
         Config.write()
@@ -20,7 +20,8 @@ class orxEditor(App):
 
 	def build(self):
 
-		self.root = BoxLayout(orientation='horizontal', padding = 0, spacing = 0)
+		self.root = Button(text = 'x')
+		#BoxLayout(orientation='horizontal', padding = 0, spacing = 0, size = (100, 100))
 		
 
 		leftMenu = BoxLayout(
@@ -39,8 +40,12 @@ class orxEditor(App):
 			size_hint = (0.75, 1),
 		)
 
-		root.add_widget(leftMenu)
-		root.add_widget(screenAndBottomMenu)
+		#leftMenu.add_widget(Button(text = 'x'))
+
+		#self.root.add_widget(leftMenu)
+		#self.root.add_widget(screenAndBottomMenu)
+
+		
 
 		#root = ScrollView(size_hint=(None, None), size=(400, 400))
 		#root.add_widget(layout)
