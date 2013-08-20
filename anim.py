@@ -11,6 +11,8 @@ from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
 from ConfigParser import ConfigParser
 from os.path import isdir, isfile, join
+from os import getcwd
+
 
 class SectionNames:
 	BASE_SECTION = 'BASE'
@@ -20,7 +22,6 @@ class PartedSprite:
 
 	def __init__ (self, baseSprite, x, y):
 		pass
-		
 
 class AssetsLoaded:
 
@@ -77,8 +78,6 @@ class DialogBox:
 
 	def show(self):
 		self.dialogBox.open()
-
-
 
 class BaseHidableObject (object):
 
@@ -223,7 +222,7 @@ class StartWorkingScreen(BaseHidableObject):
 		# Upper screen part
 		self.filenameLabel = Label(text = 'Filename:', size_hint = (1.0, 0.1))
 		self.filenameInput = TextInput(readonly = True, multiline = False, size_hint = (1.0, 0.1))
-		self.fileChooser = FileChooserIconView(size_hint = (1.0, 0.7))
+		self.fileChooser = FileChooserIconView(size_hint = (1.0, 0.7), path = getcwd())
 
 		# Bottom Bar Code
 		self.bottomBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
