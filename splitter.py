@@ -42,6 +42,9 @@ class LeftMenu:
 
 		self.__displayReference.updateDisplay(width, height, startX, startY)
 
+	def __export (self, notUsed = None):
+		pass
+
 	def __init__(self, base, display):
 		base.add_widget(Label(text = 'Width:'))
 		self.__widthInput = TextInput(text = '40', multiline = False)
@@ -53,56 +56,76 @@ class LeftMenu:
 		self.__initialXInput = TextInput(text = '0', multiline = False)
 		base.add_widget(self.__initialXInput)
 		base.add_widget(Label(text = 'Initial y:'))
-		self.__initialYInput = TextInput(text = '1', multiline = False)
+		self.__initialYInput = TextInput(text = '-1', multiline = False)
 		base.add_widget(self.__initialYInput)
 		
-		base.add_widget(Button(text = "GO!", on_press = self.__process))
+		base.add_widget(Button(text = "Split!", on_press = self.__process))
+		base.add_widget(Button(text = "Export", on_press = self.__export))
 		
 		self.__displayReference = display
 		self.__layout = base
 
 class Display:
+	
+	def __handleTouchOnSplittedImage(self, img, touch):
+		if (img.collide_point(*touch.pos) == True):
+			print img.to_local(touch.pos[0], touch.pos[1], True)
+
 	def __init__(self, base, imageSrc):
-		self.__grid = GridLayout(cols = 1, rows = 1)
+		self.__grid = GridLayout(cols = 1, rows = 1, size_hint = (1.0, 1.0))
 		self.__baseImage = Image(source = imageSrc)
-		self.__grid.add_widget(self.__baseImage)
 		base.add_widget(self.__grid)
+		self.__imagesList = []
 
-	def updateDisplay(self, width, height, startX, startY):
+	def showSingleBaseImage(serlf):
+		self.__grid.clear_widgets()
+		self.__grid.add_widget(self.__baseImage)
 
-		xList = range(startX, self.__baseImage.texture_size[0] + 1, width)
-		yList = range(startY, self.__baseImage.texture_size[1] + 1, height)
-
-		imagesList = []
-
-		for x in xList:
-			for y in yList:
-				newTexture = self.__baseImage.texture.get_region(x, y, width, height)
-				formerColor = None
-				isValid = False
-				for pixel in newTexture.pixels:
-					if (formerColor == None):
-						formerColor = pixel
-					elif(formerColor != pixel):
-						isValid = True
-						#print "valid!"
-						break
-
-				if (isValid == True):
-					imagesList.append(Image(texture = newTexture))
-
-		numberOfImages = len(imagesList)
+	def showSplittedImages(self):
+		
+		self.__grid.clear_widgets()
+		numberOfImages = len(self.__imagesList)
 		if (numberOfImages != 0):
-			self.__grid.clear_widgets()
 			dist = 1
 			while (dist * dist < numberOfImages):
 				dist += 1
 
 			self.__grid.cols = dist
 			self.__grid.rows = dist
+			self.__grid.spacing = 10
 
-			for img in imagesList:
+			for img in self.__imagesList:
 				self.__grid.add_widget(img)
+
+
+	def updateDisplay(self, width, height, startX, startY):
+
+		xList = range(startX, self.__baseImage.texture_size[0] + 1, width)
+		yList = range(startY, self.__baseImage.texture_size[1] + 1, height)
+
+		self.__imagesList = []
+
+		for x in xList:
+			for y in yList:
+				newTexture = self.__baseImage.texture.get_region(x, y, width, height)
+				formerColor = []
+				isValid = False
+				i = 0
+				for pixel in newTexture.pixels:
+					if (len(formerColor) != 4):
+						formerColor.append(pixel)
+					else:
+						if (formerColor[i] != pixel):
+							isValid = True
+							break
+						i = (i + 1) % 4
+
+
+				if (isValid == True):
+					self.__imagesList.append(Image(texture = newTexture, on_touch_up = self.__handleTouchOnSplittedImage, size = (width, height), size_hint = (None, None)))
+		
+		self.showSplittedImages()
+
 
 class TileSplitter(App):
 	
@@ -131,7 +154,7 @@ class TileSplitter(App):
 			size_hint = (0.75, 1.0),
 		)
 
-		self.display = Display(self.rightScreen, 'pave.png')
+		self.display = Display(self.rightScreen, '..\orxEditor\pave.png')
 		self.leftMenu = LeftMenu(self.leftMenuBase, self.display)
 
 		self.root.add_widget(self.leftMenuBase)
