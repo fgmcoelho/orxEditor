@@ -5,9 +5,7 @@ require('1.7.2')
 from kivy.app import App
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.label import Label
-from kivy.uix.scatter import Scatter
 from kivy.config import Config
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
@@ -17,8 +15,6 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
 from kivy.uix.checkbox import CheckBox
-from kivy.uix.switch import Switch
-from kivy.uix.accordion import Accordion, AccordionItem
 from kivy.core.window import Window
 from kivy.uix.progressbar import ProgressBar
 from kivy.graphics.texture import Texture
@@ -27,7 +23,6 @@ from sys import argv, exit
 from ConfigParser import ConfigParser
 from os.path import isdir, isfile, join, exists
 from os import listdir, getcwd, sep as pathSeparator
-
 
 class LeftMenu:
 
@@ -55,12 +50,34 @@ class LeftMenu:
 
 		self.__displayReference.updateDisplayRelative(partitionOnX, partitionOnY)
 
+	def __reset(self, notUsed = None):
+		self.__displayReference.showSingleBaseImage()
+
 	def __export (self, notUsed = None):
 		colorToAlpha = None
 		if self.__colorToAlphaCheckbox.active == True:
 			colorToAlpha = self.__hexColor
+			self.__exportColorToAlphaImage.color = self.__whiteImage.color
+			if (self.__exportColorToAlphaImage.parent == None):
+				self.__exportRightPartBox.remove_widget(self.__exportBlankLabel)
+				self.__exportRightPartBox.remove_widget(self.__exportButtonsBottomBar)
+				self.__exportRightPartBox.add_widget(self.__exportColorToAlphaBox)
+				self.__exportBlankLabel.size_hint = (1.0, 0.1)
+				self.__exportRightPartBox.add_widget(self.__exportBlankLabel)
+				self.__exportRightPartBox.add_widget(self.__exportButtonsBottomBar)
 	
-		self.__displayReference.saveSelectedImages('example.png', colorToAlpha) 
+		else:
+			self.__exportRightPartBox.remove_widget(self.__exportBlankLabel)
+			self.__exportRightPartBox.remove_widget(self.__exportButtonsBottomBar)
+			self.__exportRightPartBox.remove_widget(self.__exportColorToAlphaBox)
+			self.__exportBlankLabel.size_hint = (1.0, 0.3)
+			self.__exportRightPartBox.add_widget(self.__exportBlankLabel)
+			self.__exportRightPartBox.add_widget(self.__exportButtonsBottomBar)
+
+
+		#self.__displayReference.saveSelectedImages('example.png', colorToAlpha)
+		self.__exportPopup.open()
+
 
 	def __setAplhaColor(self, value):
 		newColor = []
@@ -87,6 +104,48 @@ class LeftMenu:
 		if (self.__displayReference.getState() == DisplayStates.showingSplitResult):
 			self.__showExportLayout()
 
+	def __createExportPopup(self):
+		self.__exportPopup = Popup(title = 'Export options', auto_dismiss = False, size = (0.8, 0.8))
+		
+		exportBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 1.0))
+		leftPartBox = BoxLayout(orientation = 'vertical', size_hint = (0.7, 1.0))
+		self.__exportRightPartBox = BoxLayout(orientation = 'vertical', size_hint = (0.3, 1.0))
+		
+		self.__exportFileChooser = FileChooserIconView(size_hint = (1.0, 0.9), path = getcwd(), filters = ['*.oss'])
+		leftPartBox.add_widget(self.__exportFileChooser)
+		
+		self.__exportRightPartBox.add_widget(Label(text = 'Filename: ', size_hint = (1.0, 0.1)))
+		self.__exportBaseNameInput = TextInput(multiline = False, size_hint = (1.0, 0.1))
+		self.__exportRightPartBox.add_widget(self.__exportBaseNameInput)
+		self.__exportRightPartBox.add_widget(Label(text = 'X divisions: ', size_hint = (1.0, 0.1)))
+		self.__exportXdivisions = TextInput(multiline = False, text = '0', size_hint = (1.0, 0.1))
+		self.__exportRightPartBox.add_widget(self.__exportXdivisions)
+		self.__exportRightPartBox.add_widget(Label(text = 'Y divisions: ', size_hint = (1.0, 0.1)))
+		self.__exportYdivisions = TextInput(multiline = False, text = '0', size_hint = (1.0, 0.1))
+		self.__exportRightPartBox.add_widget(self.__exportYdivisions)
+		
+		self.__exportColorToAlphaBox = BoxLayout(orientation = 'vertical', size_hint = (1.0, 0.2))
+		self.__exportColorToAlphaImage = self.__createWhiteImage()
+		self.__exportColorToAlphaBox.add_widget(Label(text = 'Color to alpha:', size_hint = (1.0, 0.5)))
+		self.__exportColorToAlphaBox.add_widget(self.__exportColorToAlphaImage)
+		
+		self.__exportBlankLabel = Label(text = '', size_hint = (1.0, 0.1))
+
+		self.__exportRightPartBox.add_widget(self.__exportColorToAlphaBox)
+		self.__exportRightPartBox.add_widget(self.__exportBlankLabel)
+
+		self.__exportButtonsBottomBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		self.__exportButtonsBottomBar.add_widget(Button(text = 'Ok'))
+		self.__exportButtonsBottomBar.add_widget(Button(text = 'Cancel', on_release = self.__exportPopup.dismiss))
+
+		self.__exportRightPartBox.add_widget(self.__exportButtonsBottomBar)
+
+		exportBox.add_widget(leftPartBox)
+		exportBox.add_widget(self.__exportRightPartBox)
+
+		self.__exportPopup.content = exportBox
+
+
 	def __createWhiteImage(self):
 		newTexture = Texture.create(size = (64, 64))
 		size = 64 * 64 * 4
@@ -108,10 +167,11 @@ class LeftMenu:
 		self.__relativeSplitLayout.add_widget(Label(text = 'Partitions on y:'))
 		self.__partitionOnYInput = TextInput(text = '8', multiline = False)
 		self.__relativeSplitLayout.add_widget(self.__partitionOnYInput)
-
+		
 		self.__relativeSplitLayout.add_widget(Button(text = "Change Method", on_release = self.__showSplitLayout))
 		self.__relativeSplitLayout.add_widget(Button(text = "Split!", on_release = self.__processRelativeSplit))
 		self.__relativeSplitLayout.add_widget(Button(text = "Export", on_release = self.__showExportLayoutIfPossible))
+		self.__relativeSplitLayout.add_widget(Button(text = "Reset", on_release = self.__reset))
 
 	def __createSplitLayout(self):
 		self.__splitLayout = BoxLayout(orientation = 'vertical')
@@ -132,6 +192,7 @@ class LeftMenu:
 		self.__splitLayout.add_widget(Button(text = "Change Method", on_release = self.__showRelativeSplitLayout))
 		self.__splitLayout.add_widget(Button(text = "Split!", on_release = self.__processSplit))
 		self.__splitLayout.add_widget(Button(text = "Export", on_release = self.__showExportLayoutIfPossible))
+		self.__splitLayout.add_widget(Button(text = "Reset", on_release = self.__reset))
 
 	def __createExportLayout(self):
 		self.__exportLayout = BoxLayout(orientation = 'vertical')
@@ -171,6 +232,8 @@ class LeftMenu:
 		self.__createRelativeSplitLayout()
 		self.__createSplitLayout()
 		self.__createExportLayout()
+		self.__createExportPopup()
+
 		self.__showSplitLayout()
 
 class DisplayStates:
@@ -280,6 +343,7 @@ class Display:
 		self.__changeAlphaColorMethodReference = None
 		xList = range(startX, self.__baseImage.texture_size[0] + 1, width)
 		yList = range(startY, self.__baseImage.texture_size[1] + 1, height)
+		yList.reverse()
 
 		self.__imagesList = []
 		progressbar = None
@@ -290,13 +354,13 @@ class Display:
 			progressBarPopUp = Popup(title = 'Progress', size_hint = (0.3, 0.1), auto_dismiss = False, content = progressbar)
 			progressBarPopUp.open()
 
-		for x in xList:
-			for y in yList:
+		for y in yList:
+			for x in xList:
 				progressbar.value += 1
 				newTexture = self.__baseImage.texture.get_region(x, y, width, height)
 				formerColor = []
 				isValid = False
-				i = 0
+				i= 0
 				for pixel in newTexture.pixels:
 					if (len(formerColor) != 4):
 						formerColor.append(pixel)
@@ -392,7 +456,6 @@ class Display:
 		newCoreImage.save('xxx.png')
 	
 	def __readLineFromImage(self, img, line, xSize, colorToAlpha):
-		print colorToAlpha
 		buf = ''
 		if (img == None):
 			i = 0
@@ -403,7 +466,6 @@ class Display:
 		else:
 			address = line * xSize * 4
 			i = 0
-			count = 0
 			pixels = img.getPixels()
 			rgba = []
 			while i < xSize * 4:
@@ -414,16 +476,12 @@ class Display:
 					if (colorToAlpha != None and rgba[0] == colorToAlpha[0] and rgba[1] == colorToAlpha[1] and 
 							rgba[2] == colorToAlpha[2]):
 						rgba[3] = chr(0x00);
-						count += 1
 					buf += chr(ord(rgba[0]))
 					buf += chr(ord(rgba[1]))
 					buf += chr(ord(rgba[2]))
 					buf += chr(ord(rgba[3]))
 					rgba = []
 			
-			if (count != 0):
-				print "Replaced "+str(count)+" pixels to alpha = 0"
-
 		
 		return buf
 
