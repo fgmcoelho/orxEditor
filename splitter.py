@@ -24,6 +24,8 @@ from ConfigParser import ConfigParser
 from os.path import isdir, isfile, join, exists
 from os import listdir, getcwd, sep as pathSeparator
 
+from editorutils import Dialog, AlertPopUp
+
 class LeftMenu:
 
 	def __processSplit(self, notUsed = None):
@@ -52,13 +54,94 @@ class LeftMenu:
 
 	def __reset(self, notUsed = None):
 		self.__displayReference.showSingleBaseImage()
+	
+	def __export(self, notUsed = None):
+		colorToAlpha = None
+		if (self.__colorToAlphaCheckbox.active == True):
+			colorToAlpha = self.__hexColor
 
-	def __export (self, notUsed = None):
+		self.__exportPopup.dismiss()
+		self.__dialog.dismiss()
+
+		if(self.__displayReference.saveSelectedImages(self.__finalName + '.png', colorToAlpha, self.__divs) == False):
+			self.__alert.setText('Error creating the message')
+			self.__alert.open()
+
+		self.__cancelExport()
+
+	def __validateExportOptions(self, notUsed = None):
+		
+		self.__finalName = ''
+		self.__divs = None
+
+		baseName = self.__exportBaseNameInput.text
+		if (baseName == ''):
+			self.__alert.setText('You must give a base name')
+			self.__alert.open()
+			return
+
+		try:
+			xdivs = int (self.__exportXdivisions.text)
+			ydivs = int (self.__exportYdivisions.text)
+
+		except:
+			self.__alert.setText('Invalid number of divsions.')
+			self.__alert.open()
+			return
+		
+		if ((xdivs != 0 and ydivs == 0) or (ydivs != 0 and xdivs == 0)):
+			self.__alert.setText(
+				'Invalid custom division, either both\n'\
+				'or neither must be zero.\n'\
+				'If both are zero the program will\n'\
+				'automatically set their values.')
+			self.__alert.open()
+			return
+
+		if (xdivs != 0 and ydivs != 0 and xdivs * ydivs < self.__displayReference.countSelectedImages()):
+			self.__alert.setText(
+				'Number of divisions is too low.\n'\
+				'It must be bigger than the number\n'\
+				'of images selected to be exported.\n'\
+				'Current value: ' + str(xdivs * ydivs) + '.\n'\
+				'Needed value: '+ str(self.__displayReference.countSelectedImages()) + '.'
+				)
+			self.__alert.open()
+			return
+
+		self.__divs = None
+		if (xdivs != 0 and ydivs != 0):
+			self.__divs = (xdivs, ydivs)
+		
+		
+		if (baseName[-4:] in ['.png', '.opf']):
+			baseName = baseName[:-4]
+
+		self.__finalName = baseName
+		pngFileExists = isfile(join(self.__exportFileChooser.path, baseName, '.png'))
+		opfFileExists = isfile(join(self.__exportFileChooser.path, baseName, '.opf'))
+		if (pngFileExists == True or opfFileExists == True):
+			dialogText = 'The following files will be overwritten:\n'
+			if (pngFileExists == True):
+				dialogText += baseName + '.png\n'
+			if (opfFileExists == True):
+				dialogText += baseName + '.opf\n'
+
+			dialogText += 'Continue?'
+			
+			self.__dialog.setText(dialogText)
+			self.__dialog.open()
+
+		else:
+			self.__export()
+			
+
+	def __openExportOptions(self, notUsed = None):
 		colorToAlpha = None
 		if self.__colorToAlphaCheckbox.active == True:
 			colorToAlpha = self.__hexColor
 			self.__exportColorToAlphaImage.color = self.__whiteImage.color
-			if (self.__exportColorToAlphaImage.parent == None):
+			if (self.__exportColorToAlphaBox.parent == None):
 				self.__exportRightPartBox.remove_widget(self.__exportBlankLabel)
 				self.__exportRightPartBox.remove_widget(self.__exportButtonsBottomBar)
 				self.__exportRightPartBox.add_widget(self.__exportColorToAlphaBox)
@@ -75,7 +158,6 @@ class LeftMenu:
 			self.__exportRightPartBox.add_widget(self.__exportButtonsBottomBar)
 
 
-		#self.__displayReference.saveSelectedImages('example.png', colorToAlpha)
 		self.__exportPopup.open()
 
 
@@ -111,7 +193,7 @@ class LeftMenu:
 		leftPartBox = BoxLayout(orientation = 'vertical', size_hint = (0.7, 1.0))
 		self.__exportRightPartBox = BoxLayout(orientation = 'vertical', size_hint = (0.3, 1.0))
 		
-		self.__exportFileChooser = FileChooserIconView(size_hint = (1.0, 0.9), path = getcwd(), filters = ['*.oss'])
+		self.__exportFileChooser = FileChooserIconView(size_hint = (1.0, 0.9), path = getcwd(), filters = ['*.png', '*.opf'])
 		leftPartBox.add_widget(self.__exportFileChooser)
 		
 		self.__exportRightPartBox.add_widget(Label(text = 'Filename: ', size_hint = (1.0, 0.1)))
@@ -135,7 +217,7 @@ class LeftMenu:
 		self.__exportRightPartBox.add_widget(self.__exportBlankLabel)
 
 		self.__exportButtonsBottomBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		self.__exportButtonsBottomBar.add_widget(Button(text = 'Ok'))
+		self.__exportButtonsBottomBar.add_widget(Button(text = 'Ok', on_release = self.__validateExportOptions))
 		self.__exportButtonsBottomBar.add_widget(Button(text = 'Cancel', on_release = self.__exportPopup.dismiss))
 
 		self.__exportRightPartBox.add_widget(self.__exportButtonsBottomBar)
@@ -206,7 +288,7 @@ class LeftMenu:
 		colorToAlphaConfirmationBox.add_widget(Label(text = 'Replace color to alpha 0'))
 
 		self.__exportLayout.add_widget(colorToAlphaConfirmationBox)
-		self.__exportLayout.add_widget(Button(text = 'Done', on_release = self.__export))
+		self.__exportLayout.add_widget(Button(text = 'Done', on_release = self.__openExportOptions))
 		self.__exportLayout.add_widget(Button(text = 'Cancel', on_release = self.__cancelExport))
 
 	def __showExportLayout(self, notUsed = None):
@@ -225,6 +307,10 @@ class LeftMenu:
 		self.__baseReference.clear_widgets()
 		self.__baseReference.add_widget(self.__relativeSplitLayout)
 
+	def __createWarnings(self):
+		self.__alert = AlertPopUp('Error', '', 'Ok')
+		self.__dialog = Dialog(self.__export, 'Warning', '', 'Ok', 'Cancel')
+
 	def __init__(self, base, display):
 		self.__displayReference = display
 		self.__baseReference = base
@@ -233,6 +319,7 @@ class LeftMenu:
 		self.__createSplitLayout()
 		self.__createExportLayout()
 		self.__createExportPopup()
+		self.__createWarnings()
 
 		self.__showSplitLayout()
 
@@ -402,10 +489,18 @@ class Display:
 
 			rgbaList.append(p)
 			
+	def countSelectedImages(self):
+		i = 0
+		for check in self.__checkBoxList:
+			if check.active == True:
+				i += 1
 
-	def saveSelectedImages(self, filename = 'example.png', colorToAlpha = None, dist = None):
+		return i
+
+
+	def saveSelectedImages(self, filename, colorToAlpha = None, dist = None):
 		if (self.__state != DisplayStates.showingSplitList or len(self.__checkBoxList) == 0):
-			return
+			return False
 
 		imagesSelected = []
 		i = 0
@@ -416,7 +511,7 @@ class Display:
 			i += 1
 
 		if (len(imagesSelected) == 0):
-			return
+			return False
 
 		if (dist == None or len(dist) != 2):
 			x, y = 1, 1
@@ -451,9 +546,11 @@ class Display:
 		newTexture.blit_buffer(newBuffer, colorfmt='rgba', bufferfmt='ubyte')
 		newTexture.flip_vertical()
 		newImage = Image (size = newSize,  texture = newTexture)
-		testpopup = Popup(title = 'text', auto_dismiss = True, content = newImage).open()
+		#testpopup = Popup(title = 'text', auto_dismiss = True, content = newImage).open()
 		newCoreImage = CoreImage(newTexture)
-		newCoreImage.save('xxx.png')
+		newCoreImage.save(filename)
+
+		return True
 	
 	def __readLineFromImage(self, img, line, xSize, colorToAlpha):
 		buf = ''
@@ -535,8 +632,6 @@ class TileSplitter(App):
 
 		self.root.add_widget(self.leftMenuBase)
 		self.root.add_widget(self.rightScreen)
-
-
 
 if __name__ == '__main__':
 	TileSplitter().run()
