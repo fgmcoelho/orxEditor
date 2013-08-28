@@ -2,8 +2,13 @@ from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.textinput import TextInput
 
-class BasePopUpMethods:
+from os.path import isdir, isfile, join, exists
+from os import getcwd, sep as pathSeparator
+
+class BaseWarnMethods:
 
 	def open(self):
 		self.mainPopUp.open()
@@ -18,7 +23,7 @@ class BasePopUpMethods:
 		self.mainPopUp.dismiss()
 
 
-class Dialog (BasePopUpMethods):
+class Dialog (BaseWarnMethods):
 
 	def __doNothing(self, notUsed = None):
 		return None
@@ -42,7 +47,7 @@ class Dialog (BasePopUpMethods):
 		popUpLayout.add_widget(yesNoLayout)
 		self.mainPopUp.content = popUpLayout
 
-class AlertPopUp (BasePopUpMethods):
+class AlertPopUp (BaseWarnMethods):
 	
 	def __init__(self, alertTitle = '', alertText = '', closeButtonText = ''):
 		self.mainPopUp = Popup(
@@ -57,4 +62,39 @@ class AlertPopUp (BasePopUpMethods):
 		mainPopUpBox.add_widget(self.mainPopUpText)
 		mainPopUpBox.add_widget(Button(text = closeButtonText, size_hint = (1.0, 0.3), on_release = self.mainPopUp.dismiss))
 		self.mainPopUp.content = mainPopUpBox
+
+class FileSelectionPopup:
+
+	def __setFilenameWithoutTheFullPath(self, entry, notUsed = None):
+		sepIndex = entry[0].rfind(pathSeparator)
+		if (sepIndex != -1):
+			self.__chosenFileInput.text = entry[0][sepIndex+1:]
+		else:
+			self.__chosenFileInput.text = entry[0]
+
+	def __init__(self, title = '', filters = ['*'], cancelButtonText = 'Cancel', size = (1.0, 1.0)):
+		self.__contentPopup = Popup(title = title, auto_dismiss = False, size = size)
+		self.__chosenFileInput = TextInput (text = '', multiline = False)
+		self.__fileChooser = FileChooserIconView(path = getcwd(), filters = filters)
+		self.__fileChooser.on_submit = self.__setFilenameWithoutTheFullPath
+		self.__cancelButton = Button(text = cancelButtonText, on_release = self.__contentPopup.dismiss)
+
+	def getFileChooser (self):
+		return self.__fileChooser
+
+	def getTextInput (self):
+		return self.__chosenFileInput
+
+	def getCancelButton(self):
+		return self.__cancelButton
+
+	def setContent(self, value):
+		self.__contentPopup.content = value
+
+	def open(self, *args):
+		self.__contentPopup.open()
+
+	def dismiss(self, *args):
+		self.__contentPopup.dismiss()
+
 
