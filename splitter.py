@@ -218,7 +218,9 @@ class LeftMenu:
 			self.__exportBaseNameInput.text = entry[0][sepIndex+1:]
 		else:
 			self.__exportBaseNameInput.text = entry[0]
-		
+	
+	def __validate
+	
 	def __createSelectNewImagePopup(self):
 		self.__newImageChooser = FileSelectionPopup('New File', ['*.png'], 'Cancel', (0.8, 0.8))
 		fullBox = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
@@ -236,6 +238,7 @@ class LeftMenu:
 		buttonsBox.add_widget(self.__newImageChooser.getCancelButton())
 		fullBox.add_widget(buttonsBox)
 		self.__newImageChooser.setContent(fullBox)
+		self.__newImageDialog = Dialog()
 
 	def __createExportPopup(self):
 		self.__exportPopup = Popup(title = 'Export options', auto_dismiss = False, size = (0.8, 0.8))
