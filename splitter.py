@@ -94,6 +94,7 @@ class LeftMenu:
 			self.__alert.open()
 
 		self.__cancelExport()
+		self.__displayReference.clearImage()
 
 	def __validateExportOptions(self, notUsed = None):
 		
@@ -138,7 +139,6 @@ class LeftMenu:
 		self.__divs = None
 		if (xdivs != 0 and ydivs != 0):
 			self.__divs = (xdivs, ydivs)
-		
 		
 		if (baseName[-4:] in ['.png', '.opf']):
 			baseName = baseName[:-4]
@@ -219,7 +219,32 @@ class LeftMenu:
 		else:
 			self.__exportBaseNameInput.text = entry[0]
 	
-	def __validate
+	def __doOpenNewImage(self, notUsed = None):
+		src = join(self.__newImageChooser.getFileChooser().path, self.__newImageChooser.getTextInput().text)
+		self.__displayReference.setBaseImage(src)
+		self.__newImageDialog.dismiss()
+		self.__newImageChooser.dismiss()
+
+	def __validateNewOpen(self, notUsed = None):
+		filename = self.__newImageChooser.getTextInput().text
+		filepath = self.__newImageChooser.getFileChooser().path
+		if (filename == ''):
+			self.__newImageAlert.setText('No file selected.')
+			self.__newImageAlert.open()
+
+		elif (exists(join(filepath, filename)) == False):
+			self.__newImageAlert.setText("File doesn't exist.")
+			self.__newImageAlert.open()
+		
+		elif(self.__displayReference.getState() != DisplayStates.showingNoImage):
+			self.__newImageDialog.setText(
+				'All the progress will be lost.\n'\
+				'Continue?'
+			)
+			self.__newImageDialog.open()
+
+		else:
+			self.__doOpenNewImage()
 	
 	def __createSelectNewImagePopup(self):
 		self.__newImageChooser = FileSelectionPopup('New File', ['*.png'], 'Cancel', (0.8, 0.8))
@@ -234,11 +259,12 @@ class LeftMenu:
 		chooser.size_hint = (1.0, 0.8)
 		fullBox.add_widget(chooser)
 		buttonsBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		buttonsBox.add_widget(Button(text = 'Ok'))
+		buttonsBox.add_widget(Button(text = 'Ok', on_release = self.__validateNewOpen))
 		buttonsBox.add_widget(self.__newImageChooser.getCancelButton())
 		fullBox.add_widget(buttonsBox)
 		self.__newImageChooser.setContent(fullBox)
-		self.__newImageDialog = Dialog()
+		self.__newImageDialog = Dialog(self.__doOpenNewImage, 'Warning', '', 'Ok', 'Cancel')
+		self.__newImageAlert = AlertPopUp('Error', '', 'Close')
 
 	def __createExportPopup(self):
 		self.__exportPopup = Popup(title = 'Export options', auto_dismiss = False, size = (0.8, 0.8))
@@ -297,40 +323,65 @@ class LeftMenu:
 		return Image(size = (64, 64), texture = newTexture)
 	
 	def __createRelativeSplitLayout(self):
-		self.__relativeSplitLayout = BoxLayout(orientation = 'vertical')
-		self.__relativeSplitLayout.add_widget(Label(text = 'Partitions on x:'))
-		self.__partitionOnXInput = TextInput(text = '12', multiline = False)
+		self.__relativeSplitLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
+		self.__relativeSplitLayout.add_widget(Label(text = 'Partitions on x:', size_hint = (1.0, 0.05)))
+		self.__partitionOnXInput = TextInput(text = '0', multiline = False, size_hint = (1.0, 0.05))
 		self.__relativeSplitLayout.add_widget(self.__partitionOnXInput)
-		self.__relativeSplitLayout.add_widget(Label(text = 'Partitions on y:'))
-		self.__partitionOnYInput = TextInput(text = '8', multiline = False)
+		self.__relativeSplitLayout.add_widget(Label(text = 'Partitions on y:', size_hint = (1.0, 0.05)))
+		self.__partitionOnYInput = TextInput(text = '0', multiline = False, size_hint = (1.0, 0.05))
 		self.__relativeSplitLayout.add_widget(self.__partitionOnYInput)
-		
-		self.__relativeSplitLayout.add_widget(Button(text = "Change Method", on_release = self.__showSplitLayout))
-		self.__relativeSplitLayout.add_widget(Button(text = "Split!", on_release = self.__processRelativeSplit))
-		self.__relativeSplitLayout.add_widget(Button(text = "Export", on_release = self.__showExportLayoutIfPossible))
-		self.__relativeSplitLayout.add_widget(Button(text = "Reset", on_release = self.__reset))
+	
+		self.__relativeSplitLayout.add_widget(Label(text='', size_hint = (1.0, 0.55)))
+
+		self.__relativeSplitLayout.add_widget(
+			Button(text = "New Image", on_release = self.__newImageChooser.open, size_hint = (1.0, 0.05))
+		)
+		self.__relativeSplitLayout.add_widget(
+			Button(text = "Change Method", on_release = self.__showSplitLayout, size_hint = (1.0, 0.05))
+		)
+		self.__relativeSplitLayout.add_widget(
+			Button(text = "Split!", on_release = self.__processRelativeSplit, size_hint = (1.0, 0.05))
+		)
+		self.__relativeSplitLayout.add_widget(
+			Button(text = "Export", on_release = self.__showExportLayoutIfPossible, size_hint = (1.0, 0.05))
+		)
+		self.__relativeSplitLayout.add_widget(
+			Button(text = "Reset", on_release = self.__reset, size_hint = (1.0, 0.05))
+		)
 
 	def __createSplitLayout(self):
-		self.__splitLayout = BoxLayout(orientation = 'vertical')
+		self.__splitLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		
-		self.__splitLayout.add_widget(Label(text = 'Width:'))
-		self.__widthInput = TextInput(text = '40', multiline = False)
+		self.__splitLayout.add_widget(Label(text = 'Width:', size_hint = (1.0, 0.05)))
+		self.__widthInput = TextInput(text = '0', multiline = False, size_hint = (1.0, 0.05))
 		self.__splitLayout.add_widget(self.__widthInput)
-		self.__splitLayout.add_widget(Label(text = 'Height:'))
-		self.__heightInput = TextInput(text = '40', multiline = False)
+		self.__splitLayout.add_widget(Label(text = 'Height:', size_hint = (1.0, 0.05)))
+		self.__heightInput = TextInput(text = '0', multiline = False, size_hint = (1.0, 0.05))
 		self.__splitLayout.add_widget(self.__heightInput)
-		self.__splitLayout.add_widget(Label(text = 'Initial x:'))
-		self.__initialXInput = TextInput(text = '0', multiline = False)
+		self.__splitLayout.add_widget(Label(text = 'Initial x:', size_hint = (1.0, 0.05)))
+		self.__initialXInput = TextInput(text = '0', multiline = False, size_hint = (1.0, 0.05))
 		self.__splitLayout.add_widget(self.__initialXInput)
-		self.__splitLayout.add_widget(Label(text = 'Initial y:'))
-		self.__initialYInput = TextInput(text = '-1', multiline = False)
+		self.__splitLayout.add_widget(Label(text = 'Initial y:', size_hint = (1.0, 0.05)))
+		self.__initialYInput = TextInput(text = '0', multiline = False, size_hint = (1.0, 0.05))
 		self.__splitLayout.add_widget(self.__initialYInput)
 
-		self.__splitLayout.add_widget(Button(text = "New Image", on_release = self.__newImageChooser.open))
-		self.__splitLayout.add_widget(Button(text = "Change Method", on_release = self.__showRelativeSplitLayout))
-		self.__splitLayout.add_widget(Button(text = "Split!", on_release = self.__processSplit))
-		self.__splitLayout.add_widget(Button(text = "Export", on_release = self.__showExportLayoutIfPossible))
-		self.__splitLayout.add_widget(Button(text = "Reset", on_release = self.__reset))
+		self.__splitLayout.add_widget(Label(text='', size_hint = (1.0, 0.35)))
+
+		self.__splitLayout.add_widget(
+			Button(text = "New Image", on_release = self.__newImageChooser.open, size_hint = (1.0, 0.05))
+		)
+		self.__splitLayout.add_widget(
+			Button(text = "Change Method", on_release = self.__showRelativeSplitLayout, size_hint = (1.0, 0.05))
+		)
+		self.__splitLayout.add_widget(
+			Button(text = "Split!", on_release = self.__processSplit, size_hint = (1.0, 0.05))
+		)
+		self.__splitLayout.add_widget(
+			Button(text = "Export", on_release = self.__showExportLayoutIfPossible, size_hint = (1.0, 0.05))
+		)
+		self.__splitLayout.add_widget(
+			Button(text = "Reset", on_release = self.__reset, size_hint = (1.0, 0.05))
+		)
 
 	def __createExportLayout(self):
 		self.__exportLayout = BoxLayout(orientation = 'vertical')
@@ -419,7 +470,15 @@ class Display:
 
 		self.updateLayoutSizes()
 
-	def setBaseImage(self, imageSrc,):
+	def clearImage(self):
+		self.__state = DisplayStates.showingNoImage
+		self.__grid.clear_widgets()
+		self.__baseImage = None
+		self.__grid.cols = 1
+		self.__grid.rows = 1
+		self.__grid.size = (1, 1)
+
+	def setBaseImage(self, imageSrc):
 		self.__grid.clear_widgets()
 		self.__baseImage = Image(source = imageSrc)
 		self.__grid.cols = 1
@@ -439,7 +498,7 @@ class Display:
 		self.__grid.size = self.__baseImage.texture_size
 		self.__grid.add_widget(self.__baseImage)
 
-	def showSplittedImages(self):
+	def showSplittedImages(self, width, height ):
 		self.__state = DisplayStates.showingSplitResult
 		self.__grid.clear_widgets()
 		numberOfImages = len(self.__imagesList)
@@ -454,6 +513,8 @@ class Display:
 
 			for img in self.__imagesList:
 				self.__grid.add_widget(img)
+
+			self.__grid.size = (dist * (width + 10) - 10, dist * (height + 10))
 
 	def showSplittedImagesList(self, changeAlphaColorByTouchReference):
 		self.__state = DisplayStates.showingSplitList
@@ -538,7 +599,7 @@ class Display:
 		if (progressBarPopUp != None):
 			progressBarPopUp.dismiss()
 		
-		self.showSplittedImages()
+		self.showSplittedImages(width, height)
 
 	def __setBufferRegion(self, buf, x, y, width, height, image, alphaToReplace):
 		
