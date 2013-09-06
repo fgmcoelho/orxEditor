@@ -16,39 +16,14 @@ from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
 from kivy.uix.checkbox import CheckBox
 from kivy.core.window import Window
-from kivy.uix.progressbar import ProgressBar
 from kivy.graphics.texture import Texture
 
 from sys import argv, exit
-from ConfigParser import ConfigParser
 from os.path import isdir, isfile, join, exists
 from os import listdir, getcwd, sep as pathSeparator
 
 from editorutils import Dialog, AlertPopUp, FileSelectionPopup
-
-class SplittedImageMap:
-	
-	def __init__(self, baseImagePath = '', numberOfImages = 0, divisions = (0, 0), size = (0, 0)):
-		self.__baseImagePath = baseImagePath
-		self.__numberOfImages = numberOfImages
-		self.__divisions = divisions
-		self.__size = size
-
-	def exportToOpf(self, filename):
-		assert (self.__baseImagePath != '' and self.__numberOfImages != 0 and len(self.__divisions) == 2 and
-			self.__divisions[0] != 0 and self.__divisions[1] != 0 and len(self.__size) == 2 and self.__size[0] != 0
-			and self.__size[1] != 0)
-			
-		parser = ConfigParser()
-		sectionName = 'SplittedImage'
-		parser.add_section(sectionName)
-		parser.set(sectionName, 'path', self.__baseImagePath)
-		parser.set(sectionName, 'numberofimages', self.__numberOfImages)
-		parser.set(sectionName, 'divisions', str(self.__divisions))
-		parser.set(sectionName, 'size', str(self.__size))
-		
-		f = open(filename, 'w')
-		parser.write(f)
+from splittedimagemap import SplittedImageMap
 
 
 class LeftMenu:
@@ -565,17 +540,12 @@ class Display:
 		yList.reverse()
 
 		self.__imagesList = []
-		progressbar = None
-		progressBarPopUp = None
-		totalElements = len(xList) * len(yList)
-		if (totalElements != 0):
-			progressbar = ProgressBar(max = totalElements, value = 0)
-			progressBarPopUp = Popup(title = 'Progress', size_hint = (0.3, 0.1), auto_dismiss = False, content = progressbar)
-			progressBarPopUp.open()
 
 		for y in yList:
 			for x in xList:
-				progressbar.value += 1
+				if (x + width > self.__baseImage.texture_size[0] or y + height > self.__baseImage.texture_size[1]):
+					continue
+				
 				newTexture = self.__baseImage.texture.get_region(x, y, width, height)
 				formerColor = []
 				isValid = False
@@ -596,9 +566,6 @@ class Display:
 					)
 				
 
-		if (progressBarPopUp != None):
-			progressBarPopUp.dismiss()
-		
 		self.showSplittedImages(width, height)
 
 	def __setBufferRegion(self, buf, x, y, width, height, image, alphaToReplace):
