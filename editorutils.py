@@ -8,13 +8,22 @@ from kivy.uix.textinput import TextInput
 from os.path import isdir, isfile, join, exists
 from os import getcwd, sep as pathSeparator
 
-def strToDoubleElementTuple(s):
+def strToDoubleFloatTuple(s):
 	assert(type(s) is str)
 	splitted = s.split(',')
 	assert(len(splitted) == 2)
 	x = float(splitted[0].replace('(', ''))
 	y = float(splitted[1].replace(')', ''))
 	return (x, y)
+
+def strToDoubleIntTuple(s):
+	assert(type(s) is str)
+	splitted = s.split(',')
+	assert(len(splitted) == 2)
+	x = int(splitted[0].replace('(', ''))
+	y = int(splitted[1].replace(')', ''))
+	return (x, y)
+
 
 class BaseWarnMethods:
 

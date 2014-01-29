@@ -1,6 +1,6 @@
-
 from ConfigParser import ConfigParser
-from editorutils import strToDoubleElementTuple
+from editorutils import strToDoubleIntTuple
+from kivy.uix.image import Image
 
 class SplittedImageMap:
 	
@@ -32,14 +32,14 @@ class SplittedImageMap:
 		xList = range(0, self.__size[0], width)
 		yList = range(0, self.__size[1], height)
 		yList.reverse()
-
+		
+		self.__baseImage = Image(source = self.__baseImagePath)
+		
 		for y in yList:
 			for x in xList:
-				
 				newTexture = self.__baseImage.texture.get_region(x, y, width, height)
 				self.__imagesList.append(
-					Image(texture = newTexture, on_touch_up = self.__handleTouchOnSplittedImage,
-					size = (width, height), size_hint = (None, None))
+					Image(texture = newTexture,	size = (width, height), size_hint = (None, None))
 				)
 				
 				i += 1
@@ -71,8 +71,8 @@ class SplittedImageMap:
 		sectionName = 'SplittedImage'
 		self.__baseImagePath = str(parser.get(sectionName, 'path'))
 		self.__numberOfImages = int(parser.get(sectionName, 'numberofimages'))
-		self.__divisions = strToDoubleElementTuple(parser.get(sectionName, 'divisions'))
-		self.__size = strToDoubleElementTuple(parser.get(sectionName, 'size'))
+		self.__divisions = strToDoubleIntTuple(parser.get(sectionName, 'divisions'))
+		self.__size = strToDoubleIntTuple(parser.get(sectionName, 'size'))
 		
 		self.__basicAssertions()
 

@@ -64,7 +64,9 @@ class LeftMenu:
 		self.__exportPopup.dismiss()
 		self.__dialog.dismiss()
 
-		if(self.__displayReference.saveSelectedImages(self.__finalName, colorToAlpha, self.__divs) == False):
+		
+		if(self.__displayReference.saveSelectedImages(join(self.__exportFileChooser.path, self.__finalName), 
+				colorToAlpha, self.__divs) == False):
 			self.__alert.setText('Error creating the message')
 			self.__alert.open()
 
@@ -651,7 +653,7 @@ class Display:
 		
 		
 		try:
-			exporter = SplittedImageMap(self.__baseImage.source, len(imagesSelected), divs, newSize)
+			exporter = SplittedImageMap(filename + '.png', len(imagesSelected), divs, newSize)
 			exporter.exportToOpf(filename + '.opf')
 		except Exception, e:
 			print str(e)

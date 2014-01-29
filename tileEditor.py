@@ -25,9 +25,9 @@ from ConfigParser import ConfigParser
 from os.path import isdir, isfile, join, exists
 from os import listdir, getcwd, sep as pathSeparator
 
-from editorutils import Dialog, AlertPopUp, strToDoubleElementTuple
+from editorutils import Dialog, AlertPopUp, strToDoubleFloatTuple
 from editorobjects import BaseObject, RenderedObject, ObjectTypes
-
+from splittedimagemap import SplittedImageMap
 
 class CollisionTypes:
 	box = 1
@@ -918,16 +918,30 @@ class ObjectDescriptor:
 
 class LeftMenuHandler (ConfigurationAccess):
 	
+	def __loadPng(self, item):
+		img = Image(source = join(getcwd(), self.getConfigValue('AssetsPath'),item))
+		obj = BaseObject(img, self.__numberOfItems)
+		self.__menuObjectsList.append(obj)
+		self.__numberOfItems += 1
+
+	def __loadOpf(self, item):
+		opfLoader = SplittedImageMap()
+		opfLoader.importFromOpf(join(getcwd(), self.getConfigValue('AssetsPath'),item))
+		imagesList = opfLoader.getImagesList()
+		for img in imagesList:
+			obj = BaseObject(img, self.__numberOfItems)
+			self.__menuObjectsList.append(obj)
+			self.__numberOfItems += 1
+
 	def __loadItems(self):
 		l = listdir(join(getcwd(), self.getConfigValue('AssetsPath')))
 		self.__menuObjectsList = []
 		self.__numberOfItems = 0
 		for item in l:
 			if (item[-4:] == '.png'):
-				img = Image(source = join(getcwd(), self.getConfigValue('AssetsPath'),item))
-				obj = BaseObject(img, self.__numberOfItems)
-				self.__menuObjectsList.append(obj)
-				self.__numberOfItems += 1
+				self.__loadPng(item)
+			elif (item[-4:] == '.opf'):
+				self.__loadOpf(item)
 		
 		if (self.__layout == None):
 			self.__layout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None))
@@ -1072,12 +1086,12 @@ class TileEditor(App, ConfigurationAccess):
 			if (name == ''):
 				continue
 			path = str(parser.get(name, 'path'))
-			pos = strToDoubleElementTuple(parser.get(name, 'pos'))
+			pos = strToDoubleFloatTuple(parser.get(name, 'pos'))
 			flipX = bool(int(parser.get(name, 'flipX')))
 			flipY = bool(int(parser.get(name, 'flipY')))
 			scale = float(parser.get(name, 'scale'))
 			layer = float(parser.get(name, 'layer'))
-			size = strToDoubleElementTuple(parser.get(name, 'size'))
+			size = strToDoubleFloatTuple(parser.get(name, 'size'))
 			hasCollisionInfo = bool(int(parser.get(name, 'hascollisioninfo')))
 			newCollisionInfo = None
 			if (hasCollisionInfo == True):
