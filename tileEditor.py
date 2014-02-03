@@ -237,8 +237,7 @@ class Scene (ConfigurationAccess):
 			newPos = (pos[0], pos[1] - size[1])
 	
 		if (newPos != None):
-			newRenderedObject = self.__createNewObjectAndAddToScene(obj.getPath(), baseSize, newPos, scale, layer, 
-				flipX, flipY, collisionInfo)
+			newRenderedObject = self.__createNewObjectAndAddToScene(obj, newPos)
 			self.__objectDescriptorReference.setObject(newRenderedObject)
 	
 	def resetAllWidgets(self):
@@ -250,9 +249,9 @@ class Scene (ConfigurationAccess):
 		self.__objectDict = {}
 		self.__id = 0
 	
-	def __createNewObjectAndAddToScene(self, path, size, pos, scale = 1.0, layer = 1, flipX = False, flipY = False, colInfo = None):
-		renderedObject = RenderedObject(self.__id, path, size, pos, self.__tileSize, self.__alignToGrid, 
-			self.__maxX, self.__maxY, self.__objectDescriptorReference, scale, layer, flipX, flipY, colInfo)
+	def __createNewObjectAndAddToScene(self, obj, pos):
+		renderedObject = RenderedObject(self.__id, obj, pos, self.__tileSize, self.__alignToGrid, 
+			self.__maxX, self.__maxY, self.__objectDescriptorReference)
 		
 		self.__layout.add_widget(renderedObject)
 		self.__objectDict[self.__id] = renderedObject
@@ -263,12 +262,15 @@ class Scene (ConfigurationAccess):
 	def getLayout(self):
 		return self.__layout
 
-	def addObjectFullInfo(self, path, size, pos, scale, layer, flipX, flipY, colInfo):
-		self.__createNewObjectAndAddToScene(path, size, pos, scale, layer, flipX, flipY, colInfo)
+	# TODO: UPDATE HERE
+	# THE WHOLE SAVE/LOAD MODULE MUST BE REWRITTEN...
+	def addObjectFullInfo(self, obj, pos):
+		self.__createNewObjectAndAddToScene(obj, pos)
 
-	def addObject(self, path, size, relativeX, relaviveY):
+	# TODO: UPDATE HERE
+	def addObject(self, obj, relativeX, relaviveY):
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
-		newRenderedObject = self.__createNewObjectAndAddToScene(path, size, pos)
+		newRenderedObject = self.__createNewObjectAndAddToScene(obj, pos)
 		self.__objectDescriptorReference.setObject(newRenderedObject)
 
 	def getObjectsDict(self):
@@ -334,10 +336,10 @@ class SceneHandler:
 		
 		self.__scrollView.size = (xSize, ySize)
 
-	def draw(self, path, size):
+	def draw(self, obj):
 		relativeX = self.__scrollView.hbar[0]
 		relaviveY = self.__scrollView.vbar[0]
-		self.__sceneReference.addObject(path, size, relativeX, relaviveY)
+		self.__sceneReference.addObject(obj, relativeX, relaviveY)
 
 	def getLayout(self):
 		return self.__scrollView
@@ -866,7 +868,7 @@ class ObjectDescriptor:
 			self.setObject(obj)
 
 	def __drawObject(self, obj):
-		self.__sceneHandlerReference.draw(obj.getPath(), obj.getSize())
+		self.__sceneHandlerReference.draw(obj)
 
 	def setObject(self, obj):
 
@@ -918,30 +920,40 @@ class ObjectDescriptor:
 
 class LeftMenuHandler (ConfigurationAccess):
 	
-	def __loadPng(self, item):
-		img = Image(source = join(getcwd(), self.getConfigValue('AssetsPath'),item))
+	def __loadPng(self, item, pngsToIgnoreList):
+		fullPath = join(getcwd(), self.getConfigValue('AssetsPath'), item)
+		if (fullPath in pngsToIgnoreList):
+			return
+
+		img = Image(source = fullPath)
 		obj = BaseObject(img, self.__numberOfItems)
 		self.__menuObjectsList.append(obj)
 		self.__numberOfItems += 1
 
-	def __loadOpf(self, item):
+	def __loadOpf(self, item, pngsToIgnoreList):
 		opfLoader = SplittedImageMap()
 		opfLoader.importFromOpf(join(getcwd(), self.getConfigValue('AssetsPath'),item))
 		imagesList = opfLoader.getImagesList()
 		for img in imagesList:
-			obj = BaseObject(img, self.__numberOfItems)
+			obj = BaseObject(img, self.__numberOfItems, opfLoader.getBaseImagePath())
 			self.__menuObjectsList.append(obj)
 			self.__numberOfItems += 1
+
+		print ("Adding %s to the ignore list!" % (obj.getPath(), ))
+		pngsToIgnoreList.append(obj.getPath())
 
 	def __loadItems(self):
 		l = listdir(join(getcwd(), self.getConfigValue('AssetsPath')))
 		self.__menuObjectsList = []
 		self.__numberOfItems = 0
+		pngsToIgnoreList = []
 		for item in l:
-			if (item[-4:] == '.png'):
-				self.__loadPng(item)
-			elif (item[-4:] == '.opf'):
-				self.__loadOpf(item)
+			if (item[-4:] == '.opf'):
+				self.__loadOpf(item, pngsToIgnoreList)
+
+		for item in l:
+			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
+				self.__loadPng(item, pngsToIgnoreList)
 		
 		if (self.__layout == None):
 			self.__layout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None))

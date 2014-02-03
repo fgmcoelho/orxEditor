@@ -81,3 +81,6 @@ class SplittedImageMap:
 			self.__loadImages()
 
 		return self.__imagesList
+
+	def getBaseImagePath(self):
+		return self.__baseImagePath

@@ -9,10 +9,15 @@ class ObjectTypes:
 
 class BaseObject:
 
-	def __init__(self, baseImage, identifier):
+	def __init__(self, baseImage, identifier, virtualPath = None):
 		self.__identifier = identifier
 		self.__baseImage = baseImage
-		self.__fullPath = baseImage.source
+		if (virtualPath == None):
+			self.__fullPath = baseImage.source
+			self.__isSprite = False
+		else:
+			self.__fullPath = virtualPath
+			self.__isSprite = True
 		self.__size = baseImage.texture.size
 		self.__objectType = ObjectTypes.baseObject
 
@@ -30,7 +35,6 @@ class BaseObject:
 
 	def getType(self):
 		return self.__objectType
-	
 
 class RenderedObject (Scatter):
 
@@ -55,7 +59,6 @@ class RenderedObject (Scatter):
 			y = self.__maxY - self.__sy
 
 		self._set_pos((int(x), int(y)))
-
 
 	def setMarked(self):
 		self.image.color[3] = 0.7
@@ -87,7 +90,6 @@ class RenderedObject (Scatter):
 		self.__collisionInfo = value
 
 	def __flipVertical(self):
-
 		newTexture = self.image.texture
 		newTexture.flip_vertical()
 		sizeToUse = self.image.size
@@ -157,40 +159,53 @@ class RenderedObject (Scatter):
 
 		self.__defaultTouchMove(touch)
 
-	def __init__(self, identifier, path, baseSize, pos, tileSize, alignToGrid, maxX, maxY, 
-		objectDescriptorRef, scale = 1.0, layer = 1, flipX = False, flipY = False, collisionInfo = None):
+	def __init__(self, identifier, obj, pos, tileSize, alignToGrid, maxX, maxY, objectDescriptorRef):
+		assert (isinstance(obj, BaseObject) or isinstance(obj, RenderedObject))
+		assert (type(maxX) is int and type(maxY) is int)
 		
-		self.__baseSize = baseSize
-		size  = (self.__baseSize[0] * scale, self.__baseSize[1] * scale)
+		self.__id = identifier
+		path = obj.getPath()
+
+		sepIndex = path.rfind(pathSeparator)
+		if (sepIndex != -1):
+			self.__name = path[sepIndex+1:-4] + '_' + str(self.__id)
+		else:
+			self.__name = path[0:-4] + '_' + str(self.__id)
+
+		if (isinstance(obj, BaseObject)):
+			self.__baseSize = obj.getSize()
+			self.image = Image(size = self.__baseSize, texture = obj.getBaseImage().texture)
+			self.__sx = self.__baseSize[0]
+			self.__sy = self.__baseSize[1]
+			self.__scale = 1.0
+			self.__layer = 1
+			self.__flipX = False
+			self.__flipY = False
+			self.__collisionInfo = None
+
+		else:
+			self.__baseSize = obj.getBaseSize()
+			self.__sx, self.__sy = obj.getSize()
+			self.image = Image(size = (self.__sx, self.__sy), texture = obj.getImage().texture)
+			self.__scale = obj.getScale()
+			self.__layer = obj.getLayer()
+			self.__flipX = obj.getFlipX()
+			self.__flipY = obj.getFlipY()
+			self.__collisionInfo = obj.getCollisionInfo()
 		
 		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
 			size = self.__baseSize, auto_bring_to_front = False)
-		self.image = Image(source = path, size = self.__baseSize, noCache = True)
-		self.image.reload()
-		
-		sepIndex = path.rfind(pathSeparator)
-		if (sepIndex != -1):
-			self.__name = path[sepIndex+1:-4] + '_' + str(identifier)
-		else:
-			self.__name = path[0:-4] + '_' + str(identifier)
+
 
 		self.add_widget(self.image)
-		self.__lastTransform = None
-		self.__id = identifier
 		self.__objectType = ObjectTypes.renderedObject
-		self.__sx = size[0]
-		self.__sy = size[1]
 		self.__alignToGrid = alignToGrid
 		self.__tileSize = tileSize
 		self.__maxX = maxX
 		self.__maxY = maxY
 		self.__path = path
-		self.__scale = scale
-		self.__layer = layer
-		self.__flipX = flipX
-		self.__flipY = flipY
 		self._set_pos(pos)
-		self.__collisionInfo = collisionInfo
+		self.__objectDescriptorReference = objectDescriptorRef
 
 		self.__defaultTouchDown = self.on_touch_down
 		self.on_touch_down = self.__handleTouchDown
@@ -200,13 +215,6 @@ class RenderedObject (Scatter):
 		self.apply_transform = self.__checkAndTransform
 		self.__defaultTouchMove = self.on_touch_move
 		self.on_touch_move = self.__handleTouchMove
-
-		self.__objectDescriptorReference = objectDescriptorRef
-		self.setScale(self.__scale, True)
-		if (self.__flipX == True):
-			self.flipOnX()
-		if (self.__flipY == True):
-			self.flipOnY()
 
 	def resetAllWidgets(self):
 		self.remove_widget(self.image)
@@ -246,4 +254,7 @@ class RenderedObject (Scatter):
 	
 	def getCollisionInfo(self):
 		return self.__collisionInfo
+
+	def getImage(self):
+		return self.image
 
