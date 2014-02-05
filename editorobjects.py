@@ -7,17 +7,29 @@ class ObjectTypes:
 	baseObject = 1
 	renderedObject = 2
 
+class SpritedObjectInfo:
+	def __init__(self, virtualPath, coords):
+		self.__virtualPath = virtualPath
+		self.__spriteCoords = coords
+
+	def getVirtualPath(self):
+		return self.__virtualPath
+
+	def getSpriteCoords(self):
+		return self.__spriteCoords
+
 class BaseObject:
 
-	def __init__(self, baseImage, identifier, virtualPath = None):
+	def __init__(self, baseImage, identifier, virtualPath = None, spriteCoords = None):
 		self.__identifier = identifier
 		self.__baseImage = baseImage
 		if (virtualPath == None):
 			self.__fullPath = baseImage.source
-			self.__isSprite = False
+			self.__spriteInfo = None
 		else:
 			self.__fullPath = virtualPath
-			self.__isSprite = True
+			self.__spriteInfo = SpritedObjectInfo(virtualPath, spriteCoords)
+
 		self.__size = baseImage.texture.size
 		self.__objectType = ObjectTypes.baseObject
 
@@ -35,6 +47,9 @@ class BaseObject:
 
 	def getType(self):
 		return self.__objectType
+
+	def getSpriteInfo(self):
+		return self.__spriteInfo
 
 class RenderedObject (Scatter):
 
@@ -164,6 +179,7 @@ class RenderedObject (Scatter):
 		assert (type(maxX) is int and type(maxY) is int)
 		
 		self.__id = identifier
+		self.__spriteInfo = obj.getSpriteInfo()
 		path = obj.getPath()
 
 		sepIndex = path.rfind(pathSeparator)
@@ -257,4 +273,7 @@ class RenderedObject (Scatter):
 
 	def getImage(self):
 		return self.image
+
+	def getSpriteInfo(self):
+		return self.__spriteInfo
 
