@@ -1,0 +1,6 @@
+[SplittedImage]
+path = /home/fernandocoelho/sandbox/orxEditor/tiles/teste.png
+numberofimages = 17
+divisions = (5, 4)
+size = (200, 160)
+
