@@ -1,7 +1,10 @@
+from singleton import Singleton
+
 from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
 from kivy.graphics.texture import Texture
 from os import listdir, getcwd, sep as pathSeparator
+
 
 class ObjectTypes:
 	baseObject = 1
@@ -157,9 +160,6 @@ class RenderedObject (Scatter):
 		self._set_pos((x, y))
 
 	def __handleTouchDown(self, touch):
-
-		if (self.collide_point(*touch.pos) == True):
-			self.__objectDescriptorReference.setObject(self)
 
 		self.__defaultTouchDown(touch)
 

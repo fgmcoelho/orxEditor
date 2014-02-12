@@ -10,8 +10,12 @@ from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
 from kivy.uix.filechooser import FileChooserIconView
 
+from editorobjects import ObjectTypes
+from collision import CollisionInformationPopup
+
 from os import listdir, getcwd
 
+@Singleton
 class BaseObjectDescriptor:
 	
 	def __init__(self, accordionItem):
@@ -34,6 +38,7 @@ class BaseObjectDescriptor:
 		self.__sizeLabel.text = 'Size: ' + str(size)
 		self.setActive()
 
+@Singleton
 class RenderedObjectDescriptor:
 	def __init__(self, accordionItem, popUpMethod):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
@@ -100,7 +105,7 @@ class RenderedObjectDescriptor:
 		else:
 			self.__collisionInfoLabel.text = 'Has collision info: Available'
 		
-
+@Singleton
 class OptionsMenu:
 	
 	def __newSceneFinish(self, notUsed = None):
@@ -243,15 +248,12 @@ class ObjectDescriptor:
 
 	def openCollisionPopUp(self, ignore):
 		
-		self.__collisionPopUpReference.showPopUp(self.__currentObject)
-		
+		CollisionInformationPopup.Instance().showPopUp(self.__currentObject)
 		if (self.__currentObject != None):
 			self.setObject(self.__currentObject)
 
-	def __init__(self, rightScreen, collisionPopUp, maxWidthProportion = 1.0, maxHeightProportion = 0.333):
+	def __init__(self, rightScreen, maxWidthProportion = 1.0, maxHeightProportion = 0.333):
 		
-		self.__collisionPopUpReference = collisionPopUp
-		self.__collisionPopUpReference.setPostCreateOrEditMethod(self.updateObjectDescriptors)
 		self.__currentObject = None
 		self.__maxWidthProportion = maxWidthProportion
 		self.__maxHeightProportion = maxHeightProportion
@@ -264,9 +266,10 @@ class ObjectDescriptor:
 			'Options' : AccordionItem(title = 'Options'),
 		}
 
-		self.__baseObjectDescriptor = BaseObjectDescriptor(self.__accordionItems['BaseObject'])
-		self.__renderedObjectDescriptor = RenderedObjectDescriptor(self.__accordionItems['RenderedObject'], self.openCollisionPopUp)
-		self.__optionsMenu = OptionsMenu(self.__accordionItems['Options'], None, None, None)
+		self.__baseObjectDescriptor = BaseObjectDescriptor.Instance(self.__accordionItems['BaseObject'])
+		self.__renderedObjectDescriptor = RenderedObjectDescriptor.Instance(self.__accordionItems['RenderedObject'], 
+			self.openCollisionPopUp)
+		self.__optionsMenu = OptionsMenu.Instance(self.__accordionItems['Options'], None, None, None)
 
 		self.__layout.add_widget(self.__accordionItems['BaseObject'])
 		self.__layout.add_widget(self.__accordionItems['RenderedObject'])
@@ -280,14 +283,8 @@ class ObjectDescriptor:
 		self.__baseObjectDescriptor.setValues()
 		self.__renderedObjectDescriptor.setValueNoActive()
 			
-	def setOrDrawObject(self, obj):
-		if (self.__currentObject == obj):
-			self.__drawObject(obj)
-		else:
-			self.setObject(obj)
-
-	def __drawObject(self, obj):
-		self.__sceneHandlerReference.draw(obj)
+	def setObject(self, obj):
+		self.setObject(obj)
 
 	def setObject(self, obj):
 

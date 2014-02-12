@@ -2,6 +2,10 @@ from singleton import Singleton
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 
+from editorobjects import ObjectTypes, RenderedObject
+from optionsmenu import ObjectDescriptor
+
+
 @Singleton
 class SceneAttributes:
 	def __init__(self, tileSize, numberOfTilesX, numberOfTilesY):
@@ -38,45 +42,45 @@ class Scene:
 		self.__minY = 0.0
 
 	def increaseScale(self):
-		obj = self.__objectDescriptorReference.getCurrentObject()
+		obj = ObjectDescriptor.Instance().getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
 			obj.increaseScale()
-			self.__objectDescriptorReference.setObject(obj)
+			ObjectDescriptor.Instance().setObject(obj)
 	
 	def decreaseScale(self):
-		obj = self.__objectDescriptorReference.getCurrentObject()
+		obj = ObjectDescriptor.Instance().getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
 			obj.decreaseScale()
-			self.__objectDescriptorReference.setObject(obj)
+			ObjectDescriptor.Instance().setObject(obj)
 
 	def flipOnX(self):
-		obj = self.__objectDescriptorReference.getCurrentObject()
+		obj = ObjectDescriptor.Instance().getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
 			obj.flipOnX()
-			self.__objectDescriptorReference.setObject(obj)
+			ObjectDescriptor.Instance().setObject(obj)
 		
 	def flipOnY(self):
-		obj = self.__objectDescriptorReference.getCurrentObject()
+		obj = ObjectDescriptor.Instance().getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
 			obj.flipOnY()
-			self.__objectDescriptorReference.setObject(obj)
+			ObjectDescriptor.Instance().setObject(obj)
 
 	def removeObject(self):
-		obj = self.__objectDescriptorReference.getCurrentObject()
+		obj = ObjectDescriptor.Instance().getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
 			self.__layout.remove_widget(obj)
 			identifier = obj.getIdentifier()
 			del self.__objectDict[identifier]
 			obj = None
-			self.__objectDescriptorReference.clearCurrentObject()
+			ObjectDescriptor.Instance().clearCurrentObject()
 		
 	def alignToGrid(self):
-		obj = self.__objectDescriptorReference.getCurrentObject()
+		obj = ObjectDescriptor.Instance().getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
 			obj.alignToGrid()
 
 	def alignAndCopyObject(self, direction):
-		obj = self.__objectDescriptorReference.getCurrentObject()
+		obj = ObjectDescriptor.Instance().getCurrentObject()
 		if (obj == None or obj.getType() != ObjectTypes.renderedObject):
 			return None
 		
@@ -108,7 +112,7 @@ class Scene:
 	
 		if (newPos != None):
 			newRenderedObject = self.__createNewObjectAndAddToScene(obj, newPos)
-			self.__objectDescriptorReference.setObject(newRenderedObject)
+			ObjectDescriptor.Instance().setObject(newRenderedObject)
 	
 	def resetAllWidgets(self):
 		for objectId in self.__objectDict.keys():
@@ -121,7 +125,7 @@ class Scene:
 	
 	def __createNewObjectAndAddToScene(self, obj, pos):
 		renderedObject = RenderedObject(self.__id, obj, pos, self.__tileSize, self.__alignToGrid, 
-			self.__maxX, self.__maxY, self.__objectDescriptorReference)
+			self.__maxX, self.__maxY, ObjectDescriptor.Instance())
 		
 		self.__layout.add_widget(renderedObject)
 		self.__objectDict[self.__id] = renderedObject
@@ -135,7 +139,7 @@ class Scene:
 	def addObject(self, obj, relativeX, relaviveY):
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
 		newRenderedObject = self.__createNewObjectAndAddToScene(obj, pos)
-		self.__objectDescriptorReference.setObject(newRenderedObject)
+		ObjectDescriptor.Instance().setObject(newRenderedObject)
 
 	def getObjectsDict(self):
 		return self.__objectDict
@@ -167,9 +171,15 @@ class SceneHandler:
 					self.__scrollView.scroll_x += 0.05
 
 			return 
+		
+		else:
+			childDict = Scene.Instance().getObjectsDict()
+			for key in childDict.keys():
+				if childDict[key].collide_point(*self.__scrollView.to_widget(*touch.pos)):
+					ObjectDescriptor.Instance().setObject(childDict[key])
+					break
 
 		self.__defaultTouchDown(touch)
-		
 	
 	def __init__(self, rightScreen, maxWidthProportion = 1.0, maxHeightProportion = 0.667):
 		

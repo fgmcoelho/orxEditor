@@ -3,26 +3,11 @@ from kivy import require
 require('1.7.2')
 
 from kivy.app import App
-from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
 from kivy.config import Config
-from kivy.uix.button import Button
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.image import Image
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.filechooser import FileChooserIconView
-from kivy.uix.popup import Popup
-from kivy.uix.checkbox import CheckBox
-from kivy.uix.switch import Switch
-from kivy.uix.accordion import Accordion, AccordionItem
 from kivy.core.window import Window
-from kivy.graphics.texture import Texture
 
 from sys import argv, exit
-from ConfigParser import ConfigParser
-from os.path import isdir, isfile, join, exists
-from os import listdir, getcwd, sep as pathSeparator
 
 from optionsmenu import ObjectDescriptor
 from scene import Scene, SceneHandler,SceneAttributes
@@ -30,11 +15,6 @@ from collision import CollisionInformationPopup
 from objectsmenu import ObjectsMenu
 
 from editorutils import Dialog, AlertPopUp, strToDoubleFloatTuple
-from editorobjects import BaseObject, RenderedObject, ObjectTypes
-
-class CollisionTypes:
-	box = 1
-	sphere = 2
 
 class KeyboardAccess:
 	
@@ -92,7 +72,7 @@ class KeyboardShortcutHandler (KeyboardAccess):
 			Scene.Instance().alignAndCopyObject("up")
 
 		elif (keycode[1] == 'e'):
-			SceneHandler.Instance().clearCurrentObject()
+			ObjectDescriptor.Instance().clearCurrentObject()
 
 		elif (keycode[1] == 'shift'):
 			SceneHandler.Instance().setIsShiftPressed(True)
@@ -161,12 +141,12 @@ class TileEditor(App):
 		self.root.add_widget(self.leftMenuBase)
 		self.root.add_widget(self.rightScreen)
 		
-		self.sceneAttributes = SceneAttributes.Instance(64, 20, 20)
+		self.sceneAttributes = SceneAttributes.Instance(40, 20, 20)
 		self.scene = Scene.Instance()
 		self.sceneHandler = SceneHandler.Instance(self.rightScreen)
-		self.collisionPopUp = CollisionInformationPopup()
+		self.collisionPopUp = CollisionInformationPopup.Instance()
 
-		self.objectHandler = ObjectDescriptor.Instance(self.rightScreen, self.collisionPopUp)
+		self.objectHandler = ObjectDescriptor.Instance(self.rightScreen)
 		self.leftMenuHandler = ObjectsMenu(self.leftMenuBase)
 		self.shortcutHandler = KeyboardShortcutHandler()
 

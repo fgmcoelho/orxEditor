@@ -1,3 +1,5 @@
+from singleton import Singleton
+
 from kivy.uix.popup import Popup
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
@@ -6,6 +8,12 @@ from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.switch import Switch
 from editorutils import AlertPopUp
+
+from editorobjects import ObjectTypes
+
+class CollisionTypes:
+	box = 1
+	sphere = 2
 
 class CollisionFlag:
 	def __init__(self, name, hexValue):
@@ -79,42 +87,42 @@ class CollisionInformation:
 			self.getAllowSleep() == other.getAllowSleep() &
 			self.getCollisionType() == other.getCollisionType())
 
+def validateMask(inputReference):
+	value = inputReference.text
+	valid = True
+	
+	if (value == ''):
+		valid = False
 
-
-class CollisionInformationPopup:
-
-	@staticmethod
-	def validateMask(inputReference):
-		value = inputReference.text
-		valid = True
+	else:
+		value = value.strip()
+		base = 10
+		if (value[0:2] == '0x' or value[0:2] == '0X'):
+			base = 16
 		
-		if (value == ''):
+		elif (value[0:2] == '0b' or value[0:2] == '0B'):
+			base = 2
+
+		elif (value[0] == '0'):
+			base = 8
+
+		try:
+			x = int (value, base)
+			valid = True
+			if (x < 0 or x > 0xFFFF):
+				valid = False
+		except:
 			valid = False
 
-		else:
-			value = value.strip()
-			base = 10
-			if (value[0:2] == '0x' or value[0:2] == '0X'):
-				base = 16
-			
-			elif (value[0:2] == '0b' or value[0:2] == '0B'):
-				base = 2
+	if (valid == False):
+		inputReference.background_color = [1, 0, 0, 1]
+	else:
+		inputReference.background_color = [1, 1, 1, 1]
 
-			elif (value[0] == '0'):
-				base = 8
 
-			try:
-				x = int (value, base)
-				valid = True
-				if (x < 0 or x > 0xFFFF):
-					valid = False
-			except:
-				valid = False
 
-		if (valid == False):
-			inputReference.background_color = [1, 0, 0, 1]
-		else:
-			inputReference.background_color = [1, 1, 1, 1]
+@Singleton
+class CollisionInformationPopup:
 
 	def __setDefaultValues(self):
 		self.__selfFlagInput.text = '0xFFFF'
@@ -155,11 +163,11 @@ class CollisionInformationPopup:
 		
 		self.__collisionGrid.add_widget(Label(text = 'SelfFlag:'))
 		self.__selfFlagInput = TextInput(text='0xFFFF', multiline = False)
-		self.__selfFlagInput.bind(on_text_validate=CollisionInformationPopup.validateMask)
+		self.__selfFlagInput.bind(on_text_validate=validateMask)
 		self.__collisionGrid.add_widget(self.__selfFlagInput)
 
 		self.__collisionGrid.add_widget(Label(text = 'Check Mask:'))
-		self.__checkMaskInput = TextInput(text='0xFFFF', multiline = False, on_text_validate=CollisionInformationPopup.validateMask)
+		self.__checkMaskInput = TextInput(text='0xFFFF', multiline = False, on_text_validate=validateMask)
 		self.__collisionGrid.add_widget(self.__checkMaskInput)
 		
 		self.__collisionGrid.add_widget(Label(text = 'Solid?'))
