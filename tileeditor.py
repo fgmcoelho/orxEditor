@@ -13,6 +13,7 @@ from optionsmenu import ObjectDescriptor
 from scene import Scene, SceneHandler,SceneAttributes
 from collision import CollisionInformationPopup
 from objectsmenu import ObjectsMenu
+from editorobjects import RenderObjectGuardian
 
 from editorutils import Dialog, AlertPopUp, strToDoubleFloatTuple
 
@@ -46,8 +47,6 @@ class KeyboardShortcutHandler (KeyboardAccess):
 		self.getKeyboardAccess(self.__processKeyDown, self.__processKeyUp)
 	
 	def __processKeyUp(self, keyboard, keycode):
-		#print('The key', keycode, 'have been released.')
-		
 		if (keycode[1] == 'shift'):
 			SceneHandler.Instance().setIsShiftPressed(False)
 
@@ -141,6 +140,7 @@ class TileEditor(App):
 		self.root.add_widget(self.leftMenuBase)
 		self.root.add_widget(self.rightScreen)
 		
+		self.renderGuardian = RenderObjectGuardian.Instance()
 		self.sceneAttributes = SceneAttributes.Instance(40, 20, 20)
 		self.scene = Scene.Instance()
 		self.sceneHandler = SceneHandler.Instance(self.rightScreen)

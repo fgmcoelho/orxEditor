@@ -2,9 +2,8 @@ from singleton import Singleton
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 
-from editorobjects import ObjectTypes, RenderedObject
+from editorobjects import ObjectTypes, RenderedObject, RenderObjectGuardian
 from optionsmenu import ObjectDescriptor
-
 
 @Singleton
 class SceneAttributes:
@@ -125,7 +124,7 @@ class Scene:
 	
 	def __createNewObjectAndAddToScene(self, obj, pos):
 		renderedObject = RenderedObject(self.__id, obj, pos, self.__tileSize, self.__alignToGrid, 
-			self.__maxX, self.__maxY, ObjectDescriptor.Instance())
+			self.__maxX, self.__maxY)
 		
 		self.__layout.add_widget(renderedObject)
 		self.__objectDict[self.__id] = renderedObject
@@ -173,11 +172,22 @@ class SceneHandler:
 			return 
 		
 		else:
+			clickedObjectsList = []
 			childDict = Scene.Instance().getObjectsDict()
 			for key in childDict.keys():
 				if childDict[key].collide_point(*self.__scrollView.to_widget(*touch.pos)):
-					ObjectDescriptor.Instance().setObject(childDict[key])
-					break
+					clickedObjectsList.append(childDict[key])
+				
+			highestLayer = -100
+			selectedObject = None
+			for obj in clickedObjectsList:
+				if (highestLayer < obj.getLayer()):
+					highestLayer = obj.getLayer()
+					selectedObject = obj
+
+			if (obj != None):
+				ObjectDescriptor.Instance().setObject(obj)
+				RenderObjectGuardian.Instance().setOperationObject(obj)
 
 		self.__defaultTouchDown(touch)
 	
@@ -195,14 +205,6 @@ class SceneHandler:
 		self.__scrollView.add_widget(Scene.Instance().getLayout())
 		rightScreen.add_widget(self.__scrollView)
 		
-		#self.updateLayoutSizes()
-
-	#def updateLayoutSizes(self):
-	#	wx, wy = Window.size
-	#	xSize = wx * self.__maxWidthProportion
-	#	ySize = wy * self.__maxHeightProportion
-	#	self.__scrollView.size = (xSize, ySize)
-
 	def draw(self, obj):
 		relativeX = self.__scrollView.hbar[0]
 		relaviveY = self.__scrollView.vbar[0]

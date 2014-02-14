@@ -1,3 +1,10 @@
+from singleton import Singleton
+
+from scene import Scene
+
+class FilesManager
+
+	
 	def saveScene(self, filename):
 
 		parser = ConfigParser()

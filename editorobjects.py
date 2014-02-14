@@ -5,6 +5,23 @@ from kivy.uix.image import Image
 from kivy.graphics.texture import Texture
 from os import listdir, getcwd, sep as pathSeparator
 
+@Singleton
+class RenderObjectGuardian:
+	def __init__(self):
+		self.__maxLayer = 0
+		self.__operationObject = None
+
+	def getOperationObject(self):
+		return self.__operationObject
+	
+	def setOperationObject(self, value):
+		self.__operationObject = value
+
+	def getMaxLayer(self):
+		return self.__maxLayer
+
+	def setMaxLayer(self, value):
+		self.__maxLayer = value
 
 class ObjectTypes:
 	baseObject = 1
@@ -58,6 +75,9 @@ class RenderedObject (Scatter):
 
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
 		
+		if (self != RenderObjectGuardian.Instance().getOperationObject()):
+			return
+
 		xBefore, yBefore = self.bbox[0]
 
 		self.__defaultApplyTransform(trans, post_multiply, anchor)
@@ -174,7 +194,7 @@ class RenderedObject (Scatter):
 
 		self.__defaultTouchMove(touch)
 
-	def __init__(self, identifier, obj, pos, tileSize, alignToGrid, maxX, maxY, objectDescriptorRef):
+	def __init__(self, identifier, obj, pos, tileSize, alignToGrid, maxX, maxY):
 		assert (isinstance(obj, BaseObject) or isinstance(obj, RenderedObject))
 		assert (type(maxX) is int and type(maxY) is int)
 		
@@ -221,7 +241,6 @@ class RenderedObject (Scatter):
 		self.__maxY = maxY
 		self.__path = path
 		self._set_pos(pos)
-		self.__objectDescriptorReference = objectDescriptorRef
 
 		self.__defaultTouchDown = self.on_touch_down
 		self.on_touch_down = self.__handleTouchDown
