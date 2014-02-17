@@ -3,7 +3,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 
 from editorobjects import ObjectTypes, RenderedObject, RenderObjectGuardian
-from optionsmenu import ObjectDescriptor
+from objectdescriptor import ObjectDescriptor
 
 @Singleton
 class SceneAttributes:
@@ -24,21 +24,28 @@ class SceneAttributes:
 class Scene:
 	
 	def __init__(self):
-		
+		self.__alignToGrid = True
+		self.__objectDict = {}
+		self.__layout = RelativeLayout(size_hint = (None, None))
+		self.__objectDict = {}
+		self.loadValues()
+
+	def loadValues(self):
 		sceneAttr = SceneAttributes.Instance()
 		self.__tileSize = sceneAttr.getValue('TilesSize')
 		sx = sceneAttr.getValue('TilesMaxX') * self.__tileSize
 		sy = sceneAttr.getValue('TilesMaxY') * self.__tileSize
-
-		self.__alignToGrid = True
-		self.__layout = RelativeLayout(size=(sx, sy), size_hint = (None, None))
-		
+		self.__layout.size= (sx, sy)
 		self.__id = 0
-		self.__objectDict = {}
 		self.__maxX = sx
 		self.__minX = 0.0
 		self.__maxY = sy
 		self.__minY = 0.0
+		if self.__objectDict != {}:
+			for key in self.__objectDict:
+				self.__objectDict[key].resetAllWidgets()
+			self.__objectDict = {}
+			
 
 	def increaseScale(self):
 		obj = ObjectDescriptor.Instance().getCurrentObject()
@@ -185,9 +192,9 @@ class SceneHandler:
 					highestLayer = obj.getLayer()
 					selectedObject = obj
 
-			if (obj != None):
-				ObjectDescriptor.Instance().setObject(obj)
-				RenderObjectGuardian.Instance().setOperationObject(obj)
+			if (selectedObject != None):
+				ObjectDescriptor.Instance().setObject(selectedObject)
+				RenderObjectGuardian.Instance().setOperationObject(selectedObject)
 
 		self.__defaultTouchDown(touch)
 	

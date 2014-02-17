@@ -1,9 +1,15 @@
 from singleton import Singleton
 
-from scene import Scene
+from scene import Scene, SceneAttributes
+from editorobjects import RenderedObject
 
-class FilesManager
+from ConfigParser import ConfigParser
 
+@Singleton
+class FilesManager:
+
+	def __init__(self):
+		pass
 	
 	def saveScene(self, filename):
 
@@ -13,15 +19,15 @@ class FilesManager
 		objectListName = 'ObjectList'
 		
 		parser.add_section(tileEditorSectionName)
-		parser.set(tileEditorSectionName, 'maxX', self.getConfigValue('TilesMaxX'))
-		parser.set(tileEditorSectionName, 'maxY', self.getConfigValue('TilesMaxY'))
-		parser.set(tileEditorSectionName, 'size', self.getConfigValue('TilesSize'))
-		parser.set(tileEditorSectionName, 'alignToGrid', self.getConfigValue('TilesAlignToGrid'))
+		parser.set(tileEditorSectionName, 'maxX', SceneAttributes.Instance().getValue('TilesMaxX'))
+		parser.set(tileEditorSectionName, 'maxY', SceneAttributes.Instance().getValue('TilesMaxY'))
+		parser.set(tileEditorSectionName, 'size', SceneAttributes.Instance().getValue('TilesSize'))
+		parser.set(tileEditorSectionName, 'alignToGrid', 1)
 
 		parser.add_section(assetsSectionName)
-		parser.set(assetsSectionName, 'path', self.getConfigValue('AssetsPath'))
+		parser.set(assetsSectionName, 'path', 'tiles')
 
-		renderedObjectsDict = self.scene.getObjectsDict()
+		renderedObjectsDict = Scene.Instance().getObjectsDict()
 		objectsInScene = ''
 		for inSceneId in renderedObjectsDict.keys():
 			objectsInScene += renderedObjectsDict[inSceneId].getName() + ' # '
@@ -32,7 +38,15 @@ class FilesManager
 		for inSceneId in renderedObjectsDict.keys():
 			newSectionName = renderedObjectsDict[inSceneId].getName() 
 			parser.add_section(newSectionName)
-			parser.set(newSectionName, 'path', str(renderedObjectsDict[inSceneId].getPath()))
+			spriteInfo = renderedObjectsDict[inSceneId].getSpriteInfo()
+			if (spriteInfo == None):
+				parser.set(newSectionName, 'issprite', '0')
+				parser.set(newSectionName, 'path', str(renderedObjectsDict[inSceneId].getPath()))
+			else:
+				parser.set(newSectionName, 'issprite', '1')
+				parser.set(newSectionName, 'path', spriteInfo.getVirtualPath())
+				parser.set(newSectionName, 'spritecoords', spriteInfo.getSpriteCoords())
+				
 			parser.set(newSectionName, 'pos', str(renderedObjectsDict[inSceneId].getPos()))
 			parser.set(newSectionName, 'flipX', str(int(renderedObjectsDict[inSceneId].getFlipX())))
 			parser.set(newSectionName, 'flipY', str(int(renderedObjectsDict[inSceneId].getFlipY())))
@@ -42,9 +56,9 @@ class FilesManager
 			
 			collisionObject = renderedObjectsDict[inSceneId].getCollisionInfo()
 			if (collisionObject == None):
-				parser.set(newSectionName, 'hascollisioninfo', 0)
+				parser.set(newSectionName, 'hascollisioninfo', '0')
 			else:
-				parser.set(newSectionName, 'hascollisioninfo', 1)
+				parser.set(newSectionName, 'hascollisioninfo', '1')
 				collisionInfoSectionName = newSectionName + '_collision_info'
 				parser.add_section(collisionInfoSectionName)
 				parser.set(collisionInfoSectionName, 'selfFlag', str(collisionObject.getSelfFlag()))
@@ -56,7 +70,7 @@ class FilesManager
 
 		f = open(filename, 'w')
 		parser.write(f)
-
+		f.close()
 
 	def loadScene(self, filename):
 		ConfigObject = TileEditorConfig(filename)

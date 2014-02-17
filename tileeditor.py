@@ -9,13 +9,12 @@ from kivy.core.window import Window
 
 from sys import argv, exit
 
-from optionsmenu import ObjectDescriptor
+from optionsmenu import OptionsMenu
 from scene import Scene, SceneHandler,SceneAttributes
-from collision import CollisionInformationPopup
 from objectsmenu import ObjectsMenu
 from editorobjects import RenderObjectGuardian
-
-from editorutils import Dialog, AlertPopUp, strToDoubleFloatTuple
+from tilemapfiles import FilesManager
+from objectdescriptor import ObjectDescriptor
 
 class KeyboardAccess:
 	
@@ -98,8 +97,6 @@ class KeyboardShortcutHandler (KeyboardAccess):
 
 class TileEditor(App):
 	
-	resizeList = []
-
 	def build_config(self, c):
 		
 		Config.set('graphics', 'width', 800)
@@ -107,17 +104,6 @@ class TileEditor(App):
 		Config.set('graphics', 'fullscreen', 0)
 		Config.set('input', 'mouse', 'mouse,disable_multitouch')
 		Config.write()
-
-	@staticmethod
-	def resizeTest(x, y):
-		for widget in TileEditor.resizeList:
-			widget.updateLayoutSizes()
-	
-
-	def resetAllWidgets(self, useless = None):
-		self.objectHandler.resetAllWidgets()
-		self.leftMenuHandler.resetAllWidgets()
-		self.scene.resetAllWidgets()
 
 	def build(self):
 
@@ -140,17 +126,15 @@ class TileEditor(App):
 		self.root.add_widget(self.leftMenuBase)
 		self.root.add_widget(self.rightScreen)
 		
+		self.filesManager = FilesManager.Instance()
 		self.renderGuardian = RenderObjectGuardian.Instance()
 		self.sceneAttributes = SceneAttributes.Instance(40, 20, 20)
 		self.scene = Scene.Instance()
 		self.sceneHandler = SceneHandler.Instance(self.rightScreen)
-		self.collisionPopUp = CollisionInformationPopup.Instance()
 
-		self.objectHandler = ObjectDescriptor.Instance(self.rightScreen)
+		self.objectHandler = OptionsMenu.Instance(self.rightScreen)
 		self.leftMenuHandler = ObjectsMenu(self.leftMenuBase)
 		self.shortcutHandler = KeyboardShortcutHandler()
-
-		Window.on_resize = self.resizeTest
 
 		return self.root
 	

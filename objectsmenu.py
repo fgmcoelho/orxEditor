@@ -7,7 +7,7 @@ from kivy.uix.scrollview import ScrollView
 
 from splittedimagemap import SplittedImageMap
 from editorobjects import BaseObject, RenderedObject, ObjectTypes
-from optionsmenu import ObjectDescriptor
+from objectdescriptor import ObjectDescriptor
 from scene import SceneHandler
 
 class ObjectMenuItem:
