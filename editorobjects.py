@@ -155,6 +155,12 @@ class RenderedObject (Scatter):
 		self.__flipHorizontal()
 		self._set_pos((x,y))
 
+	def increaseLayer(self):
+		self.__layer += 1
+
+	def decreaseLayer(self):
+		self.__layer -= 1
+
 	def flipOnY(self):
 		self.__flipY = not self.__flipY
 		
@@ -164,20 +170,26 @@ class RenderedObject (Scatter):
 
 	def alignToGrid(self):
 		x, y = self.bbox[0]
-
 		distX = x % self.__tileSize
-		if (distX < self.__tileSize/2):
-			x -= x % self.__tileSize
-		else:
-			x += self.__tileSize - (x % self.__tileSize)
+		if (distX != 0):
+			if (distX < self.__tileSize/2):
+				x -= x % self.__tileSize
+			else:
+				x += self.__tileSize - (x % self.__tileSize)
 		
 		distY = y % self.__tileSize
-		if (distY < self.__tileSize/2):
-			y -= y % self.__tileSize
-		else:
-			y += self.__tileSize - (y % self.__tileSize)
+		if (distY != 0):
+			if (distY < self.__tileSize/2):
+				y -= y % self.__tileSize
+			else:
+				y += self.__tileSize - (y % self.__tileSize)
 
-		self._set_pos((x, y))
+		tries = 0
+		while (self.getPos() != (x, y)):
+			if (tries != 0):
+				print tries
+			self._set_pos((x, y))
+			tries += 1
 
 	def __handleTouchDown(self, touch):
 

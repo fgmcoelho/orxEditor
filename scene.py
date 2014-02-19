@@ -4,6 +4,10 @@ from kivy.uix.relativelayout import RelativeLayout
 
 from editorobjects import ObjectTypes, RenderedObject, RenderObjectGuardian
 from objectdescriptor import ObjectDescriptor
+from kivy.graphics.vertex_instructions import Line
+from kivy.graphics import Color
+
+from operator import itemgetter
 
 @Singleton
 class SceneAttributes:
@@ -31,6 +35,7 @@ class Scene:
 		self.loadValues()
 
 	def loadValues(self):
+		self.__layout.canvas.clear()
 		sceneAttr = SceneAttributes.Instance()
 		self.__tileSize = sceneAttr.getValue('TilesSize')
 		sx = sceneAttr.getValue('TilesMaxX') * self.__tileSize
@@ -45,7 +50,35 @@ class Scene:
 			for key in self.__objectDict:
 				self.__objectDict[key].resetAllWidgets()
 			self.__objectDict = {}
-			
+
+		with self.__layout.canvas:
+			Color(0., 1., 0.)
+			for i in range(1, sx, self.__tileSize):
+				for j in range(1, sy, self.__tileSize):
+					Line(points = [
+						i, j, 
+						i + self.__tileSize, j,
+						i + self.__tileSize, j + self.__tileSize,
+						i, j + self.__tileSize]
+					)
+		
+
+
+	def redraw(self):
+		objectsList = []
+		for key in self.__objectDict.keys():
+			objectsList.append((self.__objectDict[key], self.__objectDict[key].getLayer()))
+
+		self.__layout.clear_widgets()
+		objectsOrderedList = sorted(objectsList, key=itemgetter(1))
+		for obj in objectsOrderedList:
+			self.__layout.add_widget(obj[0])
+
+	def listAllPos(self):
+
+		for key in self.__objectDict.keys():
+			print self.__objectDict[key].getPos()
+
 
 	def increaseScale(self):
 		obj = ObjectDescriptor.Instance().getCurrentObject()
@@ -69,6 +102,18 @@ class Scene:
 		obj = ObjectDescriptor.Instance().getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
 			obj.flipOnY()
+			ObjectDescriptor.Instance().setObject(obj)
+
+	def increaseLayer(self):
+		obj = ObjectDescriptor.Instance().getCurrentObject()
+		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
+			obj.increaseLayer()
+			ObjectDescriptor.Instance().setObject(obj)
+
+	def decreaseLayer(self):
+		obj = ObjectDescriptor.Instance().getCurrentObject()
+		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
+			obj.decreaseLayer()
 			ObjectDescriptor.Instance().setObject(obj)
 
 	def removeObject(self):
@@ -107,7 +152,7 @@ class Scene:
 		if (direction == "left") and (pos[0] >= size[0]):
 			newPos = (pos[0] - size[0], pos[1])
 
-		elif (direction == "right") and (pos[0] + size[0]*2 <= self.__maxX):
+		elif (direction == "right") and (pos[0] + size[0] * 2 <= self.__maxX):
 			newPos = (pos[0] + size[0], pos[1])
 
 		elif (direction == "up" and pos[1] + size[1] * 2 <= self.__maxY):
@@ -159,8 +204,13 @@ class SceneHandler:
 	
 	def __ignoreMoves(self, touch):
 		return None
+	
+	def __handleScrollAndPassTouchUpToChildren(self, touch):
+		
+		Scene.Instance().redraw()
+		self.__defaultTouchUp(touch)
 
-	def __handleScrollAndPassTouchesToChildren(self, touch):
+	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self.__scrollView.collide_point(*touch.pos) == False):
 			return
 
@@ -207,7 +257,10 @@ class SceneHandler:
 		self.__scrollView = ScrollView(scroll_timeout = 0, size_hint = (maxWidthProportion, maxHeightProportion))
 		self.__scrollView.on_touch_move = self.__ignoreMoves
 		self.__defaultTouchDown = self.__scrollView.on_touch_down
-		self.__scrollView.on_touch_down = self.__handleScrollAndPassTouchesToChildren
+		self.__defaultTouchUp = self.__scrollView.on_touch_up
+
+		self.__scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+		self.__scrollView.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
 
 		self.__scrollView.add_widget(Scene.Instance().getLayout())
 		rightScreen.add_widget(self.__scrollView)
