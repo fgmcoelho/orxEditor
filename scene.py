@@ -53,14 +53,20 @@ class Scene:
 
 		with self.__layout.canvas:
 			Color(0., 1., 0.)
-			for i in range(1, sx, self.__tileSize):
-				for j in range(1, sy, self.__tileSize):
-					Line(points = [
-						i, j, 
-						i + self.__tileSize, j,
-						i + self.__tileSize, j + self.__tileSize,
-						i, j + self.__tileSize]
-					)
+			i = 0
+			while i < sx:
+				Line(points = [
+					i, 0, 
+					i, sy], width = 2
+				)
+				i += self.__tileSize
+			i = 0
+			while i < sy:
+				Line(points = [
+					0, i, 
+					sx, i], width = 2
+				)
+				i += self.__tileSize
 		
 
 
@@ -73,6 +79,7 @@ class Scene:
 		objectsOrderedList = sorted(objectsList, key=itemgetter(1))
 		for obj in objectsOrderedList:
 			self.__layout.add_widget(obj[0])
+			obj[0].alignToGrid()
 
 	def listAllPos(self):
 
@@ -175,8 +182,8 @@ class Scene:
 		self.__id = 0
 	
 	def __createNewObjectAndAddToScene(self, obj, pos):
-		renderedObject = RenderedObject(self.__id, obj, pos, self.__tileSize, self.__alignToGrid, 
-			self.__maxX, self.__maxY)
+		renderedObject = RenderedObject(self.__id, obj, pos, self.__tileSize, self.__maxX, self.__maxY)
+		RenderObjectGuardian.Instance().setOperationObject(renderedObject)
 		
 		self.__layout.add_widget(renderedObject)
 		self.__objectDict[self.__id] = renderedObject

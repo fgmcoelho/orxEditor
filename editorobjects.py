@@ -5,6 +5,9 @@ from kivy.uix.image import Image
 from kivy.graphics.texture import Texture
 from os import listdir, getcwd, sep as pathSeparator
 
+from kivy.graphics.vertex_instructions import Line
+from kivy.graphics import Color
+
 @Singleton
 class RenderObjectGuardian:
 	def __init__(self):
@@ -99,9 +102,15 @@ class RenderedObject (Scatter):
 		self._set_pos((int(x), int(y)))
 
 	def setMarked(self):
+		#with self.image.canvas:
+		#	Color(1., 0., 0.)
+		#	sx, sy = self.getSize()
+		#	x = Line(points = [0, 0, sx, 0, sx, sy, 0, sy, 0, 0])
 		self.image.color[3] = 0.7
 
 	def unsetMarked(self):
+		#pass
+		#self.image.canvas.clear()
 		self.image.color[3] = 1.0
 
 	def increaseScale(self):
@@ -185,9 +194,10 @@ class RenderedObject (Scatter):
 				y += self.__tileSize - (y % self.__tileSize)
 
 		tries = 0
-		while (self.getPos() != (x, y)):
+		while (self.getPos() != (x, y) and tries < 3):
 			if (tries != 0):
-				print tries
+				print self.getPos()
+				print ((x,y))
 			self._set_pos((x, y))
 			tries += 1
 
@@ -196,20 +206,17 @@ class RenderedObject (Scatter):
 		self.__defaultTouchDown(touch)
 
 	def __handleTouchUp(self, touch):
-		
-		if (self.__alignToGrid == True and self.collide_point(*touch.pos) == True):
-			self.alignToGrid()
-
 		self.__defaultTouchUp(touch)
 
 	def __handleTouchMove(self, touch):
 
 		self.__defaultTouchMove(touch)
 
-	def __init__(self, identifier, obj, pos, tileSize, alignToGrid, maxX, maxY):
+	def __init__(self, identifier, obj, pos, tileSize, maxX, maxY):
 		assert (isinstance(obj, BaseObject) or isinstance(obj, RenderedObject))
 		assert (type(maxX) is int and type(maxY) is int)
 		
+		self.__markLine = None
 		self.__id = identifier
 		self.__spriteInfo = obj.getSpriteInfo()
 		path = obj.getPath()
@@ -247,7 +254,6 @@ class RenderedObject (Scatter):
 
 		self.add_widget(self.image)
 		self.__objectType = ObjectTypes.renderedObject
-		self.__alignToGrid = alignToGrid
 		self.__tileSize = tileSize
 		self.__maxX = maxX
 		self.__maxY = maxY
