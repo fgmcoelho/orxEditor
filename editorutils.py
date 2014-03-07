@@ -24,6 +24,8 @@ def strToDoubleIntTuple(s):
 	y = int(splitted[1].replace(')', ''))
 	return (x, y)
 
+def vector2ToVector3String(v, default = 0):
+	return '(' + str(v[0]) + ', ' + str(v[1]) + ', ' + str (default) + ')'
 
 class BaseWarnMethods:
 

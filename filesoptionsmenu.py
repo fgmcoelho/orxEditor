@@ -83,12 +83,21 @@ class FilesOptionsMenu:
 		self.__fileChooserOkButton.on_release = self.__validateAndContinueToLoad
 		self.__fileChooserPopUp.open()
 
+	def __exportScene(self, notUsed = None):
+		#self.__fileChooser.path = self.__lastPath
+		#self.__fileChooser.filters = ['*.ini']
+		#self.__fileChooser.on_submit = self.__validateSelectedOsf
+		#self.__fileChooserOkButton.on_release = self.__validateAndContinueToLoad
+		#self.__fileChooserPopUp.open()
+		FilesManager.Instance().exportScene('teste.ini')
+	
+
 	def __startBasicButtonsLayout(self):
 		self.__layout = GridLayout(rows = 4, cols = 1, size_hint = (1.0, 1.0))
 		self.__newButton = Button(text = 'New Scene', size_hint = (1.0, 0.25), on_release = self.__newScene)
 		self.__loadButton = Button(text = 'Load Scene', size_hint = (1.0, 0.25), on_release = self.__loadScene)
 		self.__saveButton = Button(text = 'Save Scene', size_hint = (1.0, 0.25), on_release = self.__saveScene)
-		self.__exportButton = Button(text = 'Export Scene', size_hint = (1.0, 0.25))
+		self.__exportButton = Button(text = 'Export Scene', size_hint = (1.0, 0.25), on_release = self.__exportScene)
 		
 		self.__layout.add_widget(self.__newButton)
 		self.__layout.add_widget(self.__loadButton)

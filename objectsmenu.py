@@ -48,8 +48,9 @@ class ObjectsMenu:
 		opfLoader = SplittedImageMap()
 		opfLoader.importFromOpf(join(getcwd(), 'tiles',item))
 		imagesList = opfLoader.getImagesList()
-		for img in imagesList:
-			obj = BaseObject(img, self.__numberOfItems, opfLoader.getBaseImagePath())
+		coodsList = opfLoader.getCoordsList()
+		for i in range(len(imagesList)):
+			obj = BaseObject(imagesList[i], self.__numberOfItems, opfLoader.getBaseImagePath(), coodsList[i])
 			self.__menuObjectsList.append(ObjectMenuItem(obj, (64, 64)))
 			self.__numberOfItems += 1
 

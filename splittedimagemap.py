@@ -10,6 +10,7 @@ class SplittedImageMap:
 		self.__divisions = divisions
 		self.__size = size
 		self.__imagesList = []
+		self.__coordsList = []	
 
 	def __basicAssertions(self):
 		assert (self.__baseImagePath != '' and self.__numberOfImages != 0 and len(self.__divisions) == 2 and
@@ -32,19 +33,24 @@ class SplittedImageMap:
 		xList = range(0, self.__size[0], width)
 		yList = range(0, self.__size[1], height)
 		yList.reverse()
-		
+			
 		self.__baseImage = Image(source = self.__baseImagePath)
+		coordI = 0
 		
 		for y in yList:
+			coordJ = 0
 			for x in xList:
 				newTexture = self.__baseImage.texture.get_region(x, y, width, height)
 				self.__imagesList.append(
 					Image(texture = newTexture,	size = (width, height), size_hint = (None, None))
 				)
-				
+				self.__coordsList.append((coordI, coordJ))
+
 				i += 1
+				coordJ += 1
 				if (i == self.__numberOfImages):
 					return
+			coordI += 1
 
 		assert (i == self.numberOfImages)
 
@@ -82,5 +88,13 @@ class SplittedImageMap:
 
 		return self.__imagesList
 
+	def getCoordsList(self):
+		if (self.__imagesList == []):
+			self.__loadImages()
+		return self.__coordsList
+
 	def getBaseImagePath(self):
 		return self.__baseImagePath
+
+	def getSize(self):
+		return self.__size
