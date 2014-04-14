@@ -24,6 +24,32 @@ class SceneAttributes:
 		else:
 			return None
 
+class SceneAction:
+	def __init__(self, obj):
+		self.__obj = obj
+
+	def defineAction(self, action, extraArgs = []):
+		self.__extraArgs = extraArgs
+		
+		if (action == "increaseScale"):
+			self.__reverseMethod = self.__obj.decreaseScale
+		
+		elif (action == "decreaseScale"):
+			self.__reverseMethod = self.__obj.increaseScale
+		
+		elif (action == "flipOnX"):
+			self.__reverseMethod = self.__obj.flipOnX
+
+		elif (action == "flipOnY"):
+			self.__reverseMethod = self.__obj.flipOnY
+
+		elif (action == "alignAndCopyObject"):
+			self.__reverseMethod = self.__obj.
+
+class SceneActionHistory:
+	def __init__(self):
+		pass
+
 @Singleton
 class Scene:
 	
@@ -68,8 +94,6 @@ class Scene:
 				)
 				i += self.__tileSize
 		
-
-
 	def redraw(self):
 		objectsList = []
 		for key in self.__objectDict.keys():
@@ -80,12 +104,6 @@ class Scene:
 		for obj in objectsOrderedList:
 			self.__layout.add_widget(obj[0])
 			obj[0].alignToGrid()
-
-	def listAllPos(self):
-
-		for key in self.__objectDict.keys():
-			print self.__objectDict[key].getPos()
-
 
 	def increaseScale(self):
 		obj = ObjectDescriptor.Instance().getCurrentObject()

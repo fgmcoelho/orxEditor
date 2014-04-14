@@ -106,6 +106,7 @@ class FilesManager:
 
 	def exportScene(self, filename):
 		parser = ConfigParser()
+		parser.optionxform = str
 		objectListName = 'ObjectList'
 		
 		renderedObjectsDict = Scene.Instance().getObjectsDict()
