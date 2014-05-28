@@ -48,6 +48,8 @@ class KeyboardShortcutHandler (KeyboardAccess):
 	def __processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'shift'):
 			SceneHandler.Instance().setIsShiftPressed(False)
+		elif (keycode[1] == 'ctrl'):
+			SceneHandler.Instance().setIsCtrlPressed(False)
 
 	def __processKeyDown(self, keyboard, keycode, text, modifiers):
 		#print('The key', keycode, 'have been pressed')
@@ -74,6 +76,9 @@ class KeyboardShortcutHandler (KeyboardAccess):
 
 		elif (keycode[1] == 'shift'):
 			SceneHandler.Instance().setIsShiftPressed(True)
+
+		elif (keycode[1] == 'ctrl'):
+			SceneHandler.Instance().setIsCtrlPressed(True)
 
 		elif (keycode[1] == 'delete'):
 			Scene.Instance().removeObject()

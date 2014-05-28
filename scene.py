@@ -25,26 +25,46 @@ class SceneAttributes:
 			return None
 
 class SceneAction:
-	def __init__(self, obj):
-		self.__obj = obj
+	def __init__(self, objects):
+		
+		if (type(objects) is list):
+			self.__objList = objects
+		else:
+			self.__objList = [ objects ]
+
+		self.__reverseMethodList = []
+		self.__reverseArgsList = []
 
 	def defineAction(self, action, extraArgs = []):
 		self.__extraArgs = extraArgs
 		
 		if (action == "increaseScale"):
-			self.__reverseMethod = self.__obj.decreaseScale
+			for obj in self.__objList:
+				self.__reverseMethod.append(obj.decreaseScale)
 		
 		elif (action == "decreaseScale"):
-			self.__reverseMethod = self.__obj.increaseScale
+			for obj in self.__objList:
+				self.__reverseMethodList.append(obj.increaseScale)
 		
 		elif (action == "flipOnX"):
-			self.__reverseMethod = self.__obj.flipOnX
+			for obj in self.__objList:
+				self.__reverseMethodList.append(obj.flipOnX)
 
 		elif (action == "flipOnY"):
-			self.__reverseMethod = self.__obj.flipOnY
+			for obj in self.__objList:
+				self.__reverseMethodList.append(obj.flipOnY)
 
 		elif (action == "alignAndCopyObject"):
-			self.__reverseMethod = self.__obj.
+			for obj in self.__objList:
+				self.__reverseMethodList.append(obj.hideFromView)
+
+		elif (action == "Move"):
+			for obj in self.__objList:
+				self.__reverseMethodList.append(obj.move)
+
+		elif (action == "Delete"):
+			pass
+
 
 class SceneActionHistory:
 	def __init__(self):
@@ -227,6 +247,9 @@ class SceneHandler:
 	def setIsShiftPressed(self, value):
 		self.__isShiftPressed = value
 	
+	def setIsCtrlPressed(self, value):
+		self.__isCtrlPressed = value
+
 	def __ignoreMoves(self, touch):
 		return None
 	

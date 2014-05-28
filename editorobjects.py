@@ -13,6 +13,17 @@ class RenderObjectGuardian:
 	def __init__(self):
 		self.__maxLayer = 0
 		self.__operationObject = None
+		self.__moveStarted = False
+		self.__startMovement = None
+		self.__endMovement = None
+
+	def startMovement(self, x, y):
+		if (self.__moveStarted == False):
+			self.__moveStarted = True
+			self.__startMovement = (x, y)
+
+	def endMovement(self):
+		pass
 
 	def getOperationObject(self):
 		return self.__operationObject
@@ -88,6 +99,12 @@ class RenderedObject (Scatter):
 		x, y = self.bbox[0]
 		if (xBefore == x and yBefore == y):
 			return
+
+		#if (RenderObjectGuardian.Instance().
+
+		if (self.__isMoving == False):
+			self.__movingStart = (xBefore, yBefore)
+			self.__isMoving = True
 
 		if (x < 0):
 			x = 0
@@ -177,6 +194,9 @@ class RenderedObject (Scatter):
 		self.__flipVertical()
 		self._set_pos((x,y))
 
+	def move(self, x, y):
+		self._set_pos((x, y))
+
 	def alignToGrid(self):
 		x, y = self.bbox[0]
 		distX = x % self.__tileSize
@@ -200,6 +220,10 @@ class RenderedObject (Scatter):
 				print ((x,y))
 			self._set_pos((x, y))
 			tries += 1
+		
+		if (self.__isMoving == True):
+			self.__isMoving = False
+			self.__movingStart = None
 
 	def __handleTouchDown(self, touch):
 
@@ -253,6 +277,8 @@ class RenderedObject (Scatter):
 
 
 		self.add_widget(self.image)
+		self.__isMoving = False
+		self.__movingStart = None
 		self.__objectType = ObjectTypes.renderedObject
 		self.__tileSize = tileSize
 		self.__maxX = maxX
