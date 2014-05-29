@@ -221,7 +221,7 @@ class Scene:
 	
 	def __createNewObjectAndAddToScene(self, obj, pos):
 		renderedObject = RenderedObject(self.__id, obj, pos, self.__tileSize, self.__maxX, self.__maxY)
-		RenderObjectGuardian.Instance().setOperationObject(renderedObject)
+		RenderObjectGuardian.Instance().setSingleSelectionObject(renderedObject)
 		
 		self.__layout.add_widget(renderedObject)
 		self.__objectDict[self.__id] = renderedObject
@@ -291,14 +291,18 @@ class SceneHandler:
 					selectedObject = obj
 
 			if (selectedObject != None):
-				ObjectDescriptor.Instance().setObject(selectedObject)
-				RenderObjectGuardian.Instance().setOperationObject(selectedObject)
+				if (self.__isCtrlPressed == False):
+					ObjectDescriptor.Instance().setObject(selectedObject)
+					RenderObjectGuardian.Instance().setSingleSelectionObject(selectedObject)
+				else:
+					RenderObjectGuardian.Instance().addMultiSelectionObject(selectedObject)
 
 		self.__defaultTouchDown(touch)
 	
 	def __init__(self, rightScreen, maxWidthProportion = 1.0, maxHeightProportion = 0.667):
 		
 		self.__isShiftPressed = False
+		self.__isCtrlPressed = False
 		self.__maxWidthProportion = maxWidthProportion
 		self.__maxHeightProportion = maxHeightProportion
 		

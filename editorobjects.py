@@ -16,6 +16,7 @@ class RenderObjectGuardian:
 		self.__moveStarted = False
 		self.__startMovement = None
 		self.__endMovement = None
+		self.__multiSelectionObjects = []
 
 	def startMovement(self, x, y):
 		if (self.__moveStarted == False):
@@ -25,17 +26,39 @@ class RenderObjectGuardian:
 	def endMovement(self):
 		pass
 
-	def getOperationObject(self):
-		return self.__operationObject
+	def isSelected(self, value):
+		if (self.__operationObject != None):
+			return value == self.__operationObject
+
+		elif (self.__multiSelectionObjects != []):
+			print "looking for object in multi selection: " + str( value in self.__multiSelectionObjects)
+			return value in self.__multiSelectionObjects
+
+		return False
 	
-	def setOperationObject(self, value):
+	def setSingleSelectionObject(self, value):
+		if (self.__multiSelectionObjects != []):
+			self.__multiSelectionObjects = []
+
 		self.__operationObject = value
+
+	def addMultiSelectionObject(self, value):
+		if (self.__operationObject != None):
+			self.__operationObject = None
+
+		if (value not in self.__multiSelectionObjects):
+			self.__multiSelectionObjects.append(value)
 
 	def getMaxLayer(self):
 		return self.__maxLayer
 
 	def setMaxLayer(self, value):
 		self.__maxLayer = value
+
+	def propagateTranslation(self, value, translation, post, anchor):
+		for obj in self.__multiSelectionObjects:
+			if (obj != value):
+				obj.applyTranslation(translation, post, anchor)
 
 class ObjectTypes:
 	baseObject = 1
@@ -89,8 +112,10 @@ class RenderedObject (Scatter):
 
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
 		
-		if (self != RenderObjectGuardian.Instance().getOperationObject()):
+		if (RenderObjectGuardian.Instance().isSelected(self) == False):
 			return
+
+		RenderObjectGuardian.Instance().propagateTranslation(self, trans, post_multiply, anchor)
 
 		xBefore, yBefore = self.bbox[0]
 
@@ -99,8 +124,6 @@ class RenderedObject (Scatter):
 		x, y = self.bbox[0]
 		if (xBefore == x and yBefore == y):
 			return
-
-		#if (RenderObjectGuardian.Instance().
 
 		if (self.__isMoving == False):
 			self.__movingStart = (xBefore, yBefore)
@@ -117,6 +140,9 @@ class RenderedObject (Scatter):
 			y = self.__maxY - self.__sy
 
 		self._set_pos((int(x), int(y)))
+
+	def applyTranslation(self, translation, post_multiply, anchor):
+		self.__defaultApplyTransform(translation, post_multiply, anchor)
 
 	def setMarked(self):
 		#with self.image.canvas:
