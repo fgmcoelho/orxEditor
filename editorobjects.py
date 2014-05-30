@@ -8,6 +8,54 @@ from os import listdir, getcwd, sep as pathSeparator
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
+class SceneAction:
+	def __init__(self, objects):
+		
+		if (type(objects) is list):
+			self.__objList = objects
+		else:
+			self.__objList = [ objects ]
+
+		self.__reverseMethodList = []
+		self.__reverseArgsList = []
+
+	def defineAction(self, action, extraArgs = []):
+		self.__extraArgs = extraArgs
+		
+		if (action == "increaseScale"):
+			for obj in self.__objList:
+				self.__reverseMethod.append(obj.decreaseScale)
+		
+		elif (action == "decreaseScale"):
+			for obj in self.__objList:
+				self.__reverseMethodList.append(obj.increaseScale)
+		
+		elif (action == "flipOnX"):
+			for obj in self.__objList:
+				self.__reverseMethodList.append(obj.flipOnX)
+
+		elif (action == "flipOnY"):
+			for obj in self.__objList:
+				self.__reverseMethodList.append(obj.flipOnY)
+
+		elif (action == "alignAndCopyObject"):
+			for obj in self.__objList:
+				self.__reverseMethodList.append(obj.hideFromView)
+
+		elif (action == "Move"):
+			for obj in self.__objList:
+				self.__reverseMethodList.append(obj.move)
+
+		elif (action == "Delete"):
+			pass
+
+
+class SceneActionHistory:
+	def __init__(self):
+		pass
+
+
+
 @Singleton
 class RenderObjectGuardian:
 	def __init__(self):
@@ -23,15 +71,15 @@ class RenderObjectGuardian:
 			self.__moveStarted = True
 			self.__startMovement = (x, y)
 
-	def endMovement(self):
-		pass
+	def endMovement(self, x, y):
+		self.__endMovement = (x, y)
+		self.__moveStarted = False
 
 	def isSelected(self, value):
 		if (self.__operationObject != None):
 			return value == self.__operationObject
 
 		elif (self.__multiSelectionObjects != []):
-			print "looking for object in multi selection: " + str( value in self.__multiSelectionObjects)
 			return value in self.__multiSelectionObjects
 
 		return False
@@ -56,9 +104,20 @@ class RenderObjectGuardian:
 		self.__maxLayer = value
 
 	def propagateTranslation(self, value, translation, post, anchor):
+		res = True
 		for obj in self.__multiSelectionObjects:
 			if (obj != value):
-				obj.applyTranslation(translation, post, anchor)
+				res &= obj.applyTranslationStart(translation, post, anchor)
+
+		if (res == False):
+			for obj in self.__multiSelectionObjects:
+				if (obj != value):
+					obj.revertLastTranslation()
+
+			return False
+
+		return True
+
 
 class ObjectTypes:
 	baseObject = 1
@@ -141,8 +200,17 @@ class RenderedObject (Scatter):
 
 		self._set_pos((int(x), int(y)))
 
-	def applyTranslation(self, translation, post_multiply, anchor):
+	def applyTranslationStart(self, translation, post_multiply, anchor):
+		self.__multipleTranslationCoords = self.bbox[0]
 		self.__defaultApplyTransform(translation, post_multiply, anchor)
+		x, y = self.bbox[0]
+		if ((x < 0) or (x + self.__sx > self.__maxX) or (y < 0) or (y + self.__sy > self.__maxY)):
+			return False
+
+		return True
+
+	def revertLastTranslation(self):
+		self._set_pos(self.__multipleTranslationCoords)
 
 	def setMarked(self):
 		#with self.image.canvas:

@@ -24,52 +24,6 @@ class SceneAttributes:
 		else:
 			return None
 
-class SceneAction:
-	def __init__(self, objects):
-		
-		if (type(objects) is list):
-			self.__objList = objects
-		else:
-			self.__objList = [ objects ]
-
-		self.__reverseMethodList = []
-		self.__reverseArgsList = []
-
-	def defineAction(self, action, extraArgs = []):
-		self.__extraArgs = extraArgs
-		
-		if (action == "increaseScale"):
-			for obj in self.__objList:
-				self.__reverseMethod.append(obj.decreaseScale)
-		
-		elif (action == "decreaseScale"):
-			for obj in self.__objList:
-				self.__reverseMethodList.append(obj.increaseScale)
-		
-		elif (action == "flipOnX"):
-			for obj in self.__objList:
-				self.__reverseMethodList.append(obj.flipOnX)
-
-		elif (action == "flipOnY"):
-			for obj in self.__objList:
-				self.__reverseMethodList.append(obj.flipOnY)
-
-		elif (action == "alignAndCopyObject"):
-			for obj in self.__objList:
-				self.__reverseMethodList.append(obj.hideFromView)
-
-		elif (action == "Move"):
-			for obj in self.__objList:
-				self.__reverseMethodList.append(obj.move)
-
-		elif (action == "Delete"):
-			pass
-
-
-class SceneActionHistory:
-	def __init__(self):
-		pass
-
 @Singleton
 class Scene:
 	
