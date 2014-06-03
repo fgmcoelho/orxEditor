@@ -54,8 +54,6 @@ class SceneActionHistory:
 	def __init__(self):
 		pass
 
-
-
 @Singleton
 class RenderObjectGuardian:
 	def __init__(self):
@@ -103,21 +101,16 @@ class RenderObjectGuardian:
 	def setMaxLayer(self, value):
 		self.__maxLayer = value
 
-	def propagateTranslation(self, value, translation, post, anchor):
+	def propagateTranslation(self, callingObject, translation, post, anchor):
 		res = True
 		for obj in self.__multiSelectionObjects:
-			if (obj != value):
+			if (obj != callingObject):
 				res &= obj.applyTranslationStart(translation, post, anchor)
 
 		if (res == False):
+			translation = translation.inverse()
 			for obj in self.__multiSelectionObjects:
-				if (obj != value):
-					obj.revertLastTranslation()
-
-			return False
-
-		return True
-
+				obj.revertLastTranslation(translation, post, anchor)
 
 class ObjectTypes:
 	baseObject = 1
@@ -201,7 +194,6 @@ class RenderedObject (Scatter):
 		self._set_pos((int(x), int(y)))
 
 	def applyTranslationStart(self, translation, post_multiply, anchor):
-		self.__multipleTranslationCoords = self.bbox[0]
 		self.__defaultApplyTransform(translation, post_multiply, anchor)
 		x, y = self.bbox[0]
 		if ((x < 0) or (x + self.__sx > self.__maxX) or (y < 0) or (y + self.__sy > self.__maxY)):
@@ -209,8 +201,8 @@ class RenderedObject (Scatter):
 
 		return True
 
-	def revertLastTranslation(self):
-		self._set_pos(self.__multipleTranslationCoords)
+	def revertLastTranslation(self, translation, post_multiply, anchor):
+		self.__defaultApplyTransform(translation, post_multiply, anchor)
 
 	def setMarked(self):
 		#with self.image.canvas:
