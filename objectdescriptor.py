@@ -32,6 +32,27 @@ class BaseObjectDescriptor:
 		self.setActive()
 
 @Singleton
+class MultipleSelectionDescriptor:
+
+	def __init__(self, accordionItem):
+		self.__layout = BoxLayout (orientation = 'vertical', size_hint = (1.0, 1.0))
+		self.__selectedLabel = Label(text = 'Selected: 0')
+		
+		self.__layout.add_widget(self.__selectedLabel)
+		
+		self.__accordionItemReference = accordionItem
+		self.__accordionItemReference.add_widget(self.__layout)
+
+	def getLayout(self):
+		return self.__layout
+
+	def setActive(self):
+		self.__accordionItemReference.collapse = False
+
+	def setValues(self, count = 0):
+		path.__selectedLabel.text = 'Selected: ' + str(count)
+
+@Singleton
 class RenderedObjectDescriptor:
 	def __init__(self, accordionItem, popUpMethod):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
