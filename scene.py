@@ -31,7 +31,6 @@ class Scene:
 		self.__alignToGrid = True
 		self.__objectDict = {}
 		self.__layout = RelativeLayout(size_hint = (None, None))
-		self.__objectDict = {}
 		self.loadValues()
 
 	def loadValues(self):
@@ -138,11 +137,6 @@ class Scene:
 			obj.alignToGrid()
 		pos = obj.getPos()
 		size = obj.getSize()
-		scale = obj.getScale()
-		layer = obj.getLayer()
-		flipX = obj.getFlipX()
-		flipY = obj.getFlipY()
-		baseSize = obj.getBaseSize()
 		collisionInfo = obj.getCollisionInfo()
 		if (collisionInfo != None):
 			collisionInfo = collisionInfo.copy()
@@ -245,11 +239,14 @@ class SceneHandler:
 					selectedObject = obj
 
 			if (selectedObject != None):
-				if (self.__isCtrlPressed == False):
-					ObjectDescriptor.Instance().setObject(selectedObject)
-					RenderObjectGuardian.Instance().setSingleSelectionObject(selectedObject)
+				if (touch.is_double_tap == False):
+					if (self.__isCtrlPressed == False):
+						ObjectDescriptor.Instance().setObject(selectedObject)
+						RenderObjectGuardian.Instance().setSingleSelectionObject(selectedObject)
+					else:
+						RenderObjectGuardian.Instance().addObjectToSelection(selectedObject)
 				else:
-					RenderObjectGuardian.Instance().addMultiSelectionObject(selectedObject)
+					RenderObjectGuardian.Instance().unselectObject(selectedObject)
 
 		self.__defaultTouchDown(touch)
 	

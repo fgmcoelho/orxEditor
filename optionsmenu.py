@@ -3,7 +3,7 @@ from singleton import Singleton
 from kivy.uix.accordion import Accordion, AccordionItem
 
 from filesoptionsmenu import FilesOptionsMenu
-from objectdescriptor import BaseObjectDescriptor, RenderedObjectDescriptor, ObjectDescriptor
+from objectdescriptor import BaseObjectDescriptor, MultipleSelectionDescriptor, RenderedObjectDescriptor, ObjectDescriptor
 
 @Singleton
 class OptionsMenu:
@@ -16,14 +16,17 @@ class OptionsMenu:
 		self.__accordionItems = {
 			'BaseObject' : AccordionItem(title = 'Base Objects'),
 			'RenderedObject' : AccordionItem (title = 'Rendered Object'),
+			'MultipleSelectionDescriptor' : AccordionItem (title = 'Multiple Selection'),
 			'Options' : AccordionItem(title = 'Options'),
 		}
 
 		self.__layout.add_widget(self.__accordionItems['BaseObject'])
 		self.__layout.add_widget(self.__accordionItems['RenderedObject'])
+		self.__layout.add_widget(self.__accordionItems['MultipleSelectionDescriptor'])
 		self.__layout.add_widget(self.__accordionItems['Options'])
 		
 		FilesOptionsMenu.Instance(self.__accordionItems['Options'], None, None, None)
+		MultipleSelectionDescriptor.Instance(self.__accordionItems['MultipleSelectionDescriptor'])
 		ObjectDescriptor.Instance(self.__accordionItems['BaseObject'], self.__accordionItems['RenderedObject'])
 
 		rightScreen.add_widget(self.__layout)

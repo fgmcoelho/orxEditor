@@ -48,6 +48,7 @@ class KeyboardShortcutHandler (KeyboardAccess):
 	def __processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'shift'):
 			SceneHandler.Instance().setIsShiftPressed(False)
+
 		elif (keycode[1] == 'ctrl'):
 			SceneHandler.Instance().setIsCtrlPressed(False)
 
@@ -72,7 +73,8 @@ class KeyboardShortcutHandler (KeyboardAccess):
 			Scene.Instance().alignAndCopyObject("up")
 
 		elif (keycode[1] == 'e'):
-			ObjectDescriptor.Instance().clearCurrentObject()
+			# TODO: REPLACE THIS CALL TO SCENE
+			RenderObjectGuardian.Instance().unsetSelection()
 
 		elif (keycode[1] == 'shift'):
 			SceneHandler.Instance().setIsShiftPressed(True)

@@ -54,11 +54,37 @@ class SceneActionHistory:
 	def __init__(self):
 		pass
 
+#TODO: Rever a necessidade desta classe ser singleton...
+# A principio ela sera instanceada apenas pela Scene
+
 @Singleton
 class RenderObjectGuardian:
+
+	def __getSelectionLimits(self):
+		first = True
+		cur = None
+		for obj in self.__multiSelectionObjects:
+			if (first == True):
+				pos = obj.getPos()
+				size = obj.getSize()
+				cur = [pos[0], pos[1], pos[0] + size[0], pos[1] + size[1]]
+				first = False
+			else:
+				pos = obj.getPos()
+				size = obj.getSize()
+				if (pos[0] < cur[0]):
+					cur[0] = pos[0]
+				if (pos[1] < cur[1]):
+					cur[1] = pos[1]
+				if (pos[0] + size[0] > cur[2]):
+					cur[2] = pos[0] + size[0]
+				if (pos[1] + size[1] > cur[3]):
+					cur[3] = pos[1] + size[1]
+
+		return (cur[0], cur[1], cur[2], cur[3])
+
 	def __init__(self):
 		self.__maxLayer = 0
-		self.__operationObject = None
 		self.__moveStarted = False
 		self.__startMovement = None
 		self.__endMovement = None
@@ -74,26 +100,16 @@ class RenderObjectGuardian:
 		self.__moveStarted = False
 
 	def isSelected(self, value):
-		if (self.__operationObject != None):
-			return value == self.__operationObject
 
-		elif (self.__multiSelectionObjects != []):
+		if (self.__multiSelectionObjects != []):
 			return value in self.__multiSelectionObjects
 
 		return False
 	
-	def setSingleSelectionObject(self, value):
-		if (self.__multiSelectionObjects != []):
-			self.__multiSelectionObjects = []
-
-		self.__operationObject = value
-
-	def addMultiSelectionObject(self, value):
-		if (self.__operationObject != None):
-			self.__operationObject = None
-
+	def addObjectToSelection(self, value):
 		if (value not in self.__multiSelectionObjects):
 			self.__multiSelectionObjects.append(value)
+			value.setMarked()
 
 	def getMaxLayer(self):
 		return self.__maxLayer
@@ -111,6 +127,32 @@ class RenderObjectGuardian:
 			translation = translation.inverse()
 			for obj in self.__multiSelectionObjects:
 				obj.revertLastTranslation(translation, post, anchor)
+
+	def setSingleSelectionObject(self, value):
+		self.unsetSelection()
+		self.__multiSelectionObjects.append(value)
+		value.setMarked()
+
+	def unselectObject(self, value):
+		if (value in self.__multiSelectionObjects):
+			value.unsetMarked()
+			self.__multiSelectionObjects.remove(value)
+
+	def unsetSelection(self):
+		if (self.__multiSelectionObjects != []):
+			for obj in self.__multiSelectionObjects:
+				obj.unsetMarked()
+			self.__multiSelectionObjects = []
+
+	def copySelection(self, direction, firstNewId):
+		assert (direction in ['left', 'right', 'up', 'down'])
+		startX, startY, endX, endY = self.__getSelectionLimits()
+		if (direction == 'left'):
+			xAdjust = startX - endX
+			for obj in self.__multiSelectionObjects:
+				pos = obj.getPos()
+				newPos = (pos[0] - xAdjust, pos[1])
+
 
 class ObjectTypes:
 	baseObject = 1

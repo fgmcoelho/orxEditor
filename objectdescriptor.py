@@ -150,8 +150,8 @@ class ObjectDescriptor:
 
 	def setObject(self, obj):
 
-		if (self.__currentObject != None and self.__currentObject.getType() == ObjectTypes.renderedObject):
-			self.__currentObject.unsetMarked()
+		#if (self.__currentObject != None and self.__currentObject.getType() == ObjectTypes.renderedObject):
+		#	self.__currentObject.unsetMarked()
 
 		path = obj.getPath()
 		size = obj.getSize()
@@ -162,7 +162,7 @@ class ObjectDescriptor:
 		if (obj.getType() == ObjectTypes.renderedObject):
 			self.__renderedObjectDescriptor.setValues(path, size, obj.getScale(), obj.getLayer(), obj.getName(), obj.getFlipX(),
 				obj.getFlipY(), obj.getCollisionInfo())
-			obj.setMarked()
+			#obj.setMarked()
 		
 		else:
 			self.__baseObjectDescriptor.setValues(path, size)
@@ -177,7 +177,7 @@ class ObjectDescriptor:
 			return
 		
 		if (self.__currentObject.getType() == ObjectTypes.renderedObject):
-			self.__currentObject.unsetMarked()
+			#self.__currentObject.unsetMarked()
 			self.__renderedObjectDescriptor.setValues()
 			self.__baseObjectDescriptor.setValues()
 		else:
