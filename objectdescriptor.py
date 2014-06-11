@@ -50,7 +50,8 @@ class MultipleSelectionDescriptor:
 		self.__accordionItemReference.collapse = False
 
 	def setValues(self, count = 0):
-		path.__selectedLabel.text = 'Selected: ' + str(count)
+		self.__selectedLabel.text = 'Selected: ' + str(count)
+		self.setActive()
 
 @Singleton
 class RenderedObjectDescriptor:
@@ -150,9 +151,6 @@ class ObjectDescriptor:
 
 	def setObject(self, obj):
 
-		#if (self.__currentObject != None and self.__currentObject.getType() == ObjectTypes.renderedObject):
-		#	self.__currentObject.unsetMarked()
-
 		path = obj.getPath()
 		size = obj.getSize()
 		cwd = getcwd() + '/'
@@ -162,7 +160,6 @@ class ObjectDescriptor:
 		if (obj.getType() == ObjectTypes.renderedObject):
 			self.__renderedObjectDescriptor.setValues(path, size, obj.getScale(), obj.getLayer(), obj.getName(), obj.getFlipX(),
 				obj.getFlipY(), obj.getCollisionInfo())
-			#obj.setMarked()
 		
 		else:
 			self.__baseObjectDescriptor.setValues(path, size)

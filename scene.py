@@ -3,7 +3,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 
 from editorobjects import ObjectTypes, RenderedObject, RenderObjectGuardian
-from objectdescriptor import ObjectDescriptor
+from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
@@ -28,7 +28,7 @@ class SceneAttributes:
 class Scene:
 	
 	def __init__(self):
-		self.__alignToGrid = True
+		self.__alignToGrid = False
 		self.__objectDict = {}
 		self.__layout = RelativeLayout(size_hint = (None, None))
 		self.loadValues()
@@ -76,7 +76,8 @@ class Scene:
 		objectsOrderedList = sorted(objectsList, key=itemgetter(1))
 		for obj in objectsOrderedList:
 			self.__layout.add_widget(obj[0])
-			obj[0].alignToGrid()
+			if (self.__alignToGrid == True):
+				obj[0].alignToGrid()
 
 	def increaseScale(self):
 		obj = ObjectDescriptor.Instance().getCurrentObject()
@@ -91,11 +92,8 @@ class Scene:
 			ObjectDescriptor.Instance().setObject(obj)
 
 	def flipOnX(self):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
-			obj.flipOnX()
-			ObjectDescriptor.Instance().setObject(obj)
-		
+		RenderObjectGuardian.Instance().flipSelectionOnX()
+
 	def flipOnY(self):
 		obj = ObjectDescriptor.Instance().getCurrentObject()
 		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
@@ -124,39 +122,23 @@ class Scene:
 			ObjectDescriptor.Instance().clearCurrentObject()
 		
 	def alignToGrid(self):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
-			obj.alignToGrid()
+		RenderObjectGuardian.Instance().alignSelectionToGrid()
 
-	def alignAndCopyObject(self, direction):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		if (obj == None or obj.getType() != ObjectTypes.renderedObject):
-			return None
-		
-		if (self.__alignToGrid == True):
-			obj.alignToGrid()
-		pos = obj.getPos()
-		size = obj.getSize()
-		collisionInfo = obj.getCollisionInfo()
-		if (collisionInfo != None):
-			collisionInfo = collisionInfo.copy()
+	def copyObject(self, direction):
+		newObjects = RenderObjectGuardian.Instance().copySelection(direction, self.__id, self.__tileSize, self.__maxX, self.__maxY)
+		for renderedObject in newObjects:
+			self.__layout.add_widget(renderedObject)
+			self.__objectDict[self.__id] = renderedObject
+			self.__id += 1
 
-		newPos = None
-		if (direction == "left") and (pos[0] >= size[0]):
-			newPos = (pos[0] - size[0], pos[1])
-
-		elif (direction == "right") and (pos[0] + size[0] * 2 <= self.__maxX):
-			newPos = (pos[0] + size[0], pos[1])
-
-		elif (direction == "up" and pos[1] + size[1] * 2 <= self.__maxY):
-			newPos = (pos[0], pos[1] + size[1])
-		
-		elif (direction == "down" and pos[1] >= size[1]):
-			newPos = (pos[0], pos[1] - size[1])
+		numberOfNewObjects = len(newObjects)
+		if (numberOfNewObjects == 1):
+			ObjectDescriptor.Instance().setObject(newObjects[0])
+		elif (numberOfNewObjects > 1):
+			MultipleSelectionDescriptor.Instance().setValues(numberOfNewObjects)
 	
-		if (newPos != None):
-			newRenderedObject = self.__createNewObjectAndAddToScene(obj, newPos)
-			ObjectDescriptor.Instance().setObject(newRenderedObject)
+	def unselectAll(self):
+		RenderObjectGuardian.Instance().unsetSelection()
 	
 	def resetAllWidgets(self):
 		for objectId in self.__objectDict.keys():

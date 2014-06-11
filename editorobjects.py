@@ -100,7 +100,6 @@ class RenderObjectGuardian:
 		self.__moveStarted = False
 
 	def isSelected(self, value):
-
 		if (self.__multiSelectionObjects != []):
 			return value in self.__multiSelectionObjects
 
@@ -118,6 +117,7 @@ class RenderObjectGuardian:
 		self.__maxLayer = value
 
 	def propagateTranslation(self, callingObject, translation, post, anchor):
+		
 		res = True
 		for obj in self.__multiSelectionObjects:
 			if (obj != callingObject):
@@ -127,6 +127,25 @@ class RenderObjectGuardian:
 			translation = translation.inverse()
 			for obj in self.__multiSelectionObjects:
 				obj.revertLastTranslation(translation, post, anchor)
+
+	def flipSelectionOnX(self):
+		# TODO: Fix this, needs the same special treatment as the align.
+		for obj in self.__multiSelectionObjects:
+			obj.flipOnX()
+			obj.setMarked()
+
+	def alignSelectionToGrid(self):
+		
+		# By default every translation one object in the multiple selection is
+		# propagated to the others. Also, only objects that are select may move 
+		# at any given time. So we need to emulate that only the object being
+		# aligned is selected.
+		tempSelection = self.__multiSelectionObjects[:]
+		for obj in tempSelection:
+			self.__multiSelectionObjects = [ obj ] 
+			obj.alignToGrid()
+
+		self.__multiSelectionObjects = tempSelection
 
 	def setSingleSelectionObject(self, value):
 		self.unsetSelection()
@@ -144,14 +163,46 @@ class RenderObjectGuardian:
 				obj.unsetMarked()
 			self.__multiSelectionObjects = []
 
-	def copySelection(self, direction, firstNewId):
+	def copySelection(self, direction, newId, tileSize, maxX, maxY):
 		assert (direction in ['left', 'right', 'up', 'down'])
 		startX, startY, endX, endY = self.__getSelectionLimits()
+		
 		if (direction == 'left'):
-			xAdjust = startX - endX
+			xAdjust = (startX - endX)
+			yAdjust = 0
+
+		elif (direction == 'right'):
+			xAdjust = -(startX - endX)
+			yAdjust = 0
+
+		elif (direction == 'up'):
+			xAdjust = 0
+			yAdjust = -(startY - endY)
+
+		elif (direction == 'down'):
+			xAdjust = 0
+			yAdjust = (startY - endY)
+		
+		newSelection = []		
+		for obj in self.__multiSelectionObjects:
+			pos = obj.getPos()
+			newPos = (pos[0] + xAdjust, pos[1] + yAdjust)
+
+			if (newPos[0] >= 0 and newPos[1] >= 0 and newPos[0] < maxX and newPos[1] < maxY):
+				newObj = RenderedObject(newId, obj, newPos, tileSize, maxX, maxY)
+				newId += 1
+				newSelection.append(newObj)
+
+		if (newSelection != []):
 			for obj in self.__multiSelectionObjects:
-				pos = obj.getPos()
-				newPos = (pos[0] - xAdjust, pos[1])
+				obj.unsetMarked()
+
+			for obj in newSelection:
+				obj.setMarked()
+
+			self.__multiSelectionObjects = newSelection
+			
+		return newSelection
 
 
 class ObjectTypes:
@@ -344,6 +395,7 @@ class RenderedObject (Scatter):
 		tries = 0
 		while (self.getPos() != (x, y) and tries < 3):
 			if (tries != 0):
+				print "aaaaaaaaaaaaa"
 				print self.getPos()
 				print ((x,y))
 			self._set_pos((x, y))

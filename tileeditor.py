@@ -61,20 +61,19 @@ class KeyboardShortcutHandler (KeyboardAccess):
 			Scene.Instance().alignToGrid()
 
 		elif (keycode[1] == 'a'):
-			Scene.Instance().alignAndCopyObject("left")
+			Scene.Instance().copyObject("left")
 
 		elif (keycode[1] == 's'):
-			Scene.Instance().alignAndCopyObject("down")
+			Scene.Instance().copyObject("down")
 		
 		elif (keycode[1] == 'd'):
-			Scene.Instance().alignAndCopyObject("right")
+			Scene.Instance().copyObject("right")
 		
 		elif (keycode[1] == 'w'):
-			Scene.Instance().alignAndCopyObject("up")
+			Scene.Instance().copyObject("up")
 
 		elif (keycode[1] == 'e'):
-			# TODO: REPLACE THIS CALL TO SCENE
-			RenderObjectGuardian.Instance().unsetSelection()
+			Scene.Instance().unselectAll()
 
 		elif (keycode[1] == 'shift'):
 			SceneHandler.Instance().setIsShiftPressed(True)
