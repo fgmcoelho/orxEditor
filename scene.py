@@ -70,7 +70,7 @@ class Scene:
 	def redraw(self):
 		objectsList = []
 		for key in self.__objectDict.keys():
-			objectsList.append((self.__objectDict[key], self.__objectDict[key].getLayer()))
+			objectsList.append((self.__objectDict[key], self.__objectDict[key].getIdentifier()))
 
 		self.__layout.clear_widgets()
 		objectsOrderedList = sorted(objectsList, key=itemgetter(1))
@@ -80,45 +80,38 @@ class Scene:
 				obj[0].alignToGrid()
 
 	def increaseScale(self):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
-			obj.increaseScale()
+		obj = RenderObjectGuardian.Instance().increaseScale()
+		if (obj != None):
 			ObjectDescriptor.Instance().setObject(obj)
 	
 	def decreaseScale(self):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
-			obj.decreaseScale()
+		obj = RenderObjectGuardian.Instance().decreaseScale()
+		if (obj != None):
 			ObjectDescriptor.Instance().setObject(obj)
 
 	def flipOnX(self):
-		RenderObjectGuardian.Instance().flipSelectionOnX()
+		flippedObjects = RenderObjectGuardian.Instance().flipSelectionOnX()
+		numberOfFlippedObjects = len(flippedObjects)
+		if (numberOfFlippedObjects == 1):
+			ObjectDescriptor.Instance().setObject(flippedObjects[0])
+		elif (numberOfFlippedObjects > 1):
+			MultipleSelectionDescriptor.Instance().setValues(numberOfFlippedObjects)
 
 	def flipOnY(self):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
-			obj.flipOnY()
-			ObjectDescriptor.Instance().setObject(obj)
-
-	def increaseLayer(self):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
-			obj.increaseLayer()
-			ObjectDescriptor.Instance().setObject(obj)
-
-	def decreaseLayer(self):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
-			obj.decreaseLayer()
-			ObjectDescriptor.Instance().setObject(obj)
+		flippedObjects = RenderObjectGuardian.Instance().flipSelectionOnY()
+		numberOfFlippedObjects = len(flippedObjects)
+		if (numberOfFlippedObjects == 1):
+			ObjectDescriptor.Instance().setObject(flippedObjects[0])
+		elif (numberOfFlippedObjects > 1):
+			MultipleSelectionDescriptor.Instance().setValues(numberOfFlippedObjects)
 
 	def removeObject(self):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		if (obj != None and obj.getType() == ObjectTypes.renderedObject):
-			self.__layout.remove_widget(obj)
+			
+		deletedObjects = RenderObjectGuardian.Instance().deleteSelection()
+		for obj in deletedObjects:
 			identifier = obj.getIdentifier()
 			del self.__objectDict[identifier]
-			obj = None
+		if (len(deletedObjects) != 0):	
 			ObjectDescriptor.Instance().clearCurrentObject()
 		
 	def alignToGrid(self):

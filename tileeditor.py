@@ -98,12 +98,6 @@ class KeyboardShortcutHandler (KeyboardAccess):
 		
 		elif (keycode[1] == 'g'):
 			Scene.Instance().flipOnY()
-
-		elif (keycode[1] == 'pagedown'):
-			Scene.Instance().decreaseLayer()
-
-		elif (keycode[1] == 'pageup'):
-			Scene.Instance().increaseLayer()
 		
 		return True
 

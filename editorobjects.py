@@ -110,11 +110,7 @@ class RenderObjectGuardian:
 			self.__multiSelectionObjects.append(value)
 			value.setMarked()
 
-	def getMaxLayer(self):
-		return self.__maxLayer
-
-	def setMaxLayer(self, value):
-		self.__maxLayer = value
+		return self.__multiSelectionObjects
 
 	def propagateTranslation(self, callingObject, translation, post, anchor):
 		
@@ -128,11 +124,51 @@ class RenderObjectGuardian:
 			for obj in self.__multiSelectionObjects:
 				obj.revertLastTranslation(translation, post, anchor)
 
+	def deleteSelection(self):
+		deletedObjects = self.__multiSelectionObjects[:]
+		self.__multiSelectionObjects = []
+		for obj in deletedObjects:
+			obj.hide()
+
+		return deletedObjects
+
+	def increaseScale(self):
+		if len(self.__multiSelectionObjects) == 1:
+			self.__multiSelectionObjects[0].increaseScale()
+			return self.__multiSelectionObjects[0]
+
+		return None
+
+	def decreaseScale(self):
+		if len(self.__multiSelectionObjects) == 1:
+			self.__multiSelectionObjects[0].increaseScale()
+			return self.__multiSelectionObjects[0]
+
+		return None
+
 	def flipSelectionOnX(self):
-		# TODO: Fix this, needs the same special treatment as the align.
-		for obj in self.__multiSelectionObjects:
+		
+		tempSelection = self.__multiSelectionObjects[:]
+		for obj in tempSelection:
+			self.__multiSelectionObjects = [ obj ]
 			obj.flipOnX()
 			obj.setMarked()
+
+		self.__multiSelectionObjects = tempSelection
+		
+		return self.__multiSelectionObjects
+
+	def flipSelectionOnY(self):
+		
+		tempSelection = self.__multiSelectionObjects[:]
+		for obj in tempSelection:
+			self.__multiSelectionObjects = [ obj ]
+			obj.flipOnY()
+			obj.setMarked()
+
+		self.__multiSelectionObjects = tempSelection
+
+		return self.__multiSelectionObjects
 
 	def alignSelectionToGrid(self):
 		
@@ -333,11 +369,11 @@ class RenderedObject (Scatter):
 		self.__collisionInfo = value
 
 	def __flipVertical(self):
+		sizeToUse = self.image.size
 		newTexture = self.image.texture
 		newTexture.flip_vertical()
-		sizeToUse = self.image.size
 		self.remove_widget(self.image)
-		self.image = Image(texture = newTexture, size = (sizeToUse))
+		self.image = Image(texture = newTexture, size = (sizeToUse), nocache = True)
 		self.add_widget(self.image)
 
 	def __flipHorizontal(self):
@@ -350,7 +386,7 @@ class RenderedObject (Scatter):
 		newTexture.uvsize = (uvw, uvh)
 		sizeToUse = self.image.size
 		self.remove_widget(self.image)
-		self.image = Image(texture = newTexture, size = (sizeToUse))
+		self.image = Image(texture = newTexture, size = (sizeToUse), nocache = True)
 		self.add_widget(self.image)
 
 	def flipOnX(self):
@@ -395,7 +431,6 @@ class RenderedObject (Scatter):
 		tries = 0
 		while (self.getPos() != (x, y) and tries < 3):
 			if (tries != 0):
-				print "aaaaaaaaaaaaa"
 				print self.getPos()
 				print ((x,y))
 			self._set_pos((x, y))
@@ -433,7 +468,11 @@ class RenderedObject (Scatter):
 
 		if (isinstance(obj, BaseObject)):
 			self.__baseSize = obj.getSize()
-			self.image = Image(size = self.__baseSize, texture = obj.getBaseImage().texture)
+			newTexture = Texture.create(size = self.__baseSize)
+			pixels = obj.getBaseImage().texture.pixels[:]
+			newTexture.blit_buffer(pixels, colorfmt='rgba', bufferfmt='ubyte')
+			newTexture.flip_vertical()
+			self.image = Image(size = self.__baseSize, texture = newTexture, nocache = True)
 			self.__sx = self.__baseSize[0]
 			self.__sy = self.__baseSize[1]
 			self.__scale = 1.0
@@ -445,7 +484,10 @@ class RenderedObject (Scatter):
 		else:
 			self.__baseSize = obj.getBaseSize()
 			self.__sx, self.__sy = obj.getSize()
-			self.image = Image(size = (self.__sx, self.__sy), texture = obj.getImage().texture)
+			newTexture = Texture.create(size = (self.__sx, self.__sy))
+			newTexture.blit_buffer(obj.getImage().texture.pixels[:], colorfmt='rgba', bufferfmt='ubyte')
+			newTexture.flip_vertical()
+			self.image = Image(size = self.__baseSize, texture = newTexture, nocache = True)
 			self.__scale = obj.getScale()
 			self.__layer = obj.getLayer()
 			self.__flipX = obj.getFlipX()
@@ -454,7 +496,6 @@ class RenderedObject (Scatter):
 		
 		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
 			size = self.__baseSize, auto_bring_to_front = False)
-
 
 		self.add_widget(self.image)
 		self.__isMoving = False
@@ -474,6 +515,10 @@ class RenderedObject (Scatter):
 		self.apply_transform = self.__checkAndTransform
 		self.__defaultTouchMove = self.on_touch_move
 		self.on_touch_move = self.__handleTouchMove
+
+	def hide(self):
+		self.__parentRef = self.parent
+		self.parent.remove_widget(self)
 
 	def resetAllWidgets(self):
 		self.remove_widget(self.image)
