@@ -33,6 +33,52 @@ class Scene:
 		self.__layout = RelativeLayout(size_hint = (None, None))
 		self.loadValues()
 
+	def showGrid(self):
+		with self.__layout.canvas:
+			Color(0., 1., 0.)
+			i = 0
+			while i < self.__maxX:
+				Line(points = [
+					i, 0, 
+					i, self.__maxY], width = 2
+				)
+				i += self.__tileSize
+			i = 0
+			while i < self.__maxY:
+				Line(points = [
+					0, i, 
+					self.__maxX, i], width = 2
+				)
+				i += self.__tileSize
+
+	def hideGrid(self):
+		with self.__layout.canvas:
+			Color(0., 0., 0.)
+			i = 0
+			while i < self.__maxX:
+				Line(points = [
+					i, 0, 
+					i, self.__maxY], width = 2
+				)
+				i += self.__tileSize
+			i = 0
+			while i < self.__maxY:
+				Line(points = [
+					0, i, 
+					self.__maxX, i], width = 2
+				)
+				i += self.__tileSize
+
+		self.redraw()
+
+	def toggleGrid(self):
+		if (self.__showGrid == True):
+			self.hideGrid()
+		else:
+			self.showGrid()
+
+		self.__showGrid = not self.__showGrid
+
 	def loadValues(self):
 		self.__layout.canvas.clear()
 		sceneAttr = SceneAttributes.Instance()
@@ -45,27 +91,13 @@ class Scene:
 		self.__minX = 0.0
 		self.__maxY = sy
 		self.__minY = 0.0
+		self.__showGrid = True
 		if self.__objectDict != {}:
 			for key in self.__objectDict:
 				self.__objectDict[key].resetAllWidgets()
 			self.__objectDict = {}
 
-		with self.__layout.canvas:
-			Color(0., 1., 0.)
-			i = 0
-			while i < sx:
-				Line(points = [
-					i, 0, 
-					i, sy], width = 2
-				)
-				i += self.__tileSize
-			i = 0
-			while i < sy:
-				Line(points = [
-					0, i, 
-					sx, i], width = 2
-				)
-				i += self.__tileSize
+		self.showGrid()
 		
 	def redraw(self):
 		objectsList = []
@@ -132,6 +164,7 @@ class Scene:
 	
 	def unselectAll(self):
 		RenderObjectGuardian.Instance().unsetSelection()
+		ObjectDescriptor.Instance().clearCurrentObject()
 	
 	def resetAllWidgets(self):
 		for objectId in self.__objectDict.keys():
@@ -206,12 +239,16 @@ class SceneHandler:
 				if childDict[key].collide_point(*self.__scrollView.to_widget(*touch.pos)):
 					clickedObjectsList.append(childDict[key])
 				
-			highestLayer = -100
+			first = True
 			selectedObject = None
 			for obj in clickedObjectsList:
-				if (highestLayer < obj.getLayer()):
-					highestLayer = obj.getLayer()
+
+				if (first == True):
 					selectedObject = obj
+					first = False
+				else:
+					if (selectedObject.getId() < obj.getId()):
+						selectedObject = obj
 
 			if (selectedObject != None):
 				if (touch.is_double_tap == False):
@@ -219,9 +256,23 @@ class SceneHandler:
 						ObjectDescriptor.Instance().setObject(selectedObject)
 						RenderObjectGuardian.Instance().setSingleSelectionObject(selectedObject)
 					else:
-						RenderObjectGuardian.Instance().addObjectToSelection(selectedObject)
+						selectedObjectsList = RenderObjectGuardian.Instance().addObjectToSelection(selectedObject)
+						numberOfSelectedObjects = len(selectedObjectsList)
+						if (numberOfSelectedObjects == 1):
+							ObjectDescriptor.Instance().setObject(selectedObjectsList[0])
+						elif(numberOfSelectedObjects > 1):
+							MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
+
 				else:
-					RenderObjectGuardian.Instance().unselectObject(selectedObject)
+					selectedObjectsList = RenderObjectGuardian.Instance().unselectObject(selectedObject)
+					numberOfSelectedObjects = len(selectedObjectsList)
+					if (numberOfSelectedObjects == 0):
+						ObjectDescriptor.Instance().clearCurrentObject()
+					elif(numberOfSelectedObjects == 1):
+						ObjectDescriptor.Instance().setObject(selectedObjectsList[0])
+					else:
+						MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
+
 
 		self.__defaultTouchDown(touch)
 	

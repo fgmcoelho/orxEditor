@@ -9,45 +9,48 @@ from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
 class SceneAction:
-	def __init__(self, objects):
+	def __init__(self, action, objectsList, args):
 		
-		if (type(objects) is list):
-			self.__objList = objects
-		else:
-			self.__objList = [ objects ]
-
-		self.__reverseMethodList = []
-		self.__reverseArgsList = []
-
-	def defineAction(self, action, extraArgs = []):
-		self.__extraArgs = extraArgs
+		self.__objectsList = objectsList[:]
+		self.__undoList = []
+		self.__redoList = []
+		self.__actionArgs = args
 		
 		if (action == "increaseScale"):
 			for obj in self.__objList:
-				self.__reverseMethod.append(obj.decreaseScale)
+				self.__undoList.append(obj.decreaseScale)
+				self.__redoList.append(obj.increaseScale)
 		
 		elif (action == "decreaseScale"):
 			for obj in self.__objList:
-				self.__reverseMethodList.append(obj.increaseScale)
+				self.__undoList.append(obj.increaseScale)
+				self.__redoList.append(obj.decreaseScale)
 		
 		elif (action == "flipOnX"):
 			for obj in self.__objList:
-				self.__reverseMethodList.append(obj.flipOnX)
+				self.__undoList.append(obj.flipOnY)
+				self.__redoList.append(obj.flipOnX)
 
 		elif (action == "flipOnY"):
 			for obj in self.__objList:
-				self.__reverseMethodList.append(obj.flipOnY)
+				self.__undoList.append(obj.flipOnX)
+				self.__redoList.append(obj.flipOnY)
 
-		elif (action == "alignAndCopyObject"):
+		elif (action == "copySelection"):
 			for obj in self.__objList:
-				self.__reverseMethodList.append(obj.hideFromView)
+				self.__undoList.append(obj.hide)
+				self.__redoList.append(obj.show)
 
-		elif (action == "Move"):
-			for obj in self.__objList:
-				self.__reverseMethodList.append(obj.move)
+
+		# TODO: Implement the movement
+		#elif (action == "Move"):
+		#	for obj in self.__objList:
+		#		self.__reverseMethodList.append(obj.move)
 
 		elif (action == "Delete"):
-			pass
+			for obj in self.__objList:
+				self.__undoList.append(obj.show)
+				self.__redoList.append(obj.hide)
 
 
 class SceneActionHistory:
@@ -187,11 +190,14 @@ class RenderObjectGuardian:
 		self.unsetSelection()
 		self.__multiSelectionObjects.append(value)
 		value.setMarked()
+		return self.__multiSelectionObjects
 
 	def unselectObject(self, value):
 		if (value in self.__multiSelectionObjects):
 			value.unsetMarked()
 			self.__multiSelectionObjects.remove(value)
+
+		return self.__multiSelectionObjects
 
 	def unsetSelection(self):
 		if (self.__multiSelectionObjects != []):

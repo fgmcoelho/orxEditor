@@ -26,10 +26,16 @@ class BaseObjectDescriptor:
 	def setActive(self):
 		self.__accordionItemReference.collapse = False
 
-	def setValues(self, path = '', size=''):
+	def __setValues(self, path, size):
 		self.__pathLabel.text = 'Path: ' + str(path)
 		self.__sizeLabel.text = 'Size: ' + str(size)
+
+	def setValues(self, path = '', size=''):
+		self.__setValues(path, size)
 		self.setActive()
+
+	def setValuesNoActive(self, path = '', size = ''):
+		self.__setValues(path, size)
 
 @Singleton
 class MultipleSelectionDescriptor:
@@ -49,8 +55,14 @@ class MultipleSelectionDescriptor:
 	def setActive(self):
 		self.__accordionItemReference.collapse = False
 
-	def setValues(self, count = 0):
+	def __setValues(self, count = 0):
 		self.__selectedLabel.text = 'Selected: ' + str(count)
+
+	def setValuesNoActive(self, count = 0):
+		self.__setValues(count)
+
+	def setValues(self, count = 0):
+		self.__setValues(count)
 		self.setActive()
 
 @Singleton
@@ -103,7 +115,7 @@ class RenderedObjectDescriptor:
 		self.__setValues(path, size, scale, layer, name, flipX, flipY, collisionInfo)
 		self.setActive()
 
-	def setValueNoActive(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '', 
+	def setValuesNoActive(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '', 
 			collisionInfo = None):
 		self.__setValues(path, size, scale, layer, name, flipX, flipY, collisionInfo)
 
@@ -144,7 +156,7 @@ class ObjectDescriptor:
 
 	def resetAllWidgets(self):
 		self.__baseObjectDescriptor.setValues()
-		self.__renderedObjectDescriptor.setValueNoActive()
+		self.__renderedObjectDescriptor.setValuesNoActive()
 			
 	def setObject(self, obj):
 		self.setObject(obj)
@@ -174,12 +186,13 @@ class ObjectDescriptor:
 			return
 		
 		if (self.__currentObject.getType() == ObjectTypes.renderedObject):
-			#self.__currentObject.unsetMarked()
-			self.__renderedObjectDescriptor.setValues()
+			MultipleSelectionDescriptor.Instance().setValuesNoActive()
+			self.__renderedObjectDescriptor.setValuesNoActive()
 			self.__baseObjectDescriptor.setValues()
 		else:
+			MultipleSelectionDescriptor.Instance().setValuesNoActive()
+			self.__renderedObjectDescriptor.setValuesNoActive()
 			self.__baseObjectDescriptor.setValues()
-			self.__renderedObjectDescriptor.setValues()
 		
 		self.__currentObject = None
 
