@@ -9,7 +9,7 @@ from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
 class SceneAction:
-	def __init__(self, action, objectsList, args):
+	def __init__(self, action, objectsList, args = []):
 		
 		self.__objectsList = objectsList[:]
 		self.__undoList = []
@@ -17,48 +17,83 @@ class SceneAction:
 		self.__actionArgs = args
 		
 		if (action == "increaseScale"):
-			for obj in self.__objList:
+			for obj in self.__objectsList:
 				self.__undoList.append(obj.decreaseScale)
 				self.__redoList.append(obj.increaseScale)
 		
 		elif (action == "decreaseScale"):
-			for obj in self.__objList:
+			for obj in self.__objectsList:
 				self.__undoList.append(obj.increaseScale)
 				self.__redoList.append(obj.decreaseScale)
 		
 		elif (action == "flipOnX"):
-			for obj in self.__objList:
+			for obj in self.__objectsList:
 				self.__undoList.append(obj.flipOnY)
 				self.__redoList.append(obj.flipOnX)
 
 		elif (action == "flipOnY"):
-			for obj in self.__objList:
+			for obj in self.__objectsList:
 				self.__undoList.append(obj.flipOnX)
 				self.__redoList.append(obj.flipOnY)
 
 		elif (action == "copySelection"):
-			for obj in self.__objList:
+			for obj in self.__objectsList:
 				self.__undoList.append(obj.hide)
 				self.__redoList.append(obj.show)
 
 
 		# TODO: Implement the movement
 		#elif (action == "Move"):
-		#	for obj in self.__objList:
+		#	for obj in self.__objectsList:
 		#		self.__reverseMethodList.append(obj.move)
 
 		elif (action == "Delete"):
-			for obj in self.__objList:
+			for obj in self.__objectsList:
 				self.__undoList.append(obj.show)
 				self.__redoList.append(obj.hide)
+
+	def redo(self):
+		for method in self.__redoList:
+			method()
+
+	def undo(self):
+		for method in self.__undoList:
+			method()
+
+	def clear(self):
+		for obj in self.__objectsList:
+			if (obj.getHidden() == True):
+				obj.finish()
 
 
 class SceneActionHistory:
 	def __init__(self):
-		pass
+		self.__historyList = []
+		self.__redoList = []
 
-#TODO: Rever a necessidade desta classe ser singleton...
-# A principio ela sera instanceada apenas pela Scene
+	def __clearRedoList(self):
+		for action in self.__redoList:
+			action.clear()
+
+		self.__redoList = []
+
+	def registerAction(self, action):
+		assert(isinstance(action, SceneAction))
+		self.__historyList.append(action)
+		if (self.__redoList != []):
+			self.__clearRedoList()
+
+	def undo(self):
+		if (self.__historyList != []):
+			action = self.__historyList.pop()
+			action.undo()
+			self.__redoList.append(action)
+
+	def redo(self):
+		if (self.__redoList != []):
+			action = self.__redoList.pop()
+			action.redo()
+			self.__historyList.append(action)
 
 @Singleton
 class RenderObjectGuardian:
@@ -92,6 +127,13 @@ class RenderObjectGuardian:
 		self.__startMovement = None
 		self.__endMovement = None
 		self.__multiSelectionObjects = []
+		self.__history = SceneActionHistory()
+
+	def undo(self):
+		self.__history.undo()
+
+	def redo(self):
+		self.__history.redo()
 
 	def startMovement(self, x, y):
 		if (self.__moveStarted == False):
@@ -243,6 +285,8 @@ class RenderObjectGuardian:
 				obj.setMarked()
 
 			self.__multiSelectionObjects = newSelection
+			action = SceneAction("copySelection", newSelection)
+			self.__history.registerAction(action)
 			
 		return newSelection
 
@@ -512,6 +556,8 @@ class RenderedObject (Scatter):
 		self.__maxY = maxY
 		self.__path = path
 		self._set_pos(pos)
+		self.__isFinished = False
+		self.__isHidden = False
 
 		self.__defaultTouchDown = self.on_touch_down
 		self.on_touch_down = self.__handleTouchDown
@@ -525,6 +571,11 @@ class RenderedObject (Scatter):
 	def hide(self):
 		self.__parentRef = self.parent
 		self.parent.remove_widget(self)
+		self.__isHidden = True
+
+	def show(self):
+		self.__parentRef.add_widget(self)
+		self.__isHidden = False
 
 	def resetAllWidgets(self):
 		self.remove_widget(self.image)
@@ -571,3 +622,11 @@ class RenderedObject (Scatter):
 	def getSpriteInfo(self):
 		return self.__spriteInfo
 
+	def finish(self):
+		self.__isFinished = True
+
+	def getHidden(self):
+		return self.__isHidden
+
+	def getFinished(self):
+		return self.__isFinished

@@ -111,6 +111,12 @@ class Scene:
 			if (self.__alignToGrid == True):
 				obj[0].alignToGrid()
 
+	def undo(self):
+		RenderObjectGuardian.Instance().undo()
+
+	def redo(self):
+		RenderObjectGuardian.Instance().redo()
+
 	def increaseScale(self):
 		obj = RenderObjectGuardian.Instance().increaseScale()
 		if (obj != None):
@@ -140,9 +146,6 @@ class Scene:
 	def removeObject(self):
 			
 		deletedObjects = RenderObjectGuardian.Instance().deleteSelection()
-		for obj in deletedObjects:
-			identifier = obj.getIdentifier()
-			del self.__objectDict[identifier]
 		if (len(deletedObjects) != 0):	
 			ObjectDescriptor.Instance().clearCurrentObject()
 		

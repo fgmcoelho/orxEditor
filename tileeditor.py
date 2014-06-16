@@ -101,6 +101,12 @@ class KeyboardShortcutHandler (KeyboardAccess):
 
 		elif (keycode[1] == '\''):
 			Scene.Instance().toggleGrid()
+
+		elif (keycode[1] == 'z'):
+			Scene.Instance().undo()
+
+		elif (keycode[1] == '\\'):
+			Scene.Instance().redo()
 		
 		return True
 
