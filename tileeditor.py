@@ -3,6 +3,7 @@ from kivy import require
 require('1.7.2')
 
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 from kivy.core.window import Window
@@ -150,6 +151,8 @@ class TileEditor(App):
 		self.objectHandler = OptionsMenu.Instance(self.rightScreen)
 		self.leftMenuHandler = ObjectsMenu(self.leftMenuBase)
 		self.shortcutHandler = KeyboardShortcutHandler()
+
+		Clock.schedule_interval(Scene.Instance().clear, 30)
 
 		return self.root
 	

@@ -245,9 +245,6 @@ class CollisionInformationPopup:
 		if (self.__postCreateOrEditMethod != None):
 			self.__postCreateOrEditMethod()
 				
-	def setPostCreateOrEditMethod(self, value):
-		self.__postCreateOrEditMethod = value
-
 	def getPopUp(self):
 		return self.__collisionPopUp
 

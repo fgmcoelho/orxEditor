@@ -69,8 +69,6 @@ class Scene:
 				)
 				i += self.__tileSize
 
-		self.redraw()
-
 	def toggleGrid(self):
 		if (self.__showGrid == True):
 			self.hideGrid()
@@ -78,6 +76,8 @@ class Scene:
 			self.showGrid()
 
 		self.__showGrid = not self.__showGrid
+		
+		self.redraw()
 
 	def loadValues(self):
 		self.__layout.canvas.clear()
@@ -116,6 +116,14 @@ class Scene:
 
 	def redo(self):
 		RenderObjectGuardian.Instance().redo()
+
+	def clear(self, unusedDt = None):
+		for key in self.__objectDict.keys():
+			if (self.__objectDict[key].getFinished() == True):
+				self.__layout.remove_widget(self.__objectDict[key])
+				self.__objectDict[key] = None
+				del self.__objectDict[key]
+
 
 	def increaseScale(self):
 		obj = RenderObjectGuardian.Instance().increaseScale()
@@ -178,22 +186,19 @@ class Scene:
 		self.__objectDict = {}
 		self.__id = 0
 	
-	def __createNewObjectAndAddToScene(self, obj, pos):
-		renderedObject = RenderedObject(self.__id, obj, pos, self.__tileSize, self.__maxX, self.__maxY)
-		RenderObjectGuardian.Instance().setSingleSelectionObject(renderedObject)
-		
-		self.__layout.add_widget(renderedObject)
-		self.__objectDict[self.__id] = renderedObject
-		self.__id += 1
-
-		return renderedObject
-
 	def getLayout(self):
 		return self.__layout
 
 	def addObject(self, obj, relativeX, relaviveY):
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
-		newRenderedObject = self.__createNewObjectAndAddToScene(obj, pos)
+		
+		newRenderedObject = RenderObjectGuardian.Instance().createNewObject(self.__id, obj, pos, self.__tileSize, self.__maxX, 
+				self.__maxY)
+		
+		self.__layout.add_widget(newRenderedObject)
+		self.__objectDict[self.__id] = newRenderedObject
+		self.__id += 1
+
 		ObjectDescriptor.Instance().setObject(newRenderedObject)
 
 	def getObjectsDict(self):
@@ -239,7 +244,8 @@ class SceneHandler:
 			clickedObjectsList = []
 			childDict = Scene.Instance().getObjectsDict()
 			for key in childDict.keys():
-				if childDict[key].collide_point(*self.__scrollView.to_widget(*touch.pos)):
+				if (childDict[key].collide_point(*self.__scrollView.to_widget(*touch.pos)) == True 
+						and childDict[key].getHidden() == False):
 					clickedObjectsList.append(childDict[key])
 				
 			first = True
@@ -250,7 +256,7 @@ class SceneHandler:
 					selectedObject = obj
 					first = False
 				else:
-					if (selectedObject.getId() < obj.getId()):
+					if (selectedObject.getIdentifier() < obj.getIdentifier()):
 						selectedObject = obj
 
 			if (selectedObject != None):

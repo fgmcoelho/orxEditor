@@ -11,10 +11,13 @@ from kivy.graphics import Color
 class SceneAction:
 	def __init__(self, action, objectsList, args = []):
 		
+		assert (type(objectsList) is list)
+		assert ((len (args) == 0) or (len(args) == len (objectsList)))
+
 		self.__objectsList = objectsList[:]
 		self.__undoList = []
 		self.__redoList = []
-		self.__actionArgs = args
+		self.__actionArgs = args[:]
 		
 		if (action == "increaseScale"):
 			for obj in self.__objectsList:
@@ -28,12 +31,12 @@ class SceneAction:
 		
 		elif (action == "flipOnX"):
 			for obj in self.__objectsList:
-				self.__undoList.append(obj.flipOnY)
+				self.__undoList.append(obj.flipOnX)
 				self.__redoList.append(obj.flipOnX)
 
 		elif (action == "flipOnY"):
 			for obj in self.__objectsList:
-				self.__undoList.append(obj.flipOnX)
+				self.__undoList.append(obj.flipOnY)
 				self.__redoList.append(obj.flipOnY)
 
 		elif (action == "copySelection"):
@@ -41,24 +44,39 @@ class SceneAction:
 				self.__undoList.append(obj.hide)
 				self.__redoList.append(obj.show)
 
+		elif (action == "move"):
+			for obj in self.__objectsList:
+				self.__undoList.append(obj.moveAbsoluteReverse)
+				self.__redoList.append(obj.moveAbsolute)
 
-		# TODO: Implement the movement
-		#elif (action == "Move"):
-		#	for obj in self.__objectsList:
-		#		self.__reverseMethodList.append(obj.move)
-
-		elif (action == "Delete"):
+		elif (action == "delete"):
 			for obj in self.__objectsList:
 				self.__undoList.append(obj.show)
 				self.__redoList.append(obj.hide)
 
+		elif (action == "create"):
+			for obj in self.__objectsList:
+				self.__undoList.append(obj.hide)
+				self.__redoList.append(obj.show)
+
+
 	def redo(self):
+		i = 0
 		for method in self.__redoList:
-			method()
+			if (self.__actionArgs == []):
+				method()
+			else:
+				method(self.__actionArgs[i])
+				i += 1
 
 	def undo(self):
+		i = 0
 		for method in self.__undoList:
-			method()
+			if (self.__actionArgs == []):
+				method()
+			else:
+				method(self.__actionArgs[i])
+				i += 1
 
 	def clear(self):
 		for obj in self.__objectsList:
@@ -124,8 +142,7 @@ class RenderObjectGuardian:
 	def __init__(self):
 		self.__maxLayer = 0
 		self.__moveStarted = False
-		self.__startMovement = None
-		self.__endMovement = None
+		self.__movePositions = []
 		self.__multiSelectionObjects = []
 		self.__history = SceneActionHistory()
 
@@ -135,14 +152,27 @@ class RenderObjectGuardian:
 	def redo(self):
 		self.__history.redo()
 
-	def startMovement(self, x, y):
-		if (self.__moveStarted == False):
-			self.__moveStarted = True
-			self.__startMovement = (x, y)
+	def endMovement(self):
 
-	def endMovement(self, x, y):
-		self.__endMovement = (x, y)
-		self.__moveStarted = False
+		if (self.__moveStarted == True):
+			if (self.__movePositions != []):
+				start = self.__movePositions[0]
+				end = self.__multiSelectionObjects[0].getPos()
+				amountMovedList = []
+				x = end[0] - start[0] 
+				y = end[1] - start[1]
+				if (x == 0 and y == 0):
+					# Movement was started, but the final position kept the same.
+					self.__moveStarted = False
+					return
+
+				for obj in self.__multiSelectionObjects:
+					amountMovedList.append((x, y))
+
+				action = SceneAction("move", self.__multiSelectionObjects, amountMovedList)
+				self.__history.registerAction(action)
+
+			self.__moveStarted = False
 
 	def isSelected(self, value):
 		if (self.__multiSelectionObjects != []):
@@ -159,6 +189,13 @@ class RenderObjectGuardian:
 
 	def propagateTranslation(self, callingObject, translation, post, anchor):
 		
+		if (self.__moveStarted == False):
+			self.__movePositions = []
+			for obj in self.__multiSelectionObjects:
+				self.__movePositions.append(obj.getPos())
+
+			self.__moveStarted = True
+
 		res = True
 		for obj in self.__multiSelectionObjects:
 			if (obj != callingObject):
@@ -175,18 +212,29 @@ class RenderObjectGuardian:
 		for obj in deletedObjects:
 			obj.hide()
 
+		action = SceneAction("delete", deletedObjects)
+		self.__history.registerAction(action)
+
 		return deletedObjects
 
 	def increaseScale(self):
 		if len(self.__multiSelectionObjects) == 1:
 			self.__multiSelectionObjects[0].increaseScale()
+			
+			action = SceneAction("increaseScale", [ self.__multiSelectionObjects[0] ] )
+			self.__history.registerAction(action)
+			
 			return self.__multiSelectionObjects[0]
 
 		return None
 
 	def decreaseScale(self):
 		if len(self.__multiSelectionObjects) == 1:
-			self.__multiSelectionObjects[0].increaseScale()
+			self.__multiSelectionObjects[0].decreaseScale()
+
+			action = SceneAction("decreaseScale", [ self.__multiSelectionObjects[0] ] )
+			self.__history.registerAction(action)
+
 			return self.__multiSelectionObjects[0]
 
 		return None
@@ -197,10 +245,12 @@ class RenderObjectGuardian:
 		for obj in tempSelection:
 			self.__multiSelectionObjects = [ obj ]
 			obj.flipOnX()
-			obj.setMarked()
 
 		self.__multiSelectionObjects = tempSelection
 		
+		action = SceneAction("flipOnX", self.__multiSelectionObjects)
+		self.__history.registerAction(action)
+
 		return self.__multiSelectionObjects
 
 	def flipSelectionOnY(self):
@@ -209,24 +259,42 @@ class RenderObjectGuardian:
 		for obj in tempSelection:
 			self.__multiSelectionObjects = [ obj ]
 			obj.flipOnY()
-			obj.setMarked()
 
 		self.__multiSelectionObjects = tempSelection
+		
+		action = SceneAction("flipOnY", self.__multiSelectionObjects)
+		self.__history.registerAction(action)
 
 		return self.__multiSelectionObjects
 
 	def alignSelectionToGrid(self):
 		
 		# By default every translation one object in the multiple selection is
-		# propagated to the others. Also, only objects that are select may move 
-		# at any given time. So we need to emulate that only the object being
-		# aligned is selected.
-		tempSelection = self.__multiSelectionObjects[:]
-		for obj in tempSelection:
-			self.__multiSelectionObjects = [ obj ] 
-			obj.alignToGrid()
+		# propagated to the others. So we need to clean the list to alighn each
+		# object properly.
+		# We also need to force and end movement to be sure action won't get
+		# lost.
+		if (self.__multiSelectionObjects != []):
+			self.endMovement()
+			
+			tempSelection = self.__multiSelectionObjects[:]
+			movementDoneList = []
+			allZero = True
+			for obj in tempSelection:
+				sx, sy = obj.getPos()
+				self.__multiSelectionObjects = [ obj ]
+				obj.alignToGrid()
+				fx, fy = obj.getPos()
+				movementDoneList.append((fx - sx, fy - sy))
+				if (fx - sx != 0 or fy - sy != 0):
+					allZero = False
+			
+			if (allZero == False):
+				action = SceneAction("move", tempSelection, movementDoneList)
+				self.__history.registerAction(action)
 
-		self.__multiSelectionObjects = tempSelection
+			self.__moveStarted = False
+			self.__multiSelectionObjects = tempSelection[:]
 
 	def setSingleSelectionObject(self, value):
 		self.unsetSelection()
@@ -290,6 +358,15 @@ class RenderObjectGuardian:
 			
 		return newSelection
 
+	def createNewObject(self, idToUse, obj, pos, tileSize, maxX, maxY):
+		renderedObject = RenderedObject(idToUse, obj, pos, tileSize, maxX, maxY)
+		self.setSingleSelectionObject(renderedObject)
+
+		action = SceneAction("create", [renderedObject])
+		self.__history.registerAction(action)
+
+		return renderedObject
+
 
 class ObjectTypes:
 	baseObject = 1
@@ -343,10 +420,11 @@ class RenderedObject (Scatter):
 
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
 		
-		if (RenderObjectGuardian.Instance().isSelected(self) == False):
+		if (self.__forceMove == False and RenderObjectGuardian.Instance().isSelected(self) == False):
 			return
 
-		RenderObjectGuardian.Instance().propagateTranslation(self, trans, post_multiply, anchor)
+		if (self.__forceMove == False):
+			RenderObjectGuardian.Instance().propagateTranslation(self, trans, post_multiply, anchor)
 
 		xBefore, yBefore = self.bbox[0]
 
@@ -355,10 +433,6 @@ class RenderedObject (Scatter):
 		x, y = self.bbox[0]
 		if (xBefore == x and yBefore == y):
 			return
-
-		if (self.__isMoving == False):
-			self.__movingStart = (xBefore, yBefore)
-			self.__isMoving = True
 
 		if (x < 0):
 			x = 0
@@ -441,10 +515,13 @@ class RenderedObject (Scatter):
 
 	def flipOnX(self):
 		self.__flipX = not self.__flipX
-	
+		finalAlpha = self.image.color[3]
+
 		x, y = self.bbox[0]
 		self.__flipHorizontal()
 		self._set_pos((x,y))
+
+		self.image.color[3] = finalAlpha
 
 	def increaseLayer(self):
 		self.__layer += 1
@@ -454,10 +531,13 @@ class RenderedObject (Scatter):
 
 	def flipOnY(self):
 		self.__flipY = not self.__flipY
+		finalAlpha = self.image.color[3]
 		
 		x, y = self.bbox[0]
 		self.__flipVertical()
 		self._set_pos((x,y))
+		
+		self.image.color[3] = finalAlpha
 
 	def move(self, x, y):
 		self._set_pos((x, y))
@@ -486,19 +566,16 @@ class RenderedObject (Scatter):
 			self._set_pos((x, y))
 			tries += 1
 		
-		if (self.__isMoving == True):
-			self.__isMoving = False
-			self.__movingStart = None
 
 	def __handleTouchDown(self, touch):
-
 		self.__defaultTouchDown(touch)
 
 	def __handleTouchUp(self, touch):
+		RenderObjectGuardian.Instance().endMovement()
+
 		self.__defaultTouchUp(touch)
 
 	def __handleTouchMove(self, touch):
-
 		self.__defaultTouchMove(touch)
 
 	def __init__(self, identifier, obj, pos, tileSize, maxX, maxY):
@@ -547,18 +624,20 @@ class RenderedObject (Scatter):
 		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
 			size = self.__baseSize, auto_bring_to_front = False)
 
+
 		self.add_widget(self.image)
-		self.__isMoving = False
-		self.__movingStart = None
+		
+		self.__isFinished = False
+		self.__isHidden = False
+		self.__forceMove = False
+
 		self.__objectType = ObjectTypes.renderedObject
 		self.__tileSize = tileSize
 		self.__maxX = maxX
 		self.__maxY = maxY
 		self.__path = path
 		self._set_pos(pos)
-		self.__isFinished = False
-		self.__isHidden = False
-
+		
 		self.__defaultTouchDown = self.on_touch_down
 		self.on_touch_down = self.__handleTouchDown
 		self.__defaultTouchUp = self.on_touch_up
@@ -569,16 +648,25 @@ class RenderedObject (Scatter):
 		self.on_touch_move = self.__handleTouchMove
 
 	def hide(self):
-		self.__parentRef = self.parent
-		self.parent.remove_widget(self)
+		self.unsetMarked()
+		self.remove_widget(self.image)
 		self.__isHidden = True
 
 	def show(self):
-		self.__parentRef.add_widget(self)
+		self.add_widget(self.image)
 		self.__isHidden = False
 
 	def resetAllWidgets(self):
 		self.remove_widget(self.image)
+
+	def moveAbsoluteReverse(self, amount):
+		self.moveAbsolute((-amount[0], -amount[1]))
+
+	def moveAbsolute(self, amount):
+		self.__forceMove = True
+		pos = self.getPos()
+		self._set_pos((pos[0] + amount[0], pos[1] + amount[1]))
+		self.__forceMove = False
 
 	def getIdentifier(self):
 		return self.__id
