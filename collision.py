@@ -11,23 +11,45 @@ from editorutils import AlertPopUp
 
 from editorobjects import ObjectTypes
 
+
 class CollisionTypes:
 	box = 1
 	sphere = 2
 
 class CollisionFlag:
-	def __init__(self, name, hexValue):
+	def __init__(self, name):
 		self.__name = name
-		self.__hexValue = hexValue
+		self.__count = 0
+		self.__isDeleted = False
 
 	def getName(self):
 		return self.__name
+	
+	def increaseCounter(self):
+		self.__count += 1
 
-	def getHexValue(self):
-		return self.__hexValue
+	def getCounter (self):
+		return self.__count
 
-	def collides(self, other):
-		return self.__hexValue | other
+	def setDeleted (self):
+		self.__isDeleted = True
+
+	def getDeleted (self):
+		return self.__isDeleted
+
+@Singleton
+class CollisionGuardian:
+	def __init__(self):
+		self.__flagsDict = {}
+
+	def addNewFlag(self, name):
+		if (name not in self.__flagsDict):
+			flag = CollisionFlag(name)
+			self.__flagsDict[name] = flag
+
+	def assignFlag (self, name):
+		assert (name in self.__flagsDict)
+		self.__flagsDict[name].increaseCounter()
 
 class CollisionInformation:
 
