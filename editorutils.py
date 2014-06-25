@@ -4,6 +4,7 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
+from kivy.graphics.texture import Texture
 
 from os.path import isdir, isfile, join, exists
 from os import getcwd, sep as pathSeparator
@@ -26,6 +27,14 @@ def strToDoubleIntTuple(s):
 
 def vector2ToVector3String(v, default = 0):
 	return '(' + str(v[0]) + ', ' + str(v[1]) + ', ' + str (default) + ')'
+
+def copyTexture(sizeToUse, imageToUse):
+	newTexture = Texture.create(size = sizeToUse)
+	pixels = imageToUse.texture.pixels[:]
+	newTexture.blit_buffer(pixels, colorfmt='rgba', bufferfmt='ubyte')
+	newTexture.flip_vertical()
+
+	return newTexture
 
 class BaseWarnMethods:
 

@@ -1,12 +1,14 @@
 from singleton import Singleton
+from editorutils import copyTexture
 
 from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
 from kivy.graphics.texture import Texture
-from os import listdir, getcwd, sep as pathSeparator
 
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
+
+from os import listdir, getcwd, sep as pathSeparator
 
 class SceneAction:
 	def __init__(self, action, objectsList, args = []):
@@ -155,7 +157,7 @@ class RenderObjectGuardian:
 	def endMovement(self):
 
 		if (self.__moveStarted == True):
-			if (self.__movePositions != []):
+			if (self.__movePositions != [] and self.__multiSelectionObjects != []):
 				start = self.__movePositions[0]
 				end = self.__multiSelectionObjects[0].getPos()
 				amountMovedList = []
@@ -595,10 +597,7 @@ class RenderedObject (Scatter):
 
 		if (isinstance(obj, BaseObject)):
 			self.__baseSize = obj.getSize()
-			newTexture = Texture.create(size = self.__baseSize)
-			pixels = obj.getBaseImage().texture.pixels[:]
-			newTexture.blit_buffer(pixels, colorfmt='rgba', bufferfmt='ubyte')
-			newTexture.flip_vertical()
+			newTexture = copyTexture(self.__baseSize, obj.getBaseImage())
 			self.image = Image(size = self.__baseSize, texture = newTexture, nocache = True)
 			self.__sx = self.__baseSize[0]
 			self.__sy = self.__baseSize[1]
@@ -611,9 +610,7 @@ class RenderedObject (Scatter):
 		else:
 			self.__baseSize = obj.getBaseSize()
 			self.__sx, self.__sy = obj.getSize()
-			newTexture = Texture.create(size = (self.__sx, self.__sy))
-			newTexture.blit_buffer(obj.getImage().texture.pixels[:], colorfmt='rgba', bufferfmt='ubyte')
-			newTexture.flip_vertical()
+			newTexture = copyTexture(obj.getSize(), obj.getImage())
 			self.image = Image(size = self.__baseSize, texture = newTexture, nocache = True)
 			self.__scale = obj.getScale()
 			self.__layer = obj.getLayer()

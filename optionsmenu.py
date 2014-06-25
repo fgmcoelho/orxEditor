@@ -14,7 +14,7 @@ class OptionsMenu:
 
 		self.__layout = Accordion(orientation = 'horizontal', size_hint = (maxWidthProportion, maxHeightProportion))
 		self.__accordionItems = {
-			'BaseObject' : AccordionItem(title = 'Base Objects'),
+			'BaseObject' : AccordionItem(title = 'Base Object'),
 			'RenderedObject' : AccordionItem (title = 'Rendered Object'),
 			'MultipleSelectionDescriptor' : AccordionItem (title = 'Multiple Selection'),
 			'Options' : AccordionItem(title = 'Options'),

@@ -1,3 +1,5 @@
+from singleton import Singleton
+
 from os.path import join
 from os import listdir, getcwd
 
@@ -32,6 +34,7 @@ class ObjectMenuItem:
 	def getDisplayImage(self):
 		return self.__displayImage
 
+@Singleton
 class ObjectsMenu:
 	
 	def __loadPng(self, item, pngsToIgnoreList):
