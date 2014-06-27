@@ -140,7 +140,7 @@ class ObjectDescriptor:
 
 	def openCollisionPopUp(self, ignore):
 		
-		CollisionInformationPopup.Instance().showPopUp(self.__currentObject)
+		CollisionInformationPopup.Instance().showPopUp()
 		if (self.__currentObject != None):
 			self.setObject(self.__currentObject)
 

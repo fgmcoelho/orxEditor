@@ -16,12 +16,8 @@ from string import letters, digits
 
 from editorutils import AlertPopUp
 from editorobjects import ObjectTypes
+from communicationobjects import CollisionToSceneCommunication
 
-
-class CollisionTypes:
-	box = 1
-	sphere = 2
-	mesh = 3
 
 class CollisionFlag:
 	def __init__(self, name):
@@ -139,7 +135,6 @@ class CollisionFlagsEditor:
 	def __render(self):
 		
 		self.__layout.clear_widgets()
-		self.__flagNameInput.text = ''
 
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
 
@@ -158,7 +153,13 @@ class CollisionFlagsEditor:
 			self.__layout.add_widget(Label(text = 'Maximum number of flags (%u) reached.' % (self.__maxCollisionFlags, ), 
 				size_hint = (1.0, self.__baseHeight)))
 		else:
-			self.__flagNameInput.focus = True
+			self.__inputBar.clear_widgets()
+			oldText = self.__flagNameInput.text
+			self.__flagNameInput = TextInput(text = oldText, multiline = False, size_hint = (0.9, 1.0), 
+					on_text_validate = self.__processAddFlag, focus = True)
+			self.__inputBar.add_widget(self.__flagNameInput)
+			self.__inputBar.add_widget(self.__flagAddButton)
+
 			self.__layout.add_widget(self.__inputBar)
 		
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
@@ -194,9 +195,11 @@ class CollisionFlagsEditor:
 			return
 
 		CollisionGuardian.Instance().addNewFlag(self.__flagNameInput.text)
+		self.__flagNameInput.text = ''
 		self.__render()
 
 	def __processClose(self, notUsed = None):
+		self.__flagNameInput.focus = False
 		self.__popup.dismiss()
 
 	def __init__(self):
@@ -210,7 +213,8 @@ class CollisionFlagsEditor:
 		emptyLabel = Label(text = '', size_hint = (0.9, 1.0))
 
 		self.__inputBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		self.__flagNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0))
+		self.__flagNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0), on_text_validate = self.__processAddFlag,
+			focus = True)
 		self.__flagAddButton = Button(text = 'Add', size_hint = (0.1, 1.0))
 		self.__flagAddButton.bind(on_release = self.__processAddFlag)
 
@@ -235,38 +239,59 @@ class CollisionFlagsEditor:
 class CollisionPartLayout:
 	
 	def __render(self, part):
-		pass
-	
+		flagsList = CollisionGuardian.Instance().getFlags()
+		numberOfFlags = len(flagsList)
+
+		self.__selfFlagsGrid.clear_widgets()
+		self.__checkMaskGrid.clear_widgets()
+
+		for i in range(16):
+			if (i <  numberOfFlags):
+				self.__selfFlagsGrid.add_widget(ToggleButton(text = flagsList[i].getName(), size_hint = (0.25, 0.25)))
+			else:
+				self.__selfFlagsGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
+
+		for i in range(16):
+			if (i < numberOfFlags):
+				self.__checkMaskGrid.add_widget(ToggleButton(text = flagsList[i].getName(), size_hint = (0.25, 0.25)))
+			else:
+				self.__checkMaskGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
+
 	def getLayout(self):
+		self.__render(None)
 		return self.__layout
 
 	def __init__(self):
 		self.__layout = BoxLayout(orientation = 'horizontal')
-		
+		self.__baseHeight = 0.1
+
 		leftLayout = BoxLayout(orientation = 'vertical', size_hint = (0.5, 1.0))
 		rightLayout = BoxLayout(orientation = 'vertical', size_hint = (0.5, 1.0))
 
-		leftLayout.add_widget(Label(text = 'Self Flags:'))
-		self.__selfFlagsGrid = GridLayout(cols = 4, row = 4)
-		for i in range(16):
-			self.__selfFlagsGrid.add_widget(Label(text = 'N/A'))
-		
+		leftLayout.add_widget(Label(text = 'Self Flags:', size_hint = (1.0, self.__baseHeight)))
+		self.__selfFlagsGrid = GridLayout(cols = 4, row = 4, size_hint = (1.0, 4 * self.__baseHeight))
+
 		leftLayout.add_widget(self.__selfFlagsGrid)
+		
+		leftLayout.add_widget(Label(text = '', size_hint = (1.0, 1.0 - (self.__baseHeight * 6))))
 
-		rightLayout.add_widget(Label(text = 'Check Mask:'))
-		self.__checkMaskGrid = GridLayout(cols = 4, row = 4)
-		for i in range(16):
-			self.__checkMaskGrid.add_widget(Label(text = 'N/A'))
-		rightLayout.add_widget(self.__checkMaskGrid)
-
-		solidLine = BoxLayout(orientation = 'horizontal')
+		solidLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		solidLine.add_widget(Label(text = 'Solid:'))
 		self.__partSolidSwitch = Switch(active = False)
 		solidLine.add_widget(self.__partSolidSwitch)
 		leftLayout.add_widget(solidLine)
 		
-		rightLayout.add_widget(Label(text = 'Type'))
-		typeLine = BoxLayout(orientation = 'horizontal')
+		self.__layout.add_widget(leftLayout)
+		
+		rightLayout.add_widget(Label(text = 'Check Mask:', size_hint = (1.0, self.__baseHeight)))
+		self.__checkMaskGrid = GridLayout(cols = 4, row = 4, size_hint = (1.0, 4 * self.__baseHeight))
+
+		rightLayout.add_widget(self.__checkMaskGrid)
+		
+		rightLayout.add_widget(Label(text = '', size_hint = (1.0, 1.0 - (self.__baseHeight * 7))))
+
+		rightLayout.add_widget(Label(text = 'Type', size_hint = (1.0, self.__baseHeight)))
+		typeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		self.__boxButton = ToggleButton(text='Box', group='part_type', state='down')
 		self.__sphereButton = ToggleButton(text='Sphere', group='part_type')
 		self.__meshButton = ToggleButton(text='Mesh', group='part_type')
@@ -275,77 +300,52 @@ class CollisionPartLayout:
 		typeLine.add_widget(self.__meshButton)
 		rightLayout.add_widget(typeLine)
 
-		self.__layout.add_widget(leftLayout)
 		self.__layout.add_widget(rightLayout)
-
 
 @Singleton
 class CollisionInformationPopup:
 
-	def __setDefaultValues(self):
-		self.__selfFlagInput.text = '0xFFFF'
-		self.__checkMaskInput.text = '0xFFFF'
-		self.__solidSwitch.active = False
-		self.__dynamicSwitch.active = False
-		self.__allowSleepSwitch.active = False
-		self.__typeBoxSelect.active = True
-		self.__typeSphereSelect.active = False
-
-	def __setObjectValues(self, obj):
-		self.__selfFlagInput.text = obj.getSelfFlag()
-		self.__checkMaskInput.text = obj.getCheckMask()
-		self.__solidSwitch.active = obj.getIsSolid()
-		self.__dynamicSwitch.active = obj.getIsDynamic()
-		self.__allowSleepSwitch.active = obj.getAllowSleep()
-		if (obj.getCollisionType() == CollisionTypes.box):
-			self.__typeBoxSelect.active = True
-			self.__typeSphereSelect.active = False
-		else:
-			self.__typeBoxSelect.active = False
-			self.__typeSphereSelect.active = True
-
-	def __reloadValues(self):
-		if (self.__editingObject == None):
-			self.__setDefaultValues()
-
-		else:
-			collisionInfo = self.__editingObject.getCollisionInfo()
-			if (collisionInfo == None):
-				self.__setDefaultValues()
-			else:
-				self.__setObjectValues(collisionInfo)
+	def __render(self):
+		pass
 
 	def __init__(self):
+		self.__baseHeight = 0.05
+
 		self.__collisionPopUp = Popup (title = 'Collision configs', auto_dismiss = False)
 		self.__mainLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		
-		self.__flagsAndPreviewBox = BoxLayout(orientation = 'horizontal', size_hint= (1.0, 0.3))
+		self.__flagsAndPreviewBox = BoxLayout(orientation = 'horizontal', size_hint= (1.0, 6 * self.__baseHeight))
 		self.__flagsAndPreviewBox.add_widget(Label(text = 'WIP', size_hint = (0.5, 1.0)))
 
-		self.__bodyInfoBox = GridLayout(orientation = 'vertical', size_hint = (0.5, 1.0), cols = 2, rows = 3)
-		self.__bodyInfoBox.add_widget(Label(text = 'Dynamic'))
-		self.__dynamicSwitch = Switch(active = False)
+		self.__bodyInfoBox = GridLayout(orientation = 'vertical', size_hint = (0.5, 1.0), cols = 2, rows = 4)
+		self.__bodyInfoBox.add_widget(Label(text = 'Dynamic', size_hint = (0.3, 0.15)))
+		self.__dynamicSwitch = Switch(active = False, size_hint = (0.7, 0.15))
 		self.__bodyInfoBox.add_widget(self.__dynamicSwitch)
 
-		self.__bodyInfoBox.add_widget(Label(text = 'Fixed Rotation'))
-		self.__fixedRotationSwitch = Switch(active = False)
+		self.__bodyInfoBox.add_widget(Label(text = 'Fixed Rotation', size_hint = (0.3, 0.15)))
+		self.__fixedRotationSwitch = Switch(active = False, size_hint = (0.7, 0.15))
 		self.__bodyInfoBox.add_widget(self.__fixedRotationSwitch)
 
-		self.__bodyInfoBox.add_widget(Label(text = 'High Speed'))
-		self.__highSpeedSwitch = Switch(active = False)
+		self.__bodyInfoBox.add_widget(Label(text = 'High Speed', size_hint = (0.3, 0.15)))
+		self.__highSpeedSwitch = Switch(active = False, size_hint = (0.7, 0.15))
 		self.__bodyInfoBox.add_widget(self.__highSpeedSwitch)
+		
+		self.__bodyInfoBox.add_widget(Label(text = '', size_hint = (0.5, 0.55)))
+		self.__bodyInfoBox.add_widget(Label(text = '', size_hint = (0.5, 0.55)))
 		
 		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
 
 		self.__mainLayout.add_widget(self.__flagsAndPreviewBox)
 
-		partLayout = CollisionPartLayout()
+		self.__mainLayout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
+
+		self.__partLayout = CollisionPartLayout()
 
 		self.__partsPanel = TabbedPanel(default_tab_text = 'Part 1', size_hint = (1.0, 0.6), 
-				default_tab_content = partLayout.getLayout())
+				default_tab_content = self.__partLayout.getLayout())
 		self.__mainLayout.add_widget(self.__partsPanel)
 
-		lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		self.__okButton = Button(text = 'Done', size_hint = (0.10, 1.0))
 		self.__okButton.bind(on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton = Button (text = 'Cancel', size_hint = (0.10, 1.0))
@@ -362,6 +362,7 @@ class CollisionInformationPopup:
 		lowerBox.add_widget(self.__okButton)
 		lowerBox.add_widget(self.__cancelButton)
 		
+		self.__mainLayout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
 		self.__mainLayout.add_widget(lowerBox)
 		
 		self.__collisionPopUp.content = self.__mainLayout
@@ -371,50 +372,20 @@ class CollisionInformationPopup:
 		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
 		
 	def __createOrEditCollisionInfo(self, useless):
-		if (self.__editingObject != None):
-			if (self.__selfFlagInput.background_color==[1, 0, 0, 1] or self.__checkMaskInput.background_color==[1, 0, 0, 1]):
-				self.__errorPopUp.setText('Invalid flag input.')
-				self.__errorPopUp.open()
-				return
-			
-			if (self.__typeBoxSelect.active == True):
-				collisionType = CollisionTypes.box
-			else:
-				collisionType = CollisionTypes.sphere
-
-			if (self.__editingObject.getCollisionInfo() == None):
-
-				newCollisionInfo = CollisionInformation(
-					self.__selfFlagInput.text, 
-					self.__checkMaskInput.text, 
-					self.__solidSwitch.active, 
-					self.__dynamicSwitch.active, 
-					self.__allowSleepSwitch.active, 
-					collisionType
-				)
-				self.__editingObject.setCollisionInfo(newCollisionInfo)
-			
-			else:
-				collisionObject = self.__editingObject.getCollisionInfo()
-				collisionObject.setSelfFlag(self.__selfFlagInput.text)
-				collisionObject.setCheckMask(self.__checkMaskInput.text)
-				collisionObject.setIsSolid(self.__solidSwitch.active)
-				collisionObject.setIsDynamic(self.__dynamicSwitch.active)
-				collisionObject.setAllowSleep(self.__allowSleepSwitch.active)
-				collisionObject.setCollisionType(collisionType)
-
-		self.__editingObject = None
+		
 		self.__collisionPopUp.dismiss()
 
-	def showPopUp(self, obj):
+	def showPopUp(self):
 		
-		if (obj == None or (obj != None and obj.getType() != ObjectTypes.renderedObject)):
-			self.__errorPopUp.setText('No Object selected!\nYou need to select one object from the scene')
+		objList = CollisionToSceneCommunication.Instance().getSelectedObjects()
+		if (objList == []):
+			self.__errorPopUp.setText('No object(s) selected!\nYou need to select at least one object from the scene.')
 			self.__errorPopUp.open()
 		
 		else:
 			#self.__editingObject = obj
 			#self.__reloadValues()
+			self.__partLayout.getLayout()
 			self.__collisionPopUp.open()
 			
 

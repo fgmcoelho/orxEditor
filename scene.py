@@ -204,6 +204,17 @@ class Scene:
 	def getObjectsDict(self):
 		return self.__objectDict
 
+	def getAllValidObjects(self):
+		objectsList = []
+		for obj in self.__objectDict.values():
+			if (obj.getHidden() == False and obj.getFinished() == False):
+				objectsList.append(obj)
+
+		return objectsList
+
+	def getSelectedObjects(self):
+		return RenderObjectGuardian.Instance().getSelection()
+
 
 @Singleton
 class SceneHandler:

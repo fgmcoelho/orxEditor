@@ -319,6 +319,10 @@ class RenderObjectGuardian:
 
 	def copySelection(self, direction, newId, tileSize, maxX, maxY):
 		assert (direction in ['left', 'right', 'up', 'down'])
+
+		if (self.__multiSelectionObjects == []):
+			return []
+
 		startX, startY, endX, endY = self.__getSelectionLimits()
 		
 		if (direction == 'left'):
@@ -359,6 +363,9 @@ class RenderObjectGuardian:
 			self.__history.registerAction(action)
 			
 		return newSelection
+
+	def getSelection(self):
+		return self.__multiSelectionObjects[:]
 
 	def createNewObject(self, idToUse, obj, pos, tileSize, maxX, maxY):
 		renderedObject = RenderedObject(idToUse, obj, pos, tileSize, maxX, maxY)

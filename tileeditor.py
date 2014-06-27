@@ -17,6 +17,7 @@ from editorobjects import RenderObjectGuardian
 from tilemapfiles import FilesManager
 from objectdescriptor import ObjectDescriptor
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup
+from communicationobjects import CollisionToSceneCommunication
 
 class KeyboardAccess:
 	
@@ -164,7 +165,10 @@ class TileEditor(App):
 		ObjectsMenu.Instance(self.leftMenuBase)
 		
 		# Keyboard handling
-		self.shortcutHandler = KeyboardShortcutHandler()
+		KeyboardShortcutHandler()
+
+		# Communication Objects
+		CollisionToSceneCommunication.Instance(Scene.Instance().getSelectedObjects, Scene.Instance().getAllValidObjects)
 
 		# Periodic functions:
 		Clock.schedule_interval(Scene.Instance().clear, 30)
