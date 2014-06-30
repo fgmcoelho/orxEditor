@@ -10,6 +10,7 @@ from kivy.core.window import Window
 
 from sys import argv, exit
 
+from singleton import Singleton
 from optionsmenu import OptionsMenu
 from scene import Scene, SceneHandler,SceneAttributes
 from objectsmenu import ObjectsMenu
@@ -17,36 +18,17 @@ from editorobjects import RenderObjectGuardian
 from tilemapfiles import FilesManager
 from objectdescriptor import ObjectDescriptor
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup
-from communicationobjects import CollisionToSceneCommunication
+from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
 
-class KeyboardAccess:
+@Singleton
+class KeyboardShortcutHandler:
 	
-	def getKeyboardAccess(self, keyDownMethod = None, keyUpMethod = None):
-		self.__keyDownMethod = keyDownMethod
-		self.__keyUpMethod = keyUpMethod
-		self.__keyboard = Window.request_keyboard(self.__finishKeyboard, self)
-	
-		if (self.__keyDownMethod != None):
-			self.__keyboard.bind(on_key_down=self.__keyDownMethod)
-
-		if (self.__keyUpMethod != None):
-			self.__keyboard.bind(on_key_up=self.__keyUpMethod)
-
-
 	def __finishKeyboard(self):
-		if (self.__keyDownMethod != None):
-			self.__keyboard.unbind(on_key_down=self.__keyDownMethod)
-
-		if (self.__keyUpMethod != None):
-			self.__keyboard.unbind(on_key_up=self.__keyUpMethod)
-				
-		self.__keyboard = None
-
-
-class KeyboardShortcutHandler (KeyboardAccess):
+		self.__keyboard.unbind(on_key_down=self.__processKeyDown)
+		self.__keyboard.unbind(on_key_up=self.__processKeyUp)
 	
 	def __init__(self):
-		self.getKeyboardAccess(self.__processKeyDown, self.__processKeyUp)
+		self.getKeyboardAccess()
 	
 	def __processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'shift'):
@@ -112,6 +94,14 @@ class KeyboardShortcutHandler (KeyboardAccess):
 			Scene.Instance().redo()
 		
 		return True
+	
+	def getKeyboardAccess(self):
+		self.__keyboard = Window.request_keyboard(self.__finishKeyboard, self)
+	
+		self.__keyboard.bind(on_key_down = self.__processKeyDown)
+		self.__keyboard.bind(on_key_up = self.__processKeyUp)
+
+
 
 class TileEditor(App):
 	
@@ -165,9 +155,10 @@ class TileEditor(App):
 		ObjectsMenu.Instance(self.leftMenuBase)
 		
 		# Keyboard handling
-		KeyboardShortcutHandler()
+		KeyboardShortcutHandler.Instance()
 
 		# Communication Objects
+		CollisionToMainLayoutCommunication.Instance(KeyboardShortcutHandler.Instance().getKeyboardAccess)
 		CollisionToSceneCommunication.Instance(Scene.Instance().getSelectedObjects, Scene.Instance().getAllValidObjects)
 
 		# Periodic functions:

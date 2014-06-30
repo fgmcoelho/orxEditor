@@ -1,6 +1,5 @@
 from singleton import Singleton
 
-
 @Singleton
 class CollisionToSceneCommunication:
 
@@ -13,3 +12,12 @@ class CollisionToSceneCommunication:
 
 	def getAllObjects(self):
 		return self.__getAllObjectsMethod() 
+
+@Singleton
+class CollisionToMainLayoutCommunication:
+
+	def __init__(self, giveBackKeyboardMethod):
+		self.__giveBackKeyboardMethod = giveBackKeyboardMethod
+
+	def giveBackKeyboard(self):
+		self.__giveBackKeyboardMethod()

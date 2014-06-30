@@ -16,7 +16,7 @@ from string import letters, digits
 
 from editorutils import AlertPopUp
 from editorobjects import ObjectTypes
-from communicationobjects import CollisionToSceneCommunication
+from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
 
 
 class CollisionFlag:
@@ -181,9 +181,12 @@ class CollisionFlagsEditor:
 				size_hint = (1.0, self.__baseHeight)))
 		else:
 			self.__inputBar.clear_widgets()
-			oldText = self.__flagNameInput.text
+			if (self.__flagNameInput != None):
+				oldText = self.__flagNameInput.text
+			else:
+				oldText = ''
 			self.__flagNameInput = TextInput(text = oldText, multiline = False, size_hint = (0.9, 1.0), 
-					on_text_validate = self.__processAddFlag, focus = True)
+				on_text_validate = self.__processAddFlag, focus = True)
 			self.__inputBar.add_widget(self.__flagNameInput)
 			self.__inputBar.add_widget(self.__flagAddButton)
 
@@ -227,6 +230,9 @@ class CollisionFlagsEditor:
 
 	def __processClose(self, notUsed = None):
 		self.__flagNameInput.focus = False
+		self.__inputBar.clear_widgets()
+		del self.__flagNameInput
+		self.__flagNameInput = None
 		self.__popup.dismiss()
 
 	def __init__(self):
@@ -472,6 +478,7 @@ class CollisionInformationPopup:
 		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
 		
 	def __createOrEditCollisionInfo(self, useless):		
+		CollisionToMainLayoutCommunication.Instance().giveBackKeyboard()
 		self.__collisionPopUp.dismiss()
 
 	def showPopUp(self):
