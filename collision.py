@@ -71,6 +71,17 @@ class CollisionGuardian:
 
 class CollisionPartInformation:
 
+	@staticmethod
+	def copy(part):
+		assert (isinstance(part, CollisionPartInformation))
+		return CollisionPartInformation(
+			part.getCheckMask(),
+			part.getSelfFlags(),
+			part.getSolid(),
+			part.getFormType(),
+			part.getPoints()
+		)
+
 	def __init__(self, checkMask = [], selfFlags = [], solid = False, formType = "box", points = None):
 		assert ((points == None) or (formType == "box" and len(points) == 2) or (formType == "sphere" and
 			len(points) == 2) or (formType == "mesh" and len(points) != 0))
@@ -98,6 +109,19 @@ class CollisionPartInformation:
 
 class CollisionInformation:
 
+	@staticmethod
+	def copy(info):
+		assert(isinstance(info, CollisionInformation))
+		newInfo = CollisionInformation(
+			info.getDynamic(),
+			info.getHighSpeed(),
+			info.getFixedRotation()
+		)
+		for part in info.getPartsList():
+			newInfo.addPart(CollisionPartInformation.copy(part))
+			
+		return newInfo
+
 	def __init__(self, dynamic = False, highSpeed = False, fixedRotation = False):
 		self.__dynamic = dynamic
 		self.__highSpeed = highSpeed
@@ -112,6 +136,9 @@ class CollisionInformation:
 
 	def getFixedRotation(self):
 		return self.__fixedRotation
+		
+	def getPartsList(self):
+		return self.__partsList
 
 	def setDynamic(self, value):
 		self.__dynamic = value
@@ -241,25 +268,46 @@ class CollisionPartLayout:
 	def __render(self, part):
 		flagsList = CollisionGuardian.Instance().getFlags()
 		numberOfFlags = len(flagsList)
-
+		partSelfFlags = part.getSelfFlags()
+		partCheckMask = part.getCheckMask()
+		
 		self.__selfFlagsGrid.clear_widgets()
 		self.__checkMaskGrid.clear_widgets()
 
 		for i in range(16):
 			if (i <  numberOfFlags):
-				self.__selfFlagsGrid.add_widget(ToggleButton(text = flagsList[i].getName(), size_hint = (0.25, 0.25)))
+				name = flagsList[i].getName()
+				if (name in partSelfFlags):
+					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'down'))
+				else:
+					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'normal'))
 			else:
 				self.__selfFlagsGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
 
 		for i in range(16):
 			if (i < numberOfFlags):
-				self.__checkMaskGrid.add_widget(ToggleButton(text = flagsList[i].getName(), size_hint = (0.25, 0.25)))
+				name = flagsList[i].getName()
+				if (name in partCheckMask):
+					self.__checkMaskGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'down'))
+				else:
+					self.__checkMaskGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'normal'))
 			else:
 				self.__checkMaskGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
+				
+		formType = part.getFormType()
+		if (formType == "box"):
+			self.__boxButton.state = 'down'
+		elif (formType == "sphere"):
+			self.__sphereButton.state = 'down'
+		else:
+			self.__meshButton.state = 'down'
 
 	def getLayout(self):
-		self.__render(None)
 		return self.__layout
+		
+	def updateLayout(self, part):
+		assert (isinstance(part, CollisionPartInformation))
+		self.__render(part)		
 
 	def __init__(self):
 		self.__layout = BoxLayout(orientation = 'horizontal')
@@ -305,12 +353,63 @@ class CollisionPartLayout:
 @Singleton
 class CollisionInformationPopup:
 
+	def __createTemporatyCopies(self):
+		for obj in self.__objectsList:
+			if (obj.getCollisionInfo() != None):
+				infoCopy = CollisionInformation.copy(obj.getCollisionInfo())
+			else:
+				infoCopy = CollisionInformation()
+
+			extraParts = []
+			for i in range (8 - len(infoCopy.getPartsList())):
+				extraParts.append(CollisionPartInformation())				
+				
+			self.__copiesDict[obj.getIdentifier()] = infoCopy
+			self.__extraPartsDict[obj.getIdentifier()] = extraParts
+
 	def __render(self):
-		pass
+		
+		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
+		collisionInfo = self.__copiesDict[currentId]
+		extraParts = self.__extraPartsDict[currentId]
+		
+		self.__dynamicSwitch.active = collisionInfo.getDynamic()
+		self.__fixedRotationSwitch.active = collisionInfo.getFixedRotation()
+		self.__highSpeedSwitch.active = collisionInfo.getHighSpeed()
+		
+		parts = collisionInfo.getPartsList()
+		numberOfParts = len(parts)
+		
+		self.__partsPanel.clear_tabs()
+			
+		for i in range(numberOfParts):
+			self.__partsLayoutList[i].updateLayout(parts[i])
+			if (i == 0):
+				self.__partsPanel.default_tab_content = self.__partsLayoutList[i].getLayout()
+				self.__partsPanel.default_tab_text = 'Part 1'
+			else:
+				th = TabbedPanelHeader(text = 'Part ' + str(i + 1))
+				th.content = self.__partsPanel.default_tab_content = self.__partsLayoutList[i].getLayout()
+				self.__partsPanel.add_widget(th)
+	
+		if (extraParts != []):
+			self.__partsLayoutList[numberOfParts].updateLayout(extraParts[0])
+			if (numberOfParts == 0):
+				self.__partsPanel.default_tab_text = 'Part 1'
+
+			else:
+				th = TabbedPanelHeader(text = 'Part ' + str(numberOfParts + 1))
+				th.content = self.__partsPanel.default_tab_content = self.__partsLayoutList[numberOfParts].getLayout()
+				self.__partsPanel.add_widget(th)
 
 	def __init__(self):
 		self.__baseHeight = 0.05
 
+		self.__copiesDict = {}
+		self.__extraPartsDict = {}
+		self.__objectsList = []
+		self.__objectsListIndex = 0
+		
 		self.__collisionPopUp = Popup (title = 'Collision configs', auto_dismiss = False)
 		self.__mainLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		
@@ -339,10 +438,12 @@ class CollisionInformationPopup:
 
 		self.__mainLayout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
 
-		self.__partLayout = CollisionPartLayout()
+		self.__partsLayoutList = []
+		for i in range(8):
+			self.__partsLayoutList.append(CollisionPartLayout())
 
 		self.__partsPanel = TabbedPanel(default_tab_text = 'Part 1', size_hint = (1.0, 0.6), 
-				default_tab_content = self.__partLayout.getLayout())
+				default_tab_content = self.__partsLayoutList[0].getLayout())
 		self.__mainLayout.add_widget(self.__partsPanel)
 
 		lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
@@ -368,11 +469,9 @@ class CollisionInformationPopup:
 		self.__collisionPopUp.content = self.__mainLayout
 		self.__editingObject = None
 	
-	
 		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
 		
-	def __createOrEditCollisionInfo(self, useless):
-		
+	def __createOrEditCollisionInfo(self, useless):		
 		self.__collisionPopUp.dismiss()
 
 	def showPopUp(self):
@@ -383,9 +482,9 @@ class CollisionInformationPopup:
 			self.__errorPopUp.open()
 		
 		else:
-			#self.__editingObject = obj
-			#self.__reloadValues()
-			self.__partLayout.getLayout()
+			self.__objectsList = objList
+			self.__objectsListIndex = 0
+			self.__createTemporatyCopies()
+			self.__render()
 			self.__collisionPopUp.open()
-			
 

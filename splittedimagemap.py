@@ -2,6 +2,8 @@ from ConfigParser import ConfigParser
 from editorutils import strToDoubleIntTuple
 from kivy.uix.image import Image
 
+from os.path import isfile
+
 class SplittedImageMap:
 	
 	def __init__(self, baseImagePath = '', numberOfImages = 0, divisions = (0, 0), size = (0, 0)):
