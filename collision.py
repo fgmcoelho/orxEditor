@@ -66,7 +66,7 @@ class CollisionGuardian:
 	def getFlagByName(self, name):
 		if (name not in self.__flagsDict):
 			return None
-		return self.__flagsDict[name]
+		return self.__flagsDict[name][1]
 
 
 class CollisionPartInformation:
@@ -86,8 +86,8 @@ class CollisionPartInformation:
 		assert ((points == None) or (formType == "box" and len(points) == 2) or (formType == "sphere" and
 			len(points) == 2) or (formType == "mesh" and len(points) != 0))
 
-		self.__checkMask = checkMask
-		self.__selfFlags = selfFlags
+		self.__checkMask = checkMask[:]
+		self.__selfFlags = selfFlags[:]
 		self.__solid = solid
 		self.__formType = formType
 		self.__points = points
@@ -97,6 +97,20 @@ class CollisionPartInformation:
 		
 	def getSelfFlags(self):
 		return self.__selfFlags
+
+	def addFlagToCheckMask(self, flag):
+		assert (len(self.__checkMask) <= 16)
+		self.__checkMask.append(flag)
+			
+	def addFlagToSelfFlags(self, flag):
+		assert (len(self.__selfFlags) <= 16)
+		self.__selfFlags.append(flag)
+
+	def removeFlagFromCheckMask(self, flag):
+		self.__checkMask.remove(flag)
+	
+	def removeFlagFromSelfFlags(self, flag):
+		self.__selfFlags.remove(flag)
 
 	def getSolid(self):
 		return self.__solid
@@ -181,10 +195,7 @@ class CollisionFlagsEditor:
 				size_hint = (1.0, self.__baseHeight)))
 		else:
 			self.__inputBar.clear_widgets()
-			if (self.__flagNameInput != None):
-				oldText = self.__flagNameInput.text
-			else:
-				oldText = ''
+			oldText = self.__flagNameInput.text
 			self.__flagNameInput = TextInput(text = oldText, multiline = False, size_hint = (0.9, 1.0), 
 				on_text_validate = self.__processAddFlag, focus = True)
 			self.__inputBar.add_widget(self.__flagNameInput)
@@ -230,9 +241,8 @@ class CollisionFlagsEditor:
 
 	def __processClose(self, notUsed = None):
 		self.__flagNameInput.focus = False
-		self.__inputBar.clear_widgets()
-		del self.__flagNameInput
-		self.__flagNameInput = None
+		
+		CollisionInformationPopup.Instance().updateLayout()
 		self.__popup.dismiss()
 
 	def __init__(self):
@@ -271,11 +281,34 @@ class CollisionFlagsEditor:
 
 class CollisionPartLayout:
 	
+	def __togglePartFlag(self, buttonObject):
+		buttonInfo = buttonObject.id.split('#')
+		if (buttonObject.state == 'normal'):
+			if (buttonInfo[1] == 'selfflags'):
+				self.__part.removeFlagFromSelfFlags(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
+			else:
+				self.__part.removeFlagFromCheckMask(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
+
+		else:
+			if (buttonInfo[1] == 'selfflags'):
+				self.__part.addFlagToSelfFlags(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
+			else:
+				self.__part.addFlagToCheckMask(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
+
+	
 	def __render(self, part):
+
+		self.__part = part
 		flagsList = CollisionGuardian.Instance().getFlags()
 		numberOfFlags = len(flagsList)
-		partSelfFlags = part.getSelfFlags()
-		partCheckMask = part.getCheckMask()
+		
+		partSelfFlags = []
+		for flag in part.getSelfFlags():
+			partSelfFlags.append(flag.getName())
+
+		partCheckMask = []
+		for flag in part.getCheckMask():
+			partCheckMask.append(flag.getName())
 		
 		self.__selfFlagsGrid.clear_widgets()
 		self.__checkMaskGrid.clear_widgets()
@@ -284,9 +317,11 @@ class CollisionPartLayout:
 			if (i <  numberOfFlags):
 				name = flagsList[i].getName()
 				if (name in partSelfFlags):
-					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'down'))
+					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'down', 
+						on_release = self.__togglePartFlag, id = 'togglebutton#selfflags#' + name))
 				else:
-					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'normal'))
+					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'normal',
+						on_release = self.__togglePartFlag, id = 'togglebutton#selfflags#' + name))
 			else:
 				self.__selfFlagsGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
 
@@ -294,19 +329,25 @@ class CollisionPartLayout:
 			if (i < numberOfFlags):
 				name = flagsList[i].getName()
 				if (name in partCheckMask):
-					self.__checkMaskGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'down'))
+					self.__checkMaskGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'down',
+						on_release = self.__togglePartFlag, id = 'togglebutton#checkmask#' + name))
 				else:
-					self.__checkMaskGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'normal'))
+					self.__checkMaskGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'normal',
+						on_release = self.__togglePartFlag, id = 'togglebutton#checkmask#' + name))
 			else:
 				self.__checkMaskGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
 				
 		formType = part.getFormType()
+		print formType
 		if (formType == "box"):
-			self.__boxButton.state = 'down'
+			if (self.__boxButton.state != 'down'):
+				self.__boxButton.state = 'down'
 		elif (formType == "sphere"):
-			self.__sphereButton.state = 'down'
+			if (self.__sphereButton.state != 'down'):
+				self.__sphereButton.state = 'down'
 		else:
-			self.__meshButton.state = 'down'
+			if (self.__meshButton.state != 'down'):
+				self.__meshButton.state = 'down'
 
 	def getLayout(self):
 		return self.__layout
@@ -346,9 +387,9 @@ class CollisionPartLayout:
 
 		rightLayout.add_widget(Label(text = 'Type', size_hint = (1.0, self.__baseHeight)))
 		typeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		self.__boxButton = ToggleButton(text='Box', group='part_type', state='down')
-		self.__sphereButton = ToggleButton(text='Sphere', group='part_type')
-		self.__meshButton = ToggleButton(text='Mesh', group='part_type')
+		self.__boxButton = ToggleButton(text = 'Box', group = 'part_type', state = 'down')
+		self.__sphereButton = ToggleButton(text ='Sphere', group = 'part_type')
+		self.__meshButton = ToggleButton(text = 'Mesh', group = 'part_type')
 		typeLine.add_widget(self.__boxButton)
 		typeLine.add_widget(self.__sphereButton)
 		typeLine.add_widget(self.__meshButton)
@@ -408,6 +449,7 @@ class CollisionInformationPopup:
 				th.content = self.__partsPanel.default_tab_content = self.__partsLayoutList[numberOfParts].getLayout()
 				self.__partsPanel.add_widget(th)
 
+
 	def __init__(self):
 		self.__baseHeight = 0.05
 
@@ -450,6 +492,7 @@ class CollisionInformationPopup:
 
 		self.__partsPanel = TabbedPanel(default_tab_text = 'Part 1', size_hint = (1.0, 0.6), 
 				default_tab_content = self.__partsLayoutList[0].getLayout())
+
 		self.__mainLayout.add_widget(self.__partsPanel)
 
 		lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
@@ -476,10 +519,13 @@ class CollisionInformationPopup:
 		self.__editingObject = None
 	
 		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
-		
+
 	def __createOrEditCollisionInfo(self, useless):		
 		CollisionToMainLayoutCommunication.Instance().giveBackKeyboard()
 		self.__collisionPopUp.dismiss()
+
+	def updateLayout(self):
+		self.__render()
 
 	def showPopUp(self):
 		
