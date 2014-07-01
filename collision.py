@@ -14,7 +14,7 @@ from kivy.uix.togglebutton import ToggleButton
 from operator import itemgetter
 from string import letters, digits
 
-from editorutils import AlertPopUp
+from editorutils import AlertPopUp, Dialog
 from editorobjects import ObjectTypes
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
 
@@ -440,11 +440,24 @@ class CollisionInformationPopup:
 			self.__copiesDict[currentId].addPart(newPart)
 			self.__render()
 
-	def __deleteCurrentButton(self, notUsed = None):
+	def __doDeleteCurrentPart(self, notUsed = None):
+		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
+		index = int(self.__partsPanel.current_tab.text.split(' ')[1])
+		partsList = self.__copiesDict[currentId].getPartsList()
+		part = partsList[index - 1]
+		self.__copiesDict[currentId].removePart(part)
+		part = None
+		self.__extraPartsDict[currentId].append(CollisionPartInformation())
+		self.__warnDelete.dismiss()
+		self.__render()
+
+	def __deleteCurrentPart(self, notUsed = None):
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
 		if (self.__partsPanel.current_tab.text == 'Edit'):
 			errorPopup = AlertPopUp('Error', 'You can\'t delete the edit flag, it hasn\'t been added.', 'Ok')
 			errorPopup.open()
+		else:
+			self.__warnDelete.open()
 
 	def __selectNextObject(self, notUsed = None):
 		self.__objectsListIndex = (self.__objectsListIndex + 1) % len(self.__objectsList)
@@ -568,7 +581,8 @@ class CollisionInformationPopup:
 		self.__okButton.bind(on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton.bind(on_release = self.__collisionPopUp.dismiss)
 		self.__applyButton.bind(on_release = self.__applyChanges)
-		# TODO: Code the apply to all button method and bind it.
+		# TODO: Code the apply to all button method and bind it
+		self.__deleteCurrentButton.bind(on_release = self.__deleteCurrentPart)
 		self.__previousObjectButton.bind(on_release = self.__selectPreviousObject)
 		self.__nextObjectButton.bind(on_release = self.__selectNextObject)
 		self.__editFlagsButton.bind(on_release = CollisionFlagsEditor.Instance().showPopUp)
@@ -578,7 +592,10 @@ class CollisionInformationPopup:
 		
 		self.__collisionPopUp.content = self.__mainLayout
 		self.__editingObject = None
-	
+			
+		
+		self.__warnDelete = Dialog(self.__doDeleteCurrentPart, 'Confirmation', 'Are you sure you want to\ndelete this part?',
+				'Yes', 'No')
 		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
 
 	def __createOrEditCollisionInfo(self, useless):
@@ -597,6 +614,7 @@ class CollisionInformationPopup:
 		
 		else:
 			self.__objectsList = objList
+			self.__extraPartsDict = {}
 			self.__objectsListIndex = 0
 			self.__createTemporatyCopies()
 			self.__render()
