@@ -372,13 +372,6 @@ class CollisionPartLayout:
 		self.__typeLine.add_widget(Label(text = 'Mesh'))
 
 
-	def getLayout(self):
-		return self.__layout
-		
-	def updateLayout(self, part):
-		assert (isinstance(part, CollisionPartInformation))
-		self.__render(part)		
-
 	def __init__(self):
 		self.__layout = BoxLayout(orientation = 'horizontal')
 		self.__baseHeight = 0.1
@@ -416,6 +409,13 @@ class CollisionPartLayout:
 
 		self.__layout.add_widget(rightLayout)
 
+	def getLayout(self):
+		return self.__layout
+		
+	def updateLayout(self, part):
+		assert (isinstance(part, CollisionPartInformation))
+		self.__render(part)		
+
 @Singleton
 class CollisionInformationPopup:
 
@@ -438,7 +438,13 @@ class CollisionInformationPopup:
 		if(self.__partsPanel.current_tab.text == 'Edit'):
 			newPart = self.__extraPartsDict[currentId].pop(0)
 			self.__copiesDict[currentId].addPart(newPart)
-			self.__render()		
+			self.__render()
+
+	def __deleteCurrentButton(self, notUsed = None):
+		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
+		if (self.__partsPanel.current_tab.text == 'Edit'):
+			errorPopup = AlertPopUp('Error', 'You can\'t delete the edit flag, it hasn\'t been added.', 'Ok')
+			errorPopup.open()
 
 	def __selectNextObject(self, notUsed = None):
 		self.__objectsListIndex = (self.__objectsListIndex + 1) % len(self.__objectsList)
@@ -490,13 +496,15 @@ class CollisionInformationPopup:
 		self.__lowerBox.clear_widgets()
 		self.__lowerBox.add_widget(self.__editFlagsButton)
 		self.__lowerBox.add_widget(self.__applyButton)
+		self.__lowerBox.add_widget(self.__deleteCurrentButton)
 		if (len (self.__objectsList) > 1):
 			self.__lowerBox.add_widget(self.__applyToAllButton)
-			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.3, 1.0)))
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.2, 1.0)))
 			self.__lowerBox.add_widget(self.__previousObjectButton)
 			self.__lowerBox.add_widget(self.__nextObjectButton)
 		else:
-			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.6, 1.0)))
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.5, 1.0)))
+
 		self.__lowerBox.add_widget(self.__okButton)
 		self.__lowerBox.add_widget(self.__cancelButton)
 
@@ -548,10 +556,11 @@ class CollisionInformationPopup:
 
 		self.__lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		
-		self.__okButton = Button(text = 'Done', size_hint = (0.10, 1.0))
-		self.__cancelButton = Button (text = 'Cancel', size_hint = (0.10, 1.0))
-		self.__applyButton = Button (text = 'Apply', size_hint = (0.10, 1.0))
-		self.__applyToAllButton = Button (text = 'Apply to all', size_hint = (0.1, 1.0))		
+		self.__okButton = Button(text = 'Done', size_hint = (0.1, 1.0))
+		self.__cancelButton = Button (text = 'Cancel', size_hint = (0.1, 1.0))
+		self.__applyButton = Button (text = 'Apply', size_hint = (0.1, 1.0))
+		self.__applyToAllButton = Button (text = 'Apply to all', size_hint = (0.1, 1.0))
+		self.__deleteCurrentButton = Button (text = 'Delete', size_hint = (0.1, 1.0))
 		self.__previousObjectButton = Button (text = 'Previous', size_hint = (0.1, 1.0))
 		self.__nextObjectButton = Button (text = 'Next', size_hint = (0.1, 1.0))
 		self.__editFlagsButton = Button (text = 'Edit Flags', size_hint = (0.1, 1.0))
