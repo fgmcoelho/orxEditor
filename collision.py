@@ -84,7 +84,7 @@ class CollisionPartInformation:
 
 	def __init__(self, checkMask = [], selfFlags = [], solid = False, formType = "box", points = None):
 		assert ((points == None) or (formType == "box" and len(points) == 2) or (formType == "sphere" and
-			len(points) == 2) or (formType == "mesh" and len(points) != 0))
+			len(points) == 2) or (formType == "mesh" and len(points) >= 3))
 
 		self.__checkMask = checkMask[:]
 		self.__selfFlags = selfFlags[:]
@@ -101,6 +101,10 @@ class CollisionPartInformation:
 	def addFlagToCheckMask(self, flag):
 		assert (len(self.__checkMask) <= 16)
 		self.__checkMask.append(flag)
+		
+	def setFormType(self, newForm):
+		assert (newForm in ['box', 'sphere', 'mesh'])
+		self.__formType = newForm
 			
 	def addFlagToSelfFlags(self, flag):
 		assert (len(self.__selfFlags) <= 16)
@@ -295,7 +299,13 @@ class CollisionPartLayout:
 			else:
 				self.__part.addFlagToCheckMask(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
 
-	
+
+	def __updateFormType(self, checkboxObject, newValue):
+		if (newValue == True):
+			#TODO: Warn that points data will be lost.
+			checkboxInfo = checkboxObject.id.split('#')
+			self.__part.setFormType(checkboxInfo[1])
+				
 	def __render(self, part):
 
 		self.__part = part
@@ -336,18 +346,31 @@ class CollisionPartLayout:
 						on_release = self.__togglePartFlag, id = 'togglebutton#checkmask#' + name))
 			else:
 				self.__checkMaskGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
-				
+
+		self.__typeLine.clear_widgets()
+		self.__boxCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#box')
+		self.__sphereCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#sphere')
+		self.__meshCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#mesh')
+		
 		formType = part.getFormType()
-		print formType
 		if (formType == "box"):
-			if (self.__boxButton.state != 'down'):
-				self.__boxButton.state = 'down'
+			self.__boxCheckBox.active = True
 		elif (formType == "sphere"):
-			if (self.__sphereButton.state != 'down'):
-				self.__sphereButton.state = 'down'
+			self.__sphereCheckBox.active = True
 		else:
-			if (self.__meshButton.state != 'down'):
-				self.__meshButton.state = 'down'
+			self.__meshCheckBox.active = True		
+		
+		self.__boxCheckBox.bind (active = self.__updateFormType)
+		self.__sphereCheckBox.bind(active = self.__updateFormType)
+		self.__meshCheckBox.bind(active = self.__updateFormType)
+
+		self.__typeLine.add_widget(self.__boxCheckBox)
+		self.__typeLine.add_widget(Label(text = 'Box'))
+		self.__typeLine.add_widget(self.__sphereCheckBox)
+		self.__typeLine.add_widget(Label(text ='Sphere'))
+		self.__typeLine.add_widget(self.__meshCheckBox)
+		self.__typeLine.add_widget(Label(text = 'Mesh'))
+
 
 	def getLayout(self):
 		return self.__layout
@@ -359,7 +382,8 @@ class CollisionPartLayout:
 	def __init__(self):
 		self.__layout = BoxLayout(orientation = 'horizontal')
 		self.__baseHeight = 0.1
-
+		self.__part = None
+		
 		leftLayout = BoxLayout(orientation = 'vertical', size_hint = (0.5, 1.0))
 		rightLayout = BoxLayout(orientation = 'vertical', size_hint = (0.5, 1.0))
 
@@ -386,14 +410,9 @@ class CollisionPartLayout:
 		rightLayout.add_widget(Label(text = '', size_hint = (1.0, 1.0 - (self.__baseHeight * 7))))
 
 		rightLayout.add_widget(Label(text = 'Type', size_hint = (1.0, self.__baseHeight)))
-		typeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		self.__boxButton = ToggleButton(text = 'Box', group = 'part_type', state = 'down')
-		self.__sphereButton = ToggleButton(text ='Sphere', group = 'part_type')
-		self.__meshButton = ToggleButton(text = 'Mesh', group = 'part_type')
-		typeLine.add_widget(self.__boxButton)
-		typeLine.add_widget(self.__sphereButton)
-		typeLine.add_widget(self.__meshButton)
-		rightLayout.add_widget(typeLine)
+		self.__typeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
+		
+		rightLayout.add_widget(self.__typeLine)
 
 		self.__layout.add_widget(rightLayout)
 
@@ -413,7 +432,22 @@ class CollisionInformationPopup:
 				
 			self.__copiesDict[obj.getIdentifier()] = infoCopy
 			self.__extraPartsDict[obj.getIdentifier()] = extraParts
+			
+	def __applyChanges(self, notUsed = None):
+		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
+		if(self.__partsPanel.current_tab.text == 'Edit'):
+			newPart = self.__extraPartsDict[currentId].pop(0)
+			self.__copiesDict[currentId].addPart(newPart)
+			self.__render()		
 
+	def __selectNextObject(self, notUsed = None):
+		self.__objectsListIndex = (self.__objectsListIndex + 1) % len(self.__objectsList)
+		self.__render()
+		
+	def __selectPreviousObject(self, notUsed = None):
+		self.__objectsListIndex = (self.__objectsListIndex - 1) % len(self.__objectsList)
+		self.__render()
+			
 	def __render(self):
 		
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
@@ -434,20 +468,37 @@ class CollisionInformationPopup:
 			if (i == 0):
 				self.__partsPanel.default_tab_content = self.__partsLayoutList[i].getLayout()
 				self.__partsPanel.default_tab_text = 'Part 1'
+			
 			else:
 				th = TabbedPanelHeader(text = 'Part ' + str(i + 1))
-				th.content = self.__partsPanel.default_tab_content = self.__partsLayoutList[i].getLayout()
+				th.content = self.__partsLayoutList[i].getLayout()
 				self.__partsPanel.add_widget(th)
+				if (i == 7):
+					self.__partsPanel.switch_to(th)
 	
 		if (extraParts != []):
 			self.__partsLayoutList[numberOfParts].updateLayout(extraParts[0])
 			if (numberOfParts == 0):
-				self.__partsPanel.default_tab_text = 'Part 1'
-
+				self.__partsPanel.default_tab_text = 'Edit'
+				self.__partsPanel.default_tab_content = self.__partsLayoutList[numberOfParts].getLayout()
 			else:
-				th = TabbedPanelHeader(text = 'Part ' + str(numberOfParts + 1))
-				th.content = self.__partsPanel.default_tab_content = self.__partsLayoutList[numberOfParts].getLayout()
+				th = TabbedPanelHeader(text = 'Edit')
+				th.content = self.__partsLayoutList[numberOfParts].getLayout()
 				self.__partsPanel.add_widget(th)
+				self.__partsPanel.switch_to(th)
+				
+		self.__lowerBox.clear_widgets()
+		self.__lowerBox.add_widget(self.__editFlagsButton)
+		self.__lowerBox.add_widget(self.__applyButton)
+		if (len (self.__objectsList) > 1):
+			self.__lowerBox.add_widget(self.__applyToAllButton)
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.3, 1.0)))
+			self.__lowerBox.add_widget(self.__previousObjectButton)
+			self.__lowerBox.add_widget(self.__nextObjectButton)
+		else:
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.6, 1.0)))
+		self.__lowerBox.add_widget(self.__okButton)
+		self.__lowerBox.add_widget(self.__cancelButton)
 
 
 	def __init__(self):
@@ -495,32 +546,33 @@ class CollisionInformationPopup:
 
 		self.__mainLayout.add_widget(self.__partsPanel)
 
-		lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
+		self.__lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
+		
 		self.__okButton = Button(text = 'Done', size_hint = (0.10, 1.0))
-		self.__okButton.bind(on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton = Button (text = 'Cancel', size_hint = (0.10, 1.0))
-		self.__cancelButton.bind(on_release = self.__collisionPopUp.dismiss)
+		self.__applyButton = Button (text = 'Apply', size_hint = (0.10, 1.0))
+		self.__applyToAllButton = Button (text = 'Apply to all', size_hint = (0.1, 1.0))		
 		self.__previousObjectButton = Button (text = 'Previous', size_hint = (0.1, 1.0))
 		self.__nextObjectButton = Button (text = 'Next', size_hint = (0.1, 1.0))
 		self.__editFlagsButton = Button (text = 'Edit Flags', size_hint = (0.1, 1.0))
+		
+		self.__okButton.bind(on_release=self.__createOrEditCollisionInfo)
+		self.__cancelButton.bind(on_release = self.__collisionPopUp.dismiss)
+		self.__applyButton.bind(on_release = self.__applyChanges)
+		# TODO: Code the apply to all button method and bind it.
+		self.__previousObjectButton.bind(on_release = self.__selectPreviousObject)
+		self.__nextObjectButton.bind(on_release = self.__selectNextObject)
 		self.__editFlagsButton.bind(on_release = CollisionFlagsEditor.Instance().showPopUp)
 		
-		lowerBox.add_widget(self.__editFlagsButton)
-		lowerBox.add_widget(Label(text = '', size_hint = (0.5, 1.0)))
-		lowerBox.add_widget(self.__previousObjectButton)
-		lowerBox.add_widget(self.__nextObjectButton)
-		lowerBox.add_widget(self.__okButton)
-		lowerBox.add_widget(self.__cancelButton)
-		
 		self.__mainLayout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
-		self.__mainLayout.add_widget(lowerBox)
+		self.__mainLayout.add_widget(self.__lowerBox)
 		
 		self.__collisionPopUp.content = self.__mainLayout
 		self.__editingObject = None
 	
 		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
 
-	def __createOrEditCollisionInfo(self, useless):		
+	def __createOrEditCollisionInfo(self, useless):
 		CollisionToMainLayoutCommunication.Instance().giveBackKeyboard()
 		self.__collisionPopUp.dismiss()
 
