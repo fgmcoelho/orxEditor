@@ -459,6 +459,38 @@ class CollisionInformationPopup:
 		else:
 			self.__warnDelete.open()
 
+	def __doApplyChanges(self, notUsed = None):
+
+		currentObj = self.__objectsList[self.__objectsListIndex]
+		infoToCopy = currentObj.getCollisionInfo()
+		for obj in self.__objectsList:
+			if (obj != currentObj):
+				infoCopy = CollisionInformation.copy(infoToCopy)
+				self.__copiesDict[obj.getIdentifier()] = infoCopy
+				numberOfParts = len(infoCopy.getPartsList)
+				numberOfExtraParts = len(self.__extraPartsDict[obj.getIdentifier()])
+				while (numberOfExtraParts + numberOfParts > 8):
+					self.__extraPartsDict[obj.getIdentifier()].pop()
+				while (numberOfExtraParts + numberOfParts < 8):
+					self.__extraPartsDict[obj.getIdentifier()].append(CollisionPartInformation())
+
+		self.__warnApplyAll.dismiss()
+		self.__render()
+
+	def __applyChangesToAll(self, notUsed = None):
+		
+		willEraseInfo = 0
+		currentObj = self.__objectsList[self.__objectsListIndex]
+		for obj in self.__objectsList:
+			if (obj != currentObj):
+				if (obj.getCollisionInfo() == None):
+					willEraseInfo += 1
+		
+		if (willEraseInfo == 0):
+			self.__warnApplyAll.setText('This will replace information of other ' + str(willEraseInfo) + ' objects.')
+			self.__warnApplyAll.open()
+		
+
 	def __selectNextObject(self, notUsed = None):
 		self.__objectsListIndex = (self.__objectsListIndex + 1) % len(self.__objectsList)
 		self.__render()
@@ -595,6 +627,8 @@ class CollisionInformationPopup:
 			
 		
 		self.__warnDelete = Dialog(self.__doDeleteCurrentPart, 'Confirmation', 'Are you sure you want to\ndelete this part?',
+				'Yes', 'No')
+		self.__warnApplyAll = Dialog(self.__doApplyChanges, 'Confirmation', 'This will replace information of other objects.',
 				'Yes', 'No')
 		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
 
