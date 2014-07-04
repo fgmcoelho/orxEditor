@@ -15,7 +15,6 @@ from operator import itemgetter
 from string import letters, digits
 
 from editorutils import AlertPopUp, Dialog
-from editorobjects import ObjectTypes
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
 
 
@@ -420,6 +419,7 @@ class CollisionPartLayout:
 class CollisionInformationPopup:
 
 	def __createTemporatyCopies(self):
+		
 		for obj in self.__objectsList:
 			if (obj.getCollisionInfo() != None):
 				infoCopy = CollisionInformation.copy(obj.getCollisionInfo())
@@ -429,7 +429,7 @@ class CollisionInformationPopup:
 			extraParts = []
 			for i in range (8 - len(infoCopy.getPartsList())):
 				extraParts.append(CollisionPartInformation())				
-				
+							
 			self.__copiesDict[obj.getIdentifier()] = infoCopy
 			self.__extraPartsDict[obj.getIdentifier()] = extraParts
 			
@@ -552,7 +552,19 @@ class CollisionInformationPopup:
 
 		self.__lowerBox.add_widget(self.__okButton)
 		self.__lowerBox.add_widget(self.__cancelButton)
-
+		
+	def __createOrEditCollisionInfo(self, useless):
+		CollisionToMainLayoutCommunication.Instance().giveBackKeyboard()
+		
+		for obj in self.__objectsList:
+			currentId = obj.getIdentifier()
+			if (obj.getCollisionInfo() == None):
+				if (self.__copiesDict[currentId].getPartsList() != []):
+					obj.setCollisionInfo(self.__copiesDict[currentId])
+			else:
+				obj.setCollisionInfo(self.__copiesDict[currentId])
+		
+		self.__collisionPopUp.dismiss()
 
 	def __init__(self):
 		self.__baseHeight = 0.05
@@ -632,10 +644,6 @@ class CollisionInformationPopup:
 				'Yes', 'No')
 		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
 
-	def __createOrEditCollisionInfo(self, useless):
-		CollisionToMainLayoutCommunication.Instance().giveBackKeyboard()
-		self.__collisionPopUp.dismiss()
-
 	def updateLayout(self):
 		self.__render()
 
@@ -648,6 +656,7 @@ class CollisionInformationPopup:
 		
 		else:
 			self.__objectsList = objList
+			self.__copiesDict = {}
 			self.__extraPartsDict = {}
 			self.__objectsListIndex = 0
 			self.__createTemporatyCopies()

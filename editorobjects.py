@@ -9,6 +9,7 @@ from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
 from os import listdir, getcwd, sep as pathSeparator
+from collision import CollisionInformation
 
 class SceneAction:
 	def __init__(self, action, objectsList, args = []):
@@ -623,7 +624,10 @@ class RenderedObject (Scatter):
 			self.__layer = obj.getLayer()
 			self.__flipX = obj.getFlipX()
 			self.__flipY = obj.getFlipY()
-			self.__collisionInfo = obj.getCollisionInfo()
+			if (obj.getCollisionInfo() != None):
+				self.__collisionInfo = None
+			else:
+				self.__collisionInfo = CollisionInformation.copy(obj.getCollisionInfo())
 		
 		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
 			size = self.__baseSize, auto_bring_to_front = False)
