@@ -3,7 +3,7 @@ from singleton import Singleton
 from kivy.uix.accordion import Accordion, AccordionItem
 
 from filesoptionsmenu import FilesOptionsMenu
-from objectdescriptor import BaseObjectDescriptor, MultipleSelectionDescriptor, RenderedObjectDescriptor, ObjectDescriptor
+from objectdescriptor import MultipleSelectionDescriptor, ObjectDescriptor
 
 @Singleton
 class OptionsMenu:

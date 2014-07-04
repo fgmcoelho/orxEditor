@@ -2,7 +2,7 @@ from singleton import Singleton
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 
-from editorobjects import ObjectTypes, RenderedObject, RenderObjectGuardian
+from editorobjects import RenderObjectGuardian
 from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
@@ -127,12 +127,12 @@ class Scene:
 
 	def increaseScale(self):
 		obj = RenderObjectGuardian.Instance().increaseScale()
-		if (obj != None):
+		if (obj is not None):
 			ObjectDescriptor.Instance().setObject(obj)
 	
 	def decreaseScale(self):
 		obj = RenderObjectGuardian.Instance().decreaseScale()
-		if (obj != None):
+		if (obj is not None):
 			ObjectDescriptor.Instance().setObject(obj)
 
 	def flipOnX(self):
@@ -270,7 +270,7 @@ class SceneHandler:
 					if (selectedObject.getIdentifier() < obj.getIdentifier()):
 						selectedObject = obj
 
-			if (selectedObject != None):
+			if (selectedObject is not None):
 				if (touch.is_double_tap == False):
 					if (self.__isCtrlPressed == False):
 						ObjectDescriptor.Instance().setObject(selectedObject)

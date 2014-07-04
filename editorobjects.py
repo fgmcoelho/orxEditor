@@ -3,12 +3,11 @@ from editorutils import copyTexture
 
 from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
-from kivy.graphics.texture import Texture
 
-from kivy.graphics.vertex_instructions import Line
-from kivy.graphics import Color
+#from kivy.graphics.vertex_instructions import Line
+#from kivy.graphics import Color
 
-from os import listdir, getcwd, sep as pathSeparator
+from os import sep as pathSeparator
 from collision import CollisionInformation
 
 class SceneAction:
@@ -398,7 +397,7 @@ class BaseObject:
 	def __init__(self, baseImage, identifier, virtualPath = None, spriteCoords = None):
 		self.__identifier = identifier
 		self.__baseImage = baseImage
-		if (virtualPath == None):
+		if (virtualPath is None):
 			self.__fullPath = baseImage.source
 			self.__spriteInfo = None
 		else:
@@ -624,7 +623,7 @@ class RenderedObject (Scatter):
 			self.__layer = obj.getLayer()
 			self.__flipX = obj.getFlipX()
 			self.__flipY = obj.getFlipY()
-			if (obj.getCollisionInfo() != None):
+			if (obj.getCollisionInfo() is None):
 				self.__collisionInfo = None
 			else:
 				self.__collisionInfo = CollisionInformation.copy(obj.getCollisionInfo())

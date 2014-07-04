@@ -10,9 +10,8 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.filechooser import FileChooserIconView
 
 from tilemapfiles import FilesManager
-from os import listdir, getcwd
-from os.path import isfile, join
-
+from os import getcwd
+from os.path import isfile, join, sep as pathSeparator
 
 @Singleton
 class FilesOptionsMenu:

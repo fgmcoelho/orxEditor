@@ -8,7 +8,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 
 from splittedimagemap import SplittedImageMap
-from editorobjects import BaseObject, RenderedObject, ObjectTypes
+from editorobjects import BaseObject
 from objectdescriptor import ObjectDescriptor
 from scene import SceneHandler
 
@@ -72,7 +72,7 @@ class ObjectsMenu:
 			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
 				self.__loadPng(item, pngsToIgnoreList)
 		
-		if (self.__layout == None):
+		if (self.__layout is None):
 			self.__layout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None), spacing = (0, 3))
 		else:
 			self.__layout.rows = self.__numberOfItems

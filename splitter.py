@@ -18,9 +18,8 @@ from kivy.uix.checkbox import CheckBox
 from kivy.core.window import Window
 from kivy.graphics.texture import Texture
 
-from sys import argv, exit
-from os.path import isdir, isfile, join, exists
-from os import listdir, getcwd, sep as pathSeparator
+from os.path import  join, exists
+from os import getcwd, sep as pathSeparator
 
 from editorutils import Dialog, AlertPopUp, FileSelectionPopup
 from splittedimagemap import SplittedImageMap
@@ -140,11 +139,9 @@ class LeftMenu:
 			
 
 	def __openExportOptions(self, notUsed = None):
-		colorToAlpha = None
 		if self.__colorToAlphaCheckbox.active == True:
-			colorToAlpha = self.__hexColor
 			self.__exportColorToAlphaImage.color = self.__whiteImage.color
-			if (self.__exportColorToAlphaBox.parent == None):
+			if (self.__exportColorToAlphaBox.parent is None):
 				self.__exportRightPartBox.remove_widget(self.__exportBlankLabel)
 				self.__exportRightPartBox.remove_widget(self.__exportButtonsBottomBar)
 				self.__exportRightPartBox.add_widget(self.__exportColorToAlphaBox)
@@ -417,7 +414,7 @@ class DisplayStates:
 class Display:
 	
 	def __handleTouchOnSplittedImage(self, img, touch):
-		if (self.__changeAlphaColorMethodReference != None and img.collide_point(*touch.pos) == True):
+		if (self.__changeAlphaColorMethodReference is not None and img.collide_point(*touch.pos) == True):
 			point = img.to_local(touch.pos[0], touch.pos[1], True)
 			adjY = img.texture_size[1] - int(point[1]) - 1
 			pixelAddress = ((adjY * img.texture_size[0]) + int(point[0]) - 1) * 4
@@ -614,7 +611,7 @@ class Display:
 		if (len(imagesSelected) == 0):
 			return False
 
-		if (divs == None or len(divs) != 2):
+		if (divs is None or len(divs) != 2):
 			x, y = 1, 1
 			xTurn = True
 			while x * y < len(imagesSelected):
@@ -646,8 +643,6 @@ class Display:
 
 		newTexture.blit_buffer(newBuffer, colorfmt='rgba', bufferfmt='ubyte')
 		newTexture.flip_vertical()
-		newImage = Image (size = newSize,  texture = newTexture)
-		#testpopup = Popup(title = 'text', auto_dismiss = True, content = newImage).open()
 		newCoreImage = CoreImage(newTexture)
 		newCoreImage.save(filename + '.png')
 		
@@ -664,7 +659,7 @@ class Display:
 	
 	def __readLineFromImage(self, img, line, xSize, colorToAlpha):
 		buf = ''
-		if (img == None):
+		if (img is None):
 			i = 0
 			while i < xSize * 4:
 				buf += chr(0xFF)
@@ -680,7 +675,7 @@ class Display:
 				i += 1
 	
 				if (len(rgba) == 4):
-					if (colorToAlpha != None and rgba[0] == colorToAlpha[0] and rgba[1] == colorToAlpha[1] and 
+					if (colorToAlpha is not None and rgba[0] == colorToAlpha[0] and rgba[1] == colorToAlpha[1] and 
 							rgba[2] == colorToAlpha[2]):
 						rgba[3] = chr(0x00);
 					buf += chr(ord(rgba[0]))

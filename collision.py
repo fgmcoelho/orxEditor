@@ -82,7 +82,7 @@ class CollisionPartInformation:
 		)
 
 	def __init__(self, checkMask = [], selfFlags = [], solid = False, formType = "box", points = None):
-		assert ((points == None) or (formType == "box" and len(points) == 2) or (formType == "sphere" and
+		assert ((points is None) or (formType == "box" and len(points) == 2) or (formType == "sphere" and
 			len(points) == 2) or (formType == "mesh" and len(points) >= 3))
 
 		self.__checkMask = checkMask[:]
@@ -223,7 +223,7 @@ class CollisionFlagsEditor:
 			error.open()
 			return
 		
-		if (CollisionGuardian.Instance().getFlagByName(self.__flagNameInput.text) != None):
+		if (CollisionGuardian.Instance().getFlagByName(self.__flagNameInput.text) is not None):
 			error = AlertPopUp('Error', 'This name has already been used.', 'Ok')
 			error.open()
 			return
@@ -421,7 +421,7 @@ class CollisionInformationPopup:
 	def __createTemporatyCopies(self):
 		
 		for obj in self.__objectsList:
-			if (obj.getCollisionInfo() != None):
+			if (obj.getCollisionInfo() is not None):
 				infoCopy = CollisionInformation.copy(obj.getCollisionInfo())
 			else:
 				infoCopy = CollisionInformation()
@@ -452,7 +452,6 @@ class CollisionInformationPopup:
 		self.__render()
 
 	def __deleteCurrentPart(self, notUsed = None):
-		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
 		if (self.__partsPanel.current_tab.text == 'Edit'):
 			errorPopup = AlertPopUp('Error', 'You can\'t delete the edit flag, it hasn\'t been added.', 'Ok')
 			errorPopup.open()
@@ -483,7 +482,7 @@ class CollisionInformationPopup:
 		currentObj = self.__objectsList[self.__objectsListIndex]
 		for obj in self.__objectsList:
 			if (obj != currentObj):
-				if (obj.getCollisionInfo() == None):
+				if (obj.getCollisionInfo() is None):
 					willEraseInfo += 1
 		
 		if (willEraseInfo == 0):
@@ -558,7 +557,7 @@ class CollisionInformationPopup:
 		
 		for obj in self.__objectsList:
 			currentId = obj.getIdentifier()
-			if (obj.getCollisionInfo() == None):
+			if (obj.getCollisionInfo() is None):
 				if (self.__copiesDict[currentId].getPartsList() != []):
 					obj.setCollisionInfo(self.__copiesDict[currentId])
 			else:

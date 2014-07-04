@@ -4,7 +4,7 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 
-from os import listdir, getcwd
+from os import getcwd
 from editorobjects import ObjectTypes
 from collision import CollisionInformationPopup
 
@@ -127,7 +127,7 @@ class RenderedObjectDescriptor:
 		self.__nameLabel.text = 'Name: ' + str(name)
 		self.__flipxLabel.text = 'Flipped on X: ' + str(flipX)
 		self.__flipyLabel.text = 'Flipped on Y: ' + str(flipY)
-		if (collisionInfo == None):
+		if (collisionInfo is None):
 			self.__collisionInfoLabel.text = 'Has collision info: None'
 		else:
 			self.__collisionInfoLabel.text = 'Has collision info: Available'
@@ -141,7 +141,7 @@ class ObjectDescriptor:
 	def openCollisionPopUp(self, ignore):
 		
 		CollisionInformationPopup.Instance().showPopUp()
-		if (self.__currentObject != None):
+		if (self.__currentObject is not None):
 			self.setObject(self.__currentObject)
 
 	def __init__(self, baseObjectAccordion, renderedObjectAccordion):
@@ -158,9 +158,6 @@ class ObjectDescriptor:
 		self.__baseObjectDescriptor.setValues()
 		self.__renderedObjectDescriptor.setValuesNoActive()
 			
-	def setObject(self, obj):
-		self.setObject(obj)
-
 	def setObject(self, obj):
 
 		path = obj.getPath()
@@ -182,7 +179,7 @@ class ObjectDescriptor:
 		return self.__currentObject
 
 	def clearCurrentObject(self):
-		if (self.__currentObject == None):
+		if (self.__currentObject is None):
 			return
 		
 		if (self.__currentObject.getType() == ObjectTypes.renderedObject):

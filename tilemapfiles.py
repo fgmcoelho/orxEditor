@@ -1,9 +1,9 @@
 from singleton import Singleton
 
 from scene import Scene, SceneAttributes
-from editorobjects import RenderedObject
-from editorutils import vector2ToVector3String
+from editorutils import vector2ToVector3String, strToDoubleFloatTuple
 from ConfigParser import ConfigParser
+from collision import CollisionInformation
 
 @Singleton
 class FilesManager:
@@ -39,7 +39,7 @@ class FilesManager:
 			newSectionName = renderedObjectsDict[inSceneId].getName() 
 			parser.add_section(newSectionName)
 			spriteInfo = renderedObjectsDict[inSceneId].getSpriteInfo()
-			if (spriteInfo == None):
+			if (spriteInfo is None):
 				parser.set(newSectionName, 'issprite', '0')
 				parser.set(newSectionName, 'path', str(renderedObjectsDict[inSceneId].getPath()))
 			else:
@@ -55,7 +55,7 @@ class FilesManager:
 			parser.set(newSectionName, 'size', str(renderedObjectsDict[inSceneId].getBaseSize()))
 			
 			collisionObject = renderedObjectsDict[inSceneId].getCollisionInfo()
-			if (collisionObject == None):
+			if (collisionObject is None):
 				parser.set(newSectionName, 'hascollisioninfo', '0')
 			else:
 				parser.set(newSectionName, 'hascollisioninfo', '1')
@@ -73,7 +73,6 @@ class FilesManager:
 		f.close()
 
 	def loadScene(self, filename):
-		ConfigObject = TileEditorConfig(filename)
 		self.resetAllWidgets()
 		
 		parser = ConfigParser()
@@ -140,7 +139,7 @@ class FilesManager:
 			
 
 			parser.set(newSectionName, 'Scale', vector2ToVector3String(scale, 1))
-			if (collisionObject != None):
+			if (collisionObject is not None):
 				parser.set(newSectionName, 'Body', bodySectionName)
 			
 			# Graphic Part		
@@ -148,7 +147,7 @@ class FilesManager:
 			parser.set(graphicSectionName, 'Texture',  str(renderedObjectsDict[inSceneId].getPath()))
 			parser.set(graphicSectionName, 'Smoothing',  'True')
 			spriteInfo = renderedObjectsDict[inSceneId].getSpriteInfo()
-			if (spriteInfo != None):
+			if (spriteInfo is not None):
 				coords = spriteInfo.getSpriteCoords()
 				size = renderedObjectsDict[inSceneId].getBaseSize()
 				pivot = (size[0]/2, size[1]/2)
@@ -158,7 +157,7 @@ class FilesManager:
 				parser.set(graphicSectionName, 'TextureCorner',  vector2ToVector3String(corner))
 			
 			# Body Part
-			if (collisionObject != None):
+			if (collisionObject is not None):
 				
 				parser.add_section(bodySectionName)
 				parser.set(bodySectionName, 'Dynamic', str(int(collisionObject.getIsDynamic())))

@@ -8,7 +8,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 from kivy.core.window import Window
 
-from sys import argv, exit
+from sys import exit
 
 from singleton import Singleton
 from optionsmenu import OptionsMenu
@@ -16,7 +16,6 @@ from scene import Scene, SceneHandler,SceneAttributes
 from objectsmenu import ObjectsMenu
 from editorobjects import RenderObjectGuardian
 from tilemapfiles import FilesManager
-from objectdescriptor import ObjectDescriptor
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
 

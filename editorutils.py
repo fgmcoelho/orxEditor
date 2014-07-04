@@ -6,8 +6,8 @@ from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
 from kivy.graphics.texture import Texture
 
-from os.path import isdir, isfile, join, exists
-from os import getcwd, sep as pathSeparator
+from os.path import sep as pathSeparator
+from os import getcwd
 
 def strToDoubleFloatTuple(s):
 	assert(type(s) is str)
@@ -63,7 +63,7 @@ class Dialog (BaseWarnMethods):
 		popUpLayout = BoxLayout(orientation = 'vertical')
 		yesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.3))
 		
-		if (okMethod == None):
+		if (okMethod is None):
 			self.__okMethod = self.__doNothing
 		else:
 			self.__okMethod = okMethod
