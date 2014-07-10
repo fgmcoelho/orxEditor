@@ -461,17 +461,19 @@ class CollisionInformationPopup:
 	def __doApplyChanges(self, notUsed = None):
 
 		currentObj = self.__objectsList[self.__objectsListIndex]
-		infoToCopy = currentObj.getCollisionInfo()
+		infoToCopy = self.__copiesDict[currentObj.getIdentifier()]
 		for obj in self.__objectsList:
 			if (obj != currentObj):
 				infoCopy = CollisionInformation.copy(infoToCopy)
 				self.__copiesDict[obj.getIdentifier()] = infoCopy
-				numberOfParts = len(infoCopy.getPartsList)
+				numberOfParts = len(infoCopy.getPartsList())
 				numberOfExtraParts = len(self.__extraPartsDict[obj.getIdentifier()])
 				while (numberOfExtraParts + numberOfParts > 8):
 					self.__extraPartsDict[obj.getIdentifier()].pop()
+					numberOfExtraParts = len(self.__extraPartsDict[obj.getIdentifier()])
 				while (numberOfExtraParts + numberOfParts < 8):
 					self.__extraPartsDict[obj.getIdentifier()].append(CollisionPartInformation())
+					numberOfExtraParts = len(self.__extraPartsDict[obj.getIdentifier()])
 
 		self.__warnApplyAll.dismiss()
 		self.__render()
@@ -482,12 +484,16 @@ class CollisionInformationPopup:
 		currentObj = self.__objectsList[self.__objectsListIndex]
 		for obj in self.__objectsList:
 			if (obj != currentObj):
-				if (obj.getCollisionInfo() is None):
+				if (obj.getCollisionInfo() is not None):
 					willEraseInfo += 1
 		
-		if (willEraseInfo == 0):
+		if (willEraseInfo != 0):
 			self.__warnApplyAll.setText('This will replace information of other ' + str(willEraseInfo) + ' objects.')
 			self.__warnApplyAll.open()
+
+		else:
+			self.__doApplyChanges()
+
 		
 
 	def __selectNextObject(self, notUsed = None):
@@ -624,6 +630,7 @@ class CollisionInformationPopup:
 		self.__okButton.bind(on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton.bind(on_release = self.__collisionPopUp.dismiss)
 		self.__applyButton.bind(on_release = self.__applyChanges)
+		self.__applyToAllButton.bind(on_release = self.__applyChangesToAll)
 		# TODO: Code the apply to all button method and bind it
 		self.__deleteCurrentButton.bind(on_release = self.__deleteCurrentPart)
 		self.__previousObjectButton.bind(on_release = self.__selectPreviousObject)
