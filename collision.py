@@ -210,12 +210,92 @@ class CollisionFlagsEditor:
 		
 		self.__layout.add_widget(self.__bottomBar)
 	
-	# TODO: MUST UPDATE OBJECTS FLAGS ON THE SCENE HERE
-	# Only possible after the communication objects implementaion
-	def __processRemoveFlag(self, buttonPressed):
-		flagToRemove = buttonPressed.id.split('#')[1]
-		CollisionGuardian.Instance().removeFlag(flagToRemove)
+	def __removeFlagsFromPartsList(self, partsList):
+		flagObject = CollisionGuardian.Instance().getFlagByName(self.__flagToRemove)
+		for part in partsList:
+			if (flagObject in part.getSelfFlags()):
+				part.removeFlagFromSelfFlags(self.__flagToRemove)
+				
+			if (flagObject in part.getCheckMask()):
+				part.removeFlagFromCheckMask(self.__flagToRemove)
+	
+	def __isPartsListAffected(self, partsList):
+		flagObject = CollisionGuardian.Instance().getFlagByName(self.__flagToRemove)
+		for part in partsList:
+			if (flagObject in part.getSelfFlags() or flagObject in part.getCheckMask()):
+				return 1
+
+		return 0
+	
+	def __doRemoveFlag(self, notUsed = None):	
+		objectsList = CollisionToSceneCommunication.Instance().getAllObjects()
+		for obj in objectsList:
+			collisionInfo = obj.getCollisionInfo()
+			if (collisionInfo is not None):
+				self.__removeFlagsFromPartsList(acollisionInfo.getPartsList())
+
+		for collisionInfo in CollisionInformationPopup.Instance().getCopiesDictAsList():
+			self.__removeFlagsFromPartsList(collisionInfo.getPartsList())
+
+		for partsList in CollisionInformationPopup.Instance().getExtraPartsDictAsList():
+			self.__removeFlagsFromPartsList(partsList)
+
+		CollisionGuardian.Instance().removeFlag(self.__flagToRemove)
+		self.__flagToRemove = None
 		self.__render()
+
+	def __processRemoveFlag(self, buttonPressed):
+		objectsList = CollisionToSceneCommunication.Instance().getAllObjects()
+		existingObjectsCount = 0
+		editingObjectsCount = 0
+		self.__flagToRemove = buttonPressed.id.split('#')[1]
+		for obj in objectsList:
+			collisionInfo = obj.getCollisionInfo()
+			if (collisionInfo is not None):
+				existingObjectsCount += self.__isPartsListAffected(collisionInfo.getPartsList())
+
+		for collisionInfo in CollisionInformationPopup.Instance().getCopiesDictAsList():
+		 	editingObjectsCount += self.__isPartsListAffected(collisionInfo.getPartsList())
+
+		for partsList in CollisionInformationPopup.Instance().getExtraPartsDictAsList():
+			editingObjectsCount += self.__isPartsListAffected(partsList)
+		
+		if (existingObjectsCount == 0 and editingObjectsCount == 0):
+			self.__flagRemoveWarning.setText(
+				'Are you sure that you want to delete the\n'
+				'%s flag?\n'
+				'This operation can\'t be reverted.' %
+				(self.__flagToRemove, )
+			)
+		
+		elif (existingObjectsCount == 0 and editingObjectsCount != 0):
+			self.__flagRemoveWarning.setText(
+				'This will affect %d objects being edited.\n'
+				'Are you sure you want to remove the\n'
+				'%s flag?\n'
+				'This operation can\'t be reverted.' %
+				(editingObjectsCount, self.__flagToRemove)
+			)
+
+		elif (existingObjectsCount != 0 and editingObjectsCount == 0):
+			self.__flagRemoveWarning.setText(
+				'This will affect %d existing objects.\n'
+				'Are you sure you want to remove the\n'
+				'%s flag?\n'
+				'This operation can\'t be reverted.' %
+				(existingObjectsCount, self.__flagToRemove)
+			)
+
+		else:
+			self.__flagRemoveWarning.setText(
+				'This will affect %d existing objects and\n'
+				'%d objects being edited.\n'
+				'Are you sure you want to remove the\n'
+				'%s flag?\n'
+				'This operation can\'t be reverted.' %
+				(existingObjectsCount, editingObjectsCount, self.__flagToRemove)
+			)
+		self.__flagRemoveWarning.open()
 
 	def __processAddFlag(self, notUsed = None):
 		if (self.__flagNameInput.text == ''):
@@ -277,10 +357,13 @@ class CollisionFlagsEditor:
 		self.__layout.add_widget(emptyLabel)
 		self.__layout.add_widget(self.__bottomBar)
 
+		self.__flagToRemove = None
+		self.__flagRemoveWarning = Dialog(self.__doRemoveFlag, 'Confirmation', 
+			'This will affect existing objects.\nAre you sure you want to remove this flag?', 'Yes', 'No')
+
 	def showPopUp(self, notUsed = None):
 		self.__render()
 		self.__popup.open()
-
 
 class CollisionPartLayout:
 	
@@ -652,6 +735,12 @@ class CollisionInformationPopup:
 
 	def updateLayout(self):
 		self.__render()
+
+	def getCopiesDictAsList(self):
+		return self.__copiesDict.values()
+
+	def getExtraPartsDictAsList(self):
+		return self.__extraPartsDict.values()
 
 	def showPopUp(self):
 		
