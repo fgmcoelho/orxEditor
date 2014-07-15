@@ -232,7 +232,7 @@ class CollisionFlagsEditor:
 		for obj in objectsList:
 			collisionInfo = obj.getCollisionInfo()
 			if (collisionInfo is not None):
-				self.__removeFlagsFromPartsList(acollisionInfo.getPartsList())
+				self.__removeFlagsFromPartsList(collisionInfo.getPartsList())
 
 		for collisionInfo in CollisionInformationPopup.Instance().getCopiesDictAsList():
 			self.__removeFlagsFromPartsList(collisionInfo.getPartsList())
@@ -714,7 +714,6 @@ class CollisionInformationPopup:
 		self.__cancelButton.bind(on_release = self.__collisionPopUp.dismiss)
 		self.__applyButton.bind(on_release = self.__applyChanges)
 		self.__applyToAllButton.bind(on_release = self.__applyChangesToAll)
-		# TODO: Code the apply to all button method and bind it
 		self.__deleteCurrentButton.bind(on_release = self.__deleteCurrentPart)
 		self.__previousObjectButton.bind(on_release = self.__selectPreviousObject)
 		self.__nextObjectButton.bind(on_release = self.__selectNextObject)
