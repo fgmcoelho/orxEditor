@@ -10,13 +10,13 @@ from kivy.uix.checkbox import CheckBox
 from kivy.uix.switch import Switch
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelHeader
 from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.image import Image
 
 from operator import itemgetter
 from string import letters, digits
 
-from editorutils import AlertPopUp, Dialog
+from editorutils import AlertPopUp, Dialog, copyTexture
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
-
 
 class CollisionFlag:
 	def __init__(self, name):
@@ -593,6 +593,15 @@ class CollisionInformationPopup:
 		collisionInfo = self.__copiesDict[currentId]
 		extraParts = self.__extraPartsDict[currentId]
 		
+		self.__flagsAndPreviewBox.clear_widgets()
+		self.__flagsAndPreviewBox.add_widget(
+			Image (texture = copyTexture(
+				self.__objectsList[self.__objectsListIndex].getSize(), 
+				self.__objectsList[self.__objectsListIndex].getImage())
+			)
+		)
+		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
+
 		self.__dynamicSwitch.active = collisionInfo.getDynamic()
 		self.__fixedRotationSwitch.active = collisionInfo.getFixedRotation()
 		self.__highSpeedSwitch.active = collisionInfo.getHighSpeed()
@@ -665,8 +674,9 @@ class CollisionInformationPopup:
 		self.__collisionPopUp = Popup (title = 'Collision configs', auto_dismiss = False)
 		self.__mainLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		
+
 		self.__flagsAndPreviewBox = BoxLayout(orientation = 'horizontal', size_hint= (1.0, 6 * self.__baseHeight))
-		self.__flagsAndPreviewBox.add_widget(Label(text = 'WIP', size_hint = (0.5, 1.0)))
+		self.__flagsAndPreviewBox.add_widget(Image())
 
 		self.__bodyInfoBox = GridLayout(orientation = 'vertical', size_hint = (0.5, 1.0), cols = 2, rows = 4)
 		self.__bodyInfoBox.add_widget(Label(text = 'Dynamic', size_hint = (0.3, 0.15)))
