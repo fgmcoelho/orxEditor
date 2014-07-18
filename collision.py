@@ -3,6 +3,7 @@ from singleton import Singleton
 from kivy.uix.popup import Popup
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.scatter import Scatter
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
@@ -11,6 +12,9 @@ from kivy.uix.switch import Switch
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelHeader
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.image import Image
+
+from kivy.graphics.vertex_instructions import Quad
+from kivy.graphics import Color
 
 from operator import itemgetter
 from string import letters, digits
@@ -365,6 +369,25 @@ class CollisionFlagsEditor:
 		self.__render()
 		self.__popup.open()
 
+class CollisionPartDisplay(Scatter):
+	def __init__(self, obj):
+		self.newTexture = copyTexture(obj.getSize(), obj.getImage())
+		super(CollisionPartDisplay, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
+			size = obj.getSize(), auto_bring_to_front = False, do_translation = False)
+		self.__image = Image(texture = self.newTexture, size = obj.getSize())
+		self.add_widget(self.__image)
+
+		with self.__image.canvas:
+			Color(0., 1.0, .0, 0.7)
+			Quad(
+				points = [
+					self.pos[0], self.pos[1], 
+					self.pos[0] + self.size[0], self.pos[1], 
+					self.pos[0] + self.size[0], self.pos[1] + self.size[1], 
+					self.pos[0], self.pos[1] + self.size[1], 
+				]
+			)
+
 class CollisionPartLayout:
 	
 	def __togglePartFlag(self, buttonObject):
@@ -593,13 +616,10 @@ class CollisionInformationPopup:
 		collisionInfo = self.__copiesDict[currentId]
 		extraParts = self.__extraPartsDict[currentId]
 		
+
+		partDisplay = CollisionPartDisplay(self.__objectsList[self.__objectsListIndex])
 		self.__flagsAndPreviewBox.clear_widgets()
-		self.__flagsAndPreviewBox.add_widget(
-			Image (texture = copyTexture(
-				self.__objectsList[self.__objectsListIndex].getSize(), 
-				self.__objectsList[self.__objectsListIndex].getImage())
-			)
-		)
+		self.__flagsAndPreviewBox.add_widget(partDisplay)
 		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
 
 		self.__dynamicSwitch.active = collisionInfo.getDynamic()
@@ -676,6 +696,7 @@ class CollisionInformationPopup:
 		
 
 		self.__flagsAndPreviewBox = BoxLayout(orientation = 'horizontal', size_hint= (1.0, 6 * self.__baseHeight))
+		#self.__flagsAndPreviewBox = FloatLayout()
 		self.__flagsAndPreviewBox.add_widget(Image())
 
 		self.__bodyInfoBox = GridLayout(orientation = 'vertical', size_hint = (0.5, 1.0), cols = 2, rows = 4)

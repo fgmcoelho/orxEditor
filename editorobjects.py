@@ -4,8 +4,8 @@ from editorutils import copyTexture
 from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
 
-#from kivy.graphics.vertex_instructions import Line
-#from kivy.graphics import Color
+from kivy.graphics.vertex_instructions import Line
+from kivy.graphics import Color
 
 from os import sep as pathSeparator
 from collision import CollisionInformation
@@ -467,16 +467,14 @@ class RenderedObject (Scatter):
 		self.__defaultApplyTransform(translation, post_multiply, anchor)
 
 	def setMarked(self):
-		#with self.image.canvas:
-		#	Color(1., 0., 0.)
-		#	sx, sy = self.getSize()
-		#	x = Line(points = [0, 0, sx, 0, sx, sy, 0, sy, 0, 0])
-		self.image.color[3] = 0.7
+		with self.image.canvas:
+			Color(1., 0., 0.)
+			sx, sy = self.getSize()
+			x = Line(points = [0, 0, sx, 0, sx, sy, 0, sy, 0, 0])
+			self.__borderLine = x
 
 	def unsetMarked(self):
-		#pass
-		#self.image.canvas.clear()
-		self.image.color[3] = 1.0
+		self.image.canvas.remove(self.__borderLine)
 
 	def increaseScale(self):
 		self.setScale (self.__scale + 0.25, True)
@@ -628,7 +626,7 @@ class RenderedObject (Scatter):
 			else:
 				self.__collisionInfo = CollisionInformation.copy(obj.getCollisionInfo())
 		
-		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
+		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, 
 			size = self.__baseSize, auto_bring_to_front = False)
 
 
