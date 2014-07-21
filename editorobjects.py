@@ -619,7 +619,7 @@ class RenderedObject (Scatter):
 			else:
 				self.__collisionInfo = CollisionInformation.copy(obj.getCollisionInfo())
 		
-		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, 
+		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None),
 			size = self.__baseSize, auto_bring_to_front = False)
 
 
