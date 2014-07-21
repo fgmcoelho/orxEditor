@@ -11,6 +11,7 @@ from splittedimagemap import SplittedImageMap
 from editorobjects import BaseObject
 from objectdescriptor import ObjectDescriptor
 from scene import SceneHandler
+from editorutils import EmptyScrollEffect
 
 class ObjectMenuItem:
 
@@ -88,7 +89,7 @@ class ObjectsMenu:
 
 		self.__loadItems()
 
-		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1))
+		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
 		self.__scrollView.add_widget(self.__layout)
 		self.__scrollView.do_scroll_x = False
 

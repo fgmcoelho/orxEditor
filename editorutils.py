@@ -5,6 +5,7 @@ from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
 from kivy.graphics.texture import Texture
+from kivy.effects.scroll import ScrollEffect
 
 from os.path import sep as pathSeparator
 from os import getcwd
@@ -36,6 +37,9 @@ def copyTexture(sizeToUse, imageToUse):
 
 	return newTexture
 
+class EmptyScrollEffect(ScrollEffect):
+	pass
+	
 class BaseWarnMethods:
 
 	def open(self):
@@ -126,3 +130,20 @@ class FileSelectionPopup:
 		self.__contentPopup.dismiss()
 
 
+class AutoReloadTexture:
+
+	def __reloadTexture(self, textureToReload):
+		textureToReload.blit_buffer(self.__pixels, colorfmt='rgba', bufferfmt='ubyte')
+		textureToReload.flip_vertical()
+
+	def __init__(self, sizeToUse, imageToUse):
+		self.__size = sizeToUse
+		self.__texture = Texture.create(size = self.__size)
+		self.__pixels = imageToUse.texture.pixels[:]
+		self.__texture.blit_buffer(self.__pixels, colorfmt='rgba', bufferfmt='ubyte')
+		self.__texture.flip_vertical()
+		self.__texture.add_reload_observer(self.__reloadTexture)
+
+	def getTexture(self):
+		return self.__texture
+		

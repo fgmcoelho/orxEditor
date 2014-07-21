@@ -1,5 +1,5 @@
 from singleton import Singleton
-from editorutils import copyTexture
+from editorutils import copyTexture, AutoReloadTexture
 
 from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
@@ -565,14 +565,7 @@ class RenderedObject (Scatter):
 			else:
 				y += self.__tileSize - (y % self.__tileSize)
 
-		tries = 0
-		while (self.getPos() != (x, y) and tries < 3):
-			if (tries != 0):
-				print self.getPos()
-				print ((x,y))
-			self._set_pos((x, y))
-			tries += 1
-		
+		self._set_pos((x, y))		
 
 	def __handleTouchDown(self, touch):
 		self.__defaultTouchDown(touch)
@@ -602,8 +595,8 @@ class RenderedObject (Scatter):
 
 		if (isinstance(obj, BaseObject)):
 			self.__baseSize = obj.getSize()
-			newTexture = copyTexture(self.__baseSize, obj.getBaseImage())
-			self.image = Image(size = self.__baseSize, texture = newTexture, nocache = True)
+			self.__texture = AutoReloadTexture(self.__baseSize, obj.getBaseImage())
+			self.image = Image(size = self.__baseSize, texture = self.__texture.getTexture())
 			self.__sx = self.__baseSize[0]
 			self.__sy = self.__baseSize[1]
 			self.__scale = 1.0
@@ -615,8 +608,8 @@ class RenderedObject (Scatter):
 		else:
 			self.__baseSize = obj.getBaseSize()
 			self.__sx, self.__sy = obj.getSize()
-			newTexture = copyTexture(obj.getSize(), obj.getImage())
-			self.image = Image(size = self.__baseSize, texture = newTexture, nocache = True)
+			self.__texture = AutoReloadTexture(obj.getSize(), obj.getImage())
+			self.image = Image(size = self.__baseSize, texture = self.__texture.getTexture())
 			self.__scale = obj.getScale()
 			self.__layer = obj.getLayer()
 			self.__flipX = obj.getFlipX()
@@ -642,6 +635,7 @@ class RenderedObject (Scatter):
 		self.__maxY = maxY
 		self.__path = path
 		self._set_pos(pos)
+		self.size = self.getSize()
 		
 		self.__defaultTouchDown = self.on_touch_down
 		self.on_touch_down = self.__handleTouchDown
@@ -651,7 +645,7 @@ class RenderedObject (Scatter):
 		self.apply_transform = self.__checkAndTransform
 		self.__defaultTouchMove = self.on_touch_move
 		self.on_touch_move = self.__handleTouchMove
-
+		
 	def hide(self):
 		self.unsetMarked()
 		self.remove_widget(self.image)

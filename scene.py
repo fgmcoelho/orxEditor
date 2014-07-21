@@ -30,7 +30,7 @@ class Scene:
 	def __init__(self):
 		self.__alignToGrid = False
 		self.__objectDict = {}
-		self.__layout = RelativeLayout(size_hint = (None, None))
+		self.__layout = RelativeLayout(size_hint = (None, None), on_resize = self.redraw)
 		self.loadValues()
 
 	def showGrid(self):
