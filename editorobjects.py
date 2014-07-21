@@ -1,5 +1,5 @@
 from singleton import Singleton
-from editorutils import copyTexture, AutoReloadTexture
+from editorutils import AutoReloadTexture
 
 from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
@@ -470,8 +470,7 @@ class RenderedObject (Scatter):
 		with self.image.canvas:
 			Color(1., 0., 0.)
 			sx, sy = self.getSize()
-			x = Line(points = [0, 0, sx, 0, sx, sy, 0, sy, 0, 0])
-			self.__borderLine = x
+			self.__borderLine = Line(points = [0, 0, sx, 0, sx, sy, 0, sy, 0, 0])
 
 	def unsetMarked(self):
 		self.image.canvas.remove(self.__borderLine)

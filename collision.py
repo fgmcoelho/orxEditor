@@ -20,7 +20,7 @@ from kivy.graphics import Color
 from operator import itemgetter
 from string import letters, digits
 
-from editorutils import AlertPopUp, Dialog, copyTexture, EmptyScrollEffect, AutoReloadTexture
+from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, AutoReloadTexture
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
 
 class CollisionFlag:
@@ -378,17 +378,21 @@ class CollisionPartDisplay(Scatter):
 		self.__image = Image(texture = self.__texture.getTexture(), size = obj.getSize())
 		self.__operation = None
 		self.add_widget(self.__image)
-		with self.__image.canvas:
-			Color(0., 1.0, .0, 0.3)
-			Ellipse(
-				pos = (self.pos[0], self.pos[1]),
-				size = (self.size[0], self.size[1])
-			)
+		self.__operation = None
+		self.__drawDefaultBox()
+		self.__drawDefaultSphere()
 
-	def drawPart(self):
+	def __clearDrawnForm(self):
+		if (self.__operation != None):
+			self.__image.canvas.remove(self.__operation)
+			self.__operation = None
+
+	def __drawDefaultBox(self):
+		self.__clearDrawnForm()
+
 		with self.__image.canvas:
 			Color(0., 1.0, .0, 0.3)
-			Quad(
+			self.__operation = Quad(
 				points = [
 					self.pos[0], self.pos[1], 
 					self.pos[0] + self.size[0], self.pos[1], 
@@ -396,6 +400,29 @@ class CollisionPartDisplay(Scatter):
 					self.pos[0], self.pos[1] + self.size[1], 
 				]
 			)
+
+	def __drawDefaultSphere(self):
+		self.__clearDrawnForm()
+		
+		with self.__image.canvas:
+			Color(0., 1.0, .0, 0.3)
+			self.__operation = Ellipse(
+				pos = (self.pos[0], self.pos[1]),
+				size = (self.size[0], self.size[1])
+			)
+
+	def drawPart(self, part):
+	
+		form = part.getFormType()
+		points = part.getPoints()
+		if (form == "box"):
+			if (points == None):
+				self.__drawDefaultBox()
+
+		elif (form == "sphere"):
+			if (points == None):
+				self.__drawDefaultSphere()
+
 		
 class CollisionPartLayout:
 	
