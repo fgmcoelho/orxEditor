@@ -182,9 +182,7 @@ class CollisionInformation:
 class CollisionFlagsEditor:
 
 	def __render(self):
-		
 		self.__layout.clear_widgets()
-
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
 
 		flagsList = CollisionGuardian.Instance().getFlags()
@@ -379,8 +377,6 @@ class CollisionPartDisplay(Scatter):
 		self.__operation = None
 		self.add_widget(self.__image)
 		self.__operation = None
-		self.__drawDefaultBox()
-		self.__drawDefaultSphere()
 
 	def __clearDrawnForm(self):
 		if (self.__operation != None):
@@ -412,7 +408,6 @@ class CollisionPartDisplay(Scatter):
 			)
 
 	def drawPart(self, part):
-	
 		form = part.getFormType()
 		points = part.getPoints()
 		if (form == "box"):
@@ -433,13 +428,11 @@ class CollisionPartLayout:
 				self.__part.removeFlagFromSelfFlags(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
 			else:
 				self.__part.removeFlagFromCheckMask(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
-
 		else:
 			if (buttonInfo[1] == 'selfflags'):
 				self.__part.addFlagToSelfFlags(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
 			else:
 				self.__part.addFlagToCheckMask(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
-
 
 	def __updateFormType(self, checkboxObject, newValue):
 		if (newValue == True):
@@ -448,7 +441,6 @@ class CollisionPartLayout:
 			self.__part.setFormType(checkboxInfo[1])
 				
 	def __render(self, part):
-
 		self.__part = part
 		flagsList = CollisionGuardian.Instance().getFlags()
 		numberOfFlags = len(flagsList)
@@ -488,6 +480,11 @@ class CollisionPartLayout:
 			else:
 				self.__checkMaskGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
 
+		if (part.getPoints() == None):
+			self.__pointsText.text = 'Have collision points? No.'
+		else:
+			self.__pointsText.text = 'Have collision points? Yes.'
+
 		self.__typeLine.clear_widgets()
 		self.__boxCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#box')
 		self.__sphereCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#sphere')
@@ -526,13 +523,20 @@ class CollisionPartLayout:
 
 		leftLayout.add_widget(self.__selfFlagsGrid)
 		
-		leftLayout.add_widget(Label(text = '', size_hint = (1.0, 1.0 - (self.__baseHeight * 6))))
+		leftLayout.add_widget(Label(text = '', size_hint = (1.0, 1.0 - (self.__baseHeight * 7))))
 
 		solidLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		solidLine.add_widget(Label(text = 'Solid:'))
 		self.__partSolidSwitch = Switch(active = False)
 		solidLine.add_widget(self.__partSolidSwitch)
 		leftLayout.add_widget(solidLine)
+
+		pointsLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
+		self.__pointsText = Label(text = 'Have collision points?')
+		self.__pointsButton = Button(text = 'Edit points')
+		pointsLine.add_widget(self.__pointsText)
+		pointsLine.add_widget(self.__pointsButton)
+		leftLayout.add_widget(pointsLine)
 		
 		self.__layout.add_widget(leftLayout)
 		
@@ -561,7 +565,6 @@ class CollisionPartLayout:
 class CollisionInformationPopup:
 
 	def __createTemporatyCopies(self):
-		
 		for obj in self.__objectsList:
 			if (obj.getCollisionInfo() is not None):
 				infoCopy = CollisionInformation.copy(obj.getCollisionInfo())
@@ -601,7 +604,6 @@ class CollisionInformationPopup:
 			self.__warnDelete.open()
 
 	def __doApplyChanges(self, notUsed = None):
-
 		currentObj = self.__objectsList[self.__objectsListIndex]
 		infoToCopy = self.__copiesDict[currentObj.getIdentifier()]
 		for obj in self.__objectsList:
@@ -621,7 +623,6 @@ class CollisionInformationPopup:
 		self.__render()
 
 	def __applyChangesToAll(self, notUsed = None):
-		
 		willEraseInfo = 0
 		currentObj = self.__objectsList[self.__objectsListIndex]
 		for obj in self.__objectsList:
@@ -636,8 +637,6 @@ class CollisionInformationPopup:
 		else:
 			self.__doApplyChanges()
 
-		
-
 	def __selectNextObject(self, notUsed = None):
 		self.__objectsListIndex = (self.__objectsListIndex + 1) % len(self.__objectsList)
 		self.__render()
@@ -645,55 +644,42 @@ class CollisionInformationPopup:
 	def __selectPreviousObject(self, notUsed = None):
 		self.__objectsListIndex = (self.__objectsListIndex - 1) % len(self.__objectsList)
 		self.__render()
-			
-	def __render(self):
-		
-		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
-		collisionInfo = self.__copiesDict[currentId]
-		extraParts = self.__extraPartsDict[currentId]
-		
 
-		partDisplay = CollisionPartDisplay(self.__objectsList[self.__objectsListIndex])
+	def __renderUpperPart(self, collisionInfo):
+
 		self.__objectsCollisionDisplay.clear_widgets()
+		partDisplay = CollisionPartDisplay(self.__objectsList[self.__objectsListIndex])
 		self.__objectsCollisionDisplay.size = self.__objectsList[self.__objectsListIndex].getSize()
 		self.__objectsCollisionDisplay.add_widget(partDisplay)
-		self.__flagsAndPreviewBox.clear_widgets()
-		self.__flagsAndPreviewBox.add_widget(self.__objectsCollisionDisplay)
-		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
 
 		self.__dynamicSwitch.active = collisionInfo.getDynamic()
 		self.__fixedRotationSwitch.active = collisionInfo.getFixedRotation()
 		self.__highSpeedSwitch.active = collisionInfo.getHighSpeed()
 		
+		self.__flagsAndPreviewBox.clear_widgets()
+		self.__flagsAndPreviewBox.add_widget(self.__objectsCollisionDisplay)
+		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
+
+	def __renderTabbedPanel(self, collisionInfo, extraParts):
 		parts = collisionInfo.getPartsList()
 		numberOfParts = len(parts)
-		
 		self.__partsPanel.clear_tabs()
-			
 		for i in range(numberOfParts):
 			self.__partsLayoutList[i].updateLayout(parts[i])
-			if (i == 0):
-				self.__partsPanel.default_tab_content = self.__partsLayoutList[i].getLayout()
-				self.__partsPanel.default_tab_text = 'Part 1'
-			
-			else:
-				th = TabbedPanelHeader(text = 'Part ' + str(i + 1))
-				th.content = self.__partsLayoutList[i].getLayout()
-				self.__partsPanel.add_widget(th)
-				if (i == 7):
-					self.__partsPanel.switch_to(th)
+			th = TabbedPanelHeader(text = 'Part ' + str(i + 1))
+			th.content = self.__partsLayoutList[i].getLayout()
+			self.__partsPanel.add_widget(th)
 	
 		if (extraParts != []):
 			self.__partsLayoutList[numberOfParts].updateLayout(extraParts[0])
-			if (numberOfParts == 0):
-				self.__partsPanel.default_tab_text = 'Edit'
-				self.__partsPanel.default_tab_content = self.__partsLayoutList[numberOfParts].getLayout()
-			else:
-				th = TabbedPanelHeader(text = 'Edit')
-				th.content = self.__partsLayoutList[numberOfParts].getLayout()
-				self.__partsPanel.add_widget(th)
-				self.__partsPanel.switch_to(th)
-				
+			th = TabbedPanelHeader(text = 'Edit')
+			th.content = self.__partsLayoutList[numberOfParts].getLayout()
+			self.__partsPanel.add_widget(th)
+
+		self.__partsPanel.switch_to(self.__partsPanel.tab_list[0])
+
+	def __renderLowerPart(self):
+
 		self.__lowerBox.clear_widgets()
 		self.__lowerBox.add_widget(self.__editFlagsButton)
 		self.__lowerBox.add_widget(self.__applyButton)
@@ -708,6 +694,17 @@ class CollisionInformationPopup:
 
 		self.__lowerBox.add_widget(self.__okButton)
 		self.__lowerBox.add_widget(self.__cancelButton)
+
+	def __render(self):
+		
+		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
+		collisionInfo = self.__copiesDict[currentId]
+		extraParts = self.__extraPartsDict[currentId]
+
+		self.__renderUpperPart(collisionInfo)
+		self.__renderTabbedPanel(collisionInfo, extraParts)
+		self.__renderLowerPart()
+
 		
 	def __createOrEditCollisionInfo(self, useless):
 		CollisionToMainLayoutCommunication.Instance().giveBackKeyboard()
@@ -764,8 +761,7 @@ class CollisionInformationPopup:
 		for i in range(8):
 			self.__partsLayoutList.append(CollisionPartLayout())
 
-		self.__partsPanel = TabbedPanel(default_tab_text = 'Part 1', size_hint = (1.0, 0.6), 
-				default_tab_content = self.__partsLayoutList[0].getLayout())
+		self.__partsPanel = TabbedPanel(do_default_tab = False, size_hint = (1.0, 0.6))
 
 		self.__mainLayout.add_widget(self.__partsPanel)
 
@@ -812,12 +808,10 @@ class CollisionInformationPopup:
 		return self.__extraPartsDict.values()
 
 	def showPopUp(self):
-		
 		objList = CollisionToSceneCommunication.Instance().getSelectedObjects()
 		if (objList == []):
 			self.__errorPopUp.setText('No object(s) selected!\nYou need to select at least one object from the scene.')
 			self.__errorPopUp.open()
-		
 		else:
 			self.__objectsList = objList
 			self.__copiesDict = {}
