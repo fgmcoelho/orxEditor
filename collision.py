@@ -72,7 +72,6 @@ class CollisionGuardian:
 			return None
 		return self.__flagsDict[name][1]
 
-
 class CollisionPartInformation:
 
 	@staticmethod
@@ -176,7 +175,6 @@ class CollisionInformation:
 
 	def removePart(self, partToRemove):
 		self.__partsList.remove(partToRemove)
-
 
 @Singleton
 class CollisionFlagsEditor:
@@ -342,8 +340,8 @@ class CollisionFlagsEditor:
 		emptyLabel = Label(text = '', size_hint = (0.9, 1.0))
 
 		self.__inputBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		self.__flagNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0), on_text_validate = self.__processAddFlag,
-			focus = True)
+		self.__flagNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0), 
+			on_text_validate = self.__processAddFlag, focus = True)
 		self.__flagAddButton = Button(text = 'Add', size_hint = (0.1, 1.0))
 		self.__flagAddButton.bind(on_release = self.__processAddFlag)
 
@@ -370,6 +368,9 @@ class CollisionFlagsEditor:
 
 class CollisionPartDisplay(Scatter):
 	def __init__(self, obj):
+		if (obj is None):
+			return
+	
 		self.__texture = AutoReloadTexture(obj.getSize(), obj.getImage())
 		super(CollisionPartDisplay, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
 			size = obj.getSize(), auto_bring_to_front = False, do_translation = False)
@@ -378,13 +379,13 @@ class CollisionPartDisplay(Scatter):
 		self.add_widget(self.__image)
 		self.__operation = None
 
-	def __clearDrawnForm(self):
+	def clearDrawnForm(self):
 		if (self.__operation != None):
 			self.__image.canvas.remove(self.__operation)
 			self.__operation = None
 
 	def __drawDefaultBox(self):
-		self.__clearDrawnForm()
+		self.clearDrawnForm()
 
 		with self.__image.canvas:
 			Color(0., 1.0, .0, 0.3)
@@ -398,7 +399,7 @@ class CollisionPartDisplay(Scatter):
 			)
 
 	def __drawDefaultSphere(self):
-		self.__clearDrawnForm()
+		self.clearDrawnForm()
 		
 		with self.__image.canvas:
 			Color(0., 1.0, .0, 0.3)
@@ -417,8 +418,7 @@ class CollisionPartDisplay(Scatter):
 		elif (form == "sphere"):
 			if (points == None):
 				self.__drawDefaultSphere()
-
-		
+	
 class CollisionPartLayout:
 	
 	def __togglePartFlag(self, buttonObject):
@@ -460,11 +460,11 @@ class CollisionPartLayout:
 			if (i <  numberOfFlags):
 				name = flagsList[i].getName()
 				if (name in partSelfFlags):
-					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'down', 
+					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'down',
 						on_release = self.__togglePartFlag, id = 'togglebutton#selfflags#' + name))
 				else:
-					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'normal',
-						on_release = self.__togglePartFlag, id = 'togglebutton#selfflags#' + name))
+					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), 
+						state = 'normal', on_release = self.__togglePartFlag, id = 'togglebutton#selfflags#' + name))
 			else:
 				self.__selfFlagsGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
 
@@ -485,6 +485,8 @@ class CollisionPartLayout:
 		else:
 			self.__pointsText.text = 'Have collision points? Yes.'
 
+		self.__partSolidSwitch.active = part.getSolid()
+			
 		self.__typeLine.clear_widgets()
 		self.__boxCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#box')
 		self.__sphereCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#sphere')
@@ -559,7 +561,10 @@ class CollisionPartLayout:
 		
 	def updateLayout(self, part):
 		assert (isinstance(part, CollisionPartInformation))
-		self.__render(part)		
+		self.__render(part)
+	
+	def getPart(self):
+		return self.__part
 
 @Singleton
 class CollisionInformationPopup:
@@ -648,9 +653,9 @@ class CollisionInformationPopup:
 	def __renderUpperPart(self, collisionInfo):
 
 		self.__objectsCollisionDisplay.clear_widgets()
-		partDisplay = CollisionPartDisplay(self.__objectsList[self.__objectsListIndex])
+		self.__partDisplay = CollisionPartDisplay(self.__objectsList[self.__objectsListIndex])
 		self.__objectsCollisionDisplay.size = self.__objectsList[self.__objectsListIndex].getSize()
-		self.__objectsCollisionDisplay.add_widget(partDisplay)
+		self.__objectsCollisionDisplay.add_widget(self.__partDisplay)
 
 		self.__dynamicSwitch.active = collisionInfo.getDynamic()
 		self.__fixedRotationSwitch.active = collisionInfo.getFixedRotation()
@@ -659,22 +664,28 @@ class CollisionInformationPopup:
 		self.__flagsAndPreviewBox.clear_widgets()
 		self.__flagsAndPreviewBox.add_widget(self.__objectsCollisionDisplay)
 		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
+		
+	def __changeTabs(self, notUsed = None):
+		self.__partDisplay.clearDrawnForm()
 
+	def __createPannedHeader(self, text, content, index):
+			th = TabbedPanelHeader(text = text, on_press = self.__changeTabs, id = 'tab#' + str(index))
+			th.content = content
+			return th
+			
 	def __renderTabbedPanel(self, collisionInfo, extraParts):
 		parts = collisionInfo.getPartsList()
 		numberOfParts = len(parts)
 		self.__partsPanel.clear_tabs()
 		for i in range(numberOfParts):
 			self.__partsLayoutList[i].updateLayout(parts[i])
-			th = TabbedPanelHeader(text = 'Part ' + str(i + 1))
-			th.content = self.__partsLayoutList[i].getLayout()
-			self.__partsPanel.add_widget(th)
+			self.__partsPanel.add_widget(self.__createPannedHeader('Part ' + str(i + 1), 
+				self.__partsLayoutList[i].getLayout(), i))
 	
 		if (extraParts != []):
 			self.__partsLayoutList[numberOfParts].updateLayout(extraParts[0])
-			th = TabbedPanelHeader(text = 'Edit')
-			th.content = self.__partsLayoutList[numberOfParts].getLayout()
-			self.__partsPanel.add_widget(th)
+			self.__partsPanel.add_widget(self.__createPannedHeader('Edit', 
+				self.__partsLayoutList[numberOfParts].getLayout(), numberOfParts))
 
 		self.__partsPanel.switch_to(self.__partsPanel.tab_list[0])
 
@@ -683,14 +694,15 @@ class CollisionInformationPopup:
 		self.__lowerBox.clear_widgets()
 		self.__lowerBox.add_widget(self.__editFlagsButton)
 		self.__lowerBox.add_widget(self.__applyButton)
+		self.__lowerBox.add_widget(self.__previewButton)
 		self.__lowerBox.add_widget(self.__deleteCurrentButton)
 		if (len (self.__objectsList) > 1):
 			self.__lowerBox.add_widget(self.__applyToAllButton)
-			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.2, 1.0)))
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.1, 1.0)))
 			self.__lowerBox.add_widget(self.__previousObjectButton)
 			self.__lowerBox.add_widget(self.__nextObjectButton)
 		else:
-			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.5, 1.0)))
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.4, 1.0)))
 
 		self.__lowerBox.add_widget(self.__okButton)
 		self.__lowerBox.add_widget(self.__cancelButton)
@@ -719,6 +731,11 @@ class CollisionInformationPopup:
 		
 		self.__collisionPopUp.dismiss()
 
+	def __callPreview(self, notUsed = None):
+		i = int(self.__partsPanel.current_tab.id.split('#')[1])
+		part = self.__partsLayoutList[i].getPart()
+		self.__partDisplay.drawPart(part)
+		
 	def __init__(self):
 		self.__baseHeight = 0.05
 
@@ -729,7 +746,6 @@ class CollisionInformationPopup:
 		
 		self.__collisionPopUp = Popup (title = 'Collision configs', auto_dismiss = False)
 		self.__mainLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		
 
 		self.__flagsAndPreviewBox = BoxLayout(orientation = 'horizontal', size_hint= (1.0, 6 * self.__baseHeight))
 		self.__objectsCollisionDisplay = ScrollView(effect_cls = EmptyScrollEffect)
@@ -769,6 +785,7 @@ class CollisionInformationPopup:
 		
 		self.__okButton = Button(text = 'Done', size_hint = (0.1, 1.0))
 		self.__cancelButton = Button (text = 'Cancel', size_hint = (0.1, 1.0))
+		self.__previewButton = Button (text = 'Preview', size_hint = (0.1, 1.0))
 		self.__applyButton = Button (text = 'Apply', size_hint = (0.1, 1.0))
 		self.__applyToAllButton = Button (text = 'Apply to all', size_hint = (0.1, 1.0))
 		self.__deleteCurrentButton = Button (text = 'Delete', size_hint = (0.1, 1.0))
@@ -778,6 +795,7 @@ class CollisionInformationPopup:
 		
 		self.__okButton.bind(on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton.bind(on_release = self.__collisionPopUp.dismiss)
+		self.__previewButton.bind(on_release = self.__callPreview)
 		self.__applyButton.bind(on_release = self.__applyChanges)
 		self.__applyToAllButton.bind(on_release = self.__applyChangesToAll)
 		self.__deleteCurrentButton.bind(on_release = self.__deleteCurrentPart)
