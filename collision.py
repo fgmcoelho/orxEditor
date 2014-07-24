@@ -14,7 +14,7 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelHeader
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.image import Image
 
-from kivy.graphics.vertex_instructions import Quad, Ellipse
+from kivy.graphics.vertex_instructions import Quad, Ellipse, Rectangle
 from kivy.graphics import Color
 
 from operator import itemgetter
@@ -175,6 +175,61 @@ class CollisionInformation:
 
 	def removePart(self, partToRemove):
 		self.__partsList.remove(partToRemove)
+
+class CollisionFormEditorPoints(Scatter):
+
+	def __init__(self):
+		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
+			size = (10, 10), size_hint = (None, None))
+
+		img = Image (source = 'assets/aaa.png')
+		self.add_widget(img)
+		#with self.canvas:
+		#	Color (1, 0, 1, 0)
+		#	Rectangle(pos = self.pos, size = self.size)
+	
+
+@Singleton
+class CollisionFlagFormEditorPopup:
+
+	def __render(self, part, obj):
+		self.__mainScreen.clear_widgets()
+		self.__display = CollisionPartDisplay(obj)
+		self.__originalPart = part
+		self.__workingPart = CollisionPartInformation.copy(part)
+
+		self.__display.drawPart(self.__workingPart)
+		self.__mainScreen.size = self.__display.size
+		self.__mainScreen.add_widget(self.__display)
+		
+		form = self.__workingPart.getFormType()
+		if (form == 'box'):
+			self.__firstDot = CollisionFormEditorPoints()
+			self.__display.add_widget(self.__firstDot)
+			self.__secondDot = CollisionFormEditorPoints()
+			self.__display.add_widget(self.__secondDot)
+			self.__secondDot.pos = (100, 100)
+
+	def __init__(self):
+
+		self.__layout = BoxLayout(orientation = 'vertical')
+		self.__mainScreen = ScrollView(size_hint = (1.0, 0.9))
+		self.__bottomMenu = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		self.__cancelButton = Button(text = 'Cancel', size_hint = (0.15, 1.0))
+		self.__doneButton = Button(text = 'Done', size_hint = (0.15, 1.0))
+		self.__bottomMenu.add_widget(Label(text ='', size_hint = (0.7, 1.0)))
+		self.__bottomMenu.add_widget(self.__cancelButton)
+		self.__bottomMenu.add_widget(self.__doneButton)
+
+		self.__layout.add_widget(self.__mainScreen)
+		self.__layout.add_widget(self.__bottomMenu)
+
+		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout)
+		self.__cancelButton.bind(on_release = self.__popup.dismiss)
+
+	def showPopUp(self, part, obj):
+		self.__render(part, obj)
+		self.__popup.open()
 
 @Singleton
 class CollisionFlagsEditor:
@@ -440,7 +495,8 @@ class CollisionPartLayout:
 			checkboxInfo = checkboxObject.id.split('#')
 			self.__part.setFormType(checkboxInfo[1])
 				
-	def __render(self, part):
+	def __render(self, part, obj):
+		self.__obj = obj
 		self.__part = part
 		flagsList = CollisionGuardian.Instance().getFlags()
 		numberOfFlags = len(flagsList)
@@ -511,6 +567,8 @@ class CollisionPartLayout:
 		self.__typeLine.add_widget(self.__meshCheckBox)
 		self.__typeLine.add_widget(Label(text = 'Mesh'))
 
+	def __callFormEditPopup(self, notUsed = None):
+		CollisionFlagFormEditorPopup.Instance().showPopUp(self.__part, self.__obj)
 
 	def __init__(self):
 		self.__layout = BoxLayout(orientation = 'horizontal')
@@ -536,6 +594,7 @@ class CollisionPartLayout:
 		pointsLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		self.__pointsText = Label(text = 'Have collision points?')
 		self.__pointsButton = Button(text = 'Edit points')
+		self.__pointsButton.bind(on_release = self.__callFormEditPopup)
 		pointsLine.add_widget(self.__pointsText)
 		pointsLine.add_widget(self.__pointsButton)
 		leftLayout.add_widget(pointsLine)
@@ -559,9 +618,9 @@ class CollisionPartLayout:
 	def getLayout(self):
 		return self.__layout
 		
-	def updateLayout(self, part):
+	def updateLayout(self, part, obj):
 		assert (isinstance(part, CollisionPartInformation))
-		self.__render(part)
+		self.__render(part, obj)
 	
 	def getPart(self):
 		return self.__part
@@ -673,17 +732,17 @@ class CollisionInformationPopup:
 			th.content = content
 			return th
 			
-	def __renderTabbedPanel(self, collisionInfo, extraParts):
+	def __renderTabbedPanel(self, obj, collisionInfo, extraParts):
 		parts = collisionInfo.getPartsList()
 		numberOfParts = len(parts)
 		self.__partsPanel.clear_tabs()
 		for i in range(numberOfParts):
-			self.__partsLayoutList[i].updateLayout(parts[i])
+			self.__partsLayoutList[i].updateLayout(parts[i], obj)
 			self.__partsPanel.add_widget(self.__createPannedHeader('Part ' + str(i + 1), 
 				self.__partsLayoutList[i].getLayout(), i))
 	
 		if (extraParts != []):
-			self.__partsLayoutList[numberOfParts].updateLayout(extraParts[0])
+			self.__partsLayoutList[numberOfParts].updateLayout(extraParts[0], obj)
 			self.__partsPanel.add_widget(self.__createPannedHeader('Edit', 
 				self.__partsLayoutList[numberOfParts].getLayout(), numberOfParts))
 
@@ -709,12 +768,13 @@ class CollisionInformationPopup:
 
 	def __render(self):
 		
-		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
+		currentObj = self.__objectsList[self.__objectsListIndex]
+		currentId = currentObj.getIdentifier()
 		collisionInfo = self.__copiesDict[currentId]
 		extraParts = self.__extraPartsDict[currentId]
 
 		self.__renderUpperPart(collisionInfo)
-		self.__renderTabbedPanel(collisionInfo, extraParts)
+		self.__renderTabbedPanel(currentObj, collisionInfo, extraParts)
 		self.__renderLowerPart()
 
 		

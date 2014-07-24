@@ -16,7 +16,7 @@ from scene import Scene, SceneHandler,SceneAttributes
 from objectsmenu import ObjectsMenu
 from editorobjects import RenderObjectGuardian
 from tilemapfiles import FilesManager
-from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup
+from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
 
 @Singleton
@@ -144,6 +144,7 @@ class TileEditor(App):
 		
 		# Collision Handlers:
 		CollisionGuardian.Instance()
+		CollisionFlagFormEditorPopup.Instance()
 		CollisionInformationPopup.Instance()
 		CollisionFlagsEditor.Instance()
 
