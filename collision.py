@@ -85,10 +85,12 @@ class CollisionPartInformation:
 			part.getPoints()
 		)
 
+	def __assertPointsValue(self, form, points): 	
+		assert ((points is None) or (form == "box" and len(points) == 2) or (form == "sphere" and
+			len(points) == 2) or (form == "mesh" and len(points) >= 3))
+	
 	def __init__(self, checkMask = [], selfFlags = [], solid = False, formType = "box", points = None):
-		assert ((points is None) or (formType == "box" and len(points) == 2) or (formType == "sphere" and
-			len(points) == 2) or (formType == "mesh" and len(points) >= 3))
-
+		self.__assertPointsValue(formType, points)
 		self.__checkMask = checkMask[:]
 		self.__selfFlags = selfFlags[:]
 		self.__solid = solid
@@ -108,7 +110,12 @@ class CollisionPartInformation:
 	def setFormType(self, newForm):
 		assert (newForm in ['box', 'sphere', 'mesh'])
 		self.__formType = newForm
-			
+		self.__points = None
+		
+	def setPoints(self, newPoints):
+		self.__assertPointsValue(self.__formType, newPoints)
+		self.__points = newPoints
+		
 	def addFlagToSelfFlags(self, flag):
 		assert (len(self.__selfFlags) <= 16)
 		self.__selfFlags.append(flag)
@@ -178,19 +185,35 @@ class CollisionInformation:
 
 class CollisionFormEditorPoints(Scatter):
 
-	def __init__(self):
-		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
-			size = (10, 10), size_hint = (None, None))
+	def __updateOnMove(self, touch):
+		if (self.collide_point(*touch.pos) == True):
+			self.__updateMethod()
+			self.__defaut_touch_move(touch)
 
-		img = Image (source = 'assets/aaa.png')
+	def __init__(self, updateMethod):
+		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
+			size = (5, 5), size_hint = (None, None))
+
+		self.__updateMethod = updateMethod
+		self.__defaut_touch_move = self.on_touch_move
+		self.on_touch_move = self.__updateOnMove
+		
+		img = Image (size = (5, 5))
 		self.add_widget(img)
-		#with self.canvas:
-		#	Color (1, 0, 1, 0)
-		#	Rectangle(pos = self.pos, size = self.size)
+		with self.canvas:
+			Color (1, 0, 1, 0)
+			Rectangle(pos = self.pos, size = self.size)
 	
 
 @Singleton
 class CollisionFlagFormEditorPopup:
+
+	def __updatePoints(self, *args):
+		l = []
+		for point in self.__pointsList:
+			l.append(point.pos)
+		self.__workingPart.setPoints(l)
+		self.__display.drawPart(self.__workingPart)
 
 	def __render(self, part, obj):
 		self.__mainScreen.clear_widgets()
@@ -202,13 +225,17 @@ class CollisionFlagFormEditorPopup:
 		self.__mainScreen.size = self.__display.size
 		self.__mainScreen.add_widget(self.__display)
 		
+		self.__pointsList = []
 		form = self.__workingPart.getFormType()
+		points = self.__workingPart.getPoints()
 		if (form == 'box'):
-			self.__firstDot = CollisionFormEditorPoints()
-			self.__display.add_widget(self.__firstDot)
-			self.__secondDot = CollisionFormEditorPoints()
-			self.__display.add_widget(self.__secondDot)
-			self.__secondDot.pos = (100, 100)
+			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
+			self.__display.add_widget(self.__pointsList[0])
+			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
+			self.__display.add_widget(self.__pointsList[1])
+			if (points == None):
+				self.__pointsList[0].pos = (0, 0)
+				self.__pointsList[1].pos = (obj.getSize()[0] - 5, obj.getSize()[1] - 5) 
 
 	def __init__(self):
 
