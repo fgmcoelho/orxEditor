@@ -100,8 +100,6 @@ class KeyboardShortcutHandler:
 		self.__keyboard.bind(on_key_down = self.__processKeyDown)
 		self.__keyboard.bind(on_key_up = self.__processKeyUp)
 
-
-
 class TileEditor(App):
 	
 	def build_config(self, c):

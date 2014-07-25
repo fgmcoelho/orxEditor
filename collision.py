@@ -12,9 +12,10 @@ from kivy.uix.checkbox import CheckBox
 from kivy.uix.switch import Switch
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelHeader
 from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
 
-from kivy.graphics.vertex_instructions import Quad, Ellipse, Rectangle
+from kivy.graphics.vertex_instructions import Quad, Ellipse
 from kivy.graphics import Color
 
 from operator import itemgetter
@@ -192,17 +193,17 @@ class CollisionFormEditorPoints(Scatter):
 
 	def __init__(self, updateMethod):
 		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
-			size = (5, 5), size_hint = (None, None))
+			size = (10, 10), size_hint = (None, None), auto_bring_to_front = False)
 
 		self.__updateMethod = updateMethod
 		self.__defaut_touch_move = self.on_touch_move
 		self.on_touch_move = self.__updateOnMove
 		
-		img = Image (size = (5, 5))
+		img = Image (size = (10, 10))
 		self.add_widget(img)
-		with self.canvas:
-			Color (1, 0, 1, 0)
-			Rectangle(pos = self.pos, size = self.size)
+		#with self.canvas:
+		#	Color (1, 0, 1, 0)
+		#	Rectangle(pos = self.pos, size = self.size)
 	
 
 @Singleton
@@ -223,7 +224,6 @@ class CollisionFlagFormEditorPopup:
 		self.__workingPart = CollisionPartInformation.copy(part)
 
 		self.__display.drawPart(self.__workingPart)
-		self.__mainScreen.size = self.__display.size
 		self.__mainScreen.add_widget(self.__display)
 		
 		self.__pointsList = []
@@ -241,7 +241,7 @@ class CollisionFlagFormEditorPopup:
 	def __init__(self):
 
 		self.__layout = BoxLayout(orientation = 'vertical')
-		self.__mainScreen = ScrollView(size_hint = (1.0, 0.9))
+		self.__mainScreen = ScrollView(size_hint = (1.0, 0.9), )
 		self.__bottomMenu = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		self.__cancelButton = Button(text = 'Cancel', size_hint = (0.15, 1.0))
 		self.__doneButton = Button(text = 'Done', size_hint = (0.15, 1.0))
@@ -449,14 +449,13 @@ class CollisionFlagsEditor:
 		self.__render()
 		self.__popup.open()
 
-class CollisionPartDisplay(Scatter):
+class CollisionPartDisplay(RelativeLayout):
 	def __init__(self, obj):
 		if (obj is None):
 			return
 	
 		self.__texture = AutoReloadTexture(obj.getSize(), obj.getImage())
-		super(CollisionPartDisplay, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None), 
-			size = obj.getSize(), auto_bring_to_front = False, do_translation = False)
+		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = obj.getSize())
 		self.__image = Image(texture = self.__texture.getTexture(), size = obj.getSize())
 		self.__operation = None
 		self.add_widget(self.__image)

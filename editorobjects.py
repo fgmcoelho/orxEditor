@@ -621,7 +621,6 @@ class RenderedObject (Scatter):
 		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None),
 			size = self.__baseSize, auto_bring_to_front = False)
 
-
 		self.add_widget(self.image)
 		
 		self.__isFinished = False
@@ -642,8 +641,8 @@ class RenderedObject (Scatter):
 		self.on_touch_up = self.__handleTouchUp
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
-		self.__defaultTouchMove = self.on_touch_move
-		self.on_touch_move = self.__handleTouchMove
+		#self.__defaultTouchMove = self.on_touch_move
+		#self.on_touch_move = self.__handleTouchMove
 		
 	def hide(self):
 		self.unsetMarked()
