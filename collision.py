@@ -212,6 +212,7 @@ class CollisionFlagFormEditorPopup:
 		l = []
 		for point in self.__pointsList:
 			l.append(point.pos)
+			
 		self.__workingPart.setPoints(l)
 		self.__display.drawPart(self.__workingPart)
 
@@ -479,6 +480,22 @@ class CollisionPartDisplay(Scatter):
 					self.pos[0], self.pos[1] + self.size[1], 
 				]
 			)
+	
+	def __drawDefinedBox(self, points):
+		self.clearDrawnForm()
+
+		fx, fy = points[0]
+		sx, sy = points[1]
+		with self.__image.canvas:
+			Color(0., 1.0, .0, 0.3)
+			self.__operation = Quad(
+				points = [
+					fx, fy, 
+					fx, sy, 
+					sx, sy, 
+					sx, fy, 
+				]
+			)	
 
 	def __drawDefaultSphere(self):
 		self.clearDrawnForm()
@@ -496,6 +513,8 @@ class CollisionPartDisplay(Scatter):
 		if (form == "box"):
 			if (points == None):
 				self.__drawDefaultBox()
+			else:
+				self.__drawDefinedBox(points)
 
 		elif (form == "sphere"):
 			if (points == None):
