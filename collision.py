@@ -20,6 +20,7 @@ from kivy.graphics import Color
 
 from operator import itemgetter
 from string import letters, digits
+from math import ceil
 
 from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, AutoReloadTexture
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
@@ -186,19 +187,34 @@ class CollisionInformation:
 
 class CollisionFormEditorPoints(Scatter):
 
+	dotSize = 11
+
+	def getPos(self):
+		x, y = self.pos
+		x += ceil(CollisionFormEditorPoints.dotSize/2.)
+		y += ceil(CollisionFormEditorPoints.dotSize/2.)
+		return (x, y)
+		
+	def setPos(self, newPos):
+		x, y = newPos
+		x -= ceil(CollisionFormEditorPoints.dotSize/2.)
+		y -= ceil(CollisionFormEditorPoints.dotSize/2.)		
+		self.pos = (x, y)
+	
 	def __updateOnMove(self, touch):
 		self.__updateMethod()
 		self.__defaut_touch_move(touch)
 
 	def __init__(self, updateMethod):
 		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
-			size = (10, 10), size_hint = (None, None), auto_bring_to_front = False)
+			size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize), size_hint = (None, None), 
+			auto_bring_to_front = False)
 
 		self.__updateMethod = updateMethod
 		self.__defaut_touch_move = self.on_touch_move
 		self.on_touch_move = self.__updateOnMove
 		
-		img = Image (size = (10, 10))
+		img = Image (size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize))
 		self.add_widget(img)
 		#with self.canvas:
 		#	Color (1, 0, 1, 0)
@@ -211,7 +227,7 @@ class CollisionFlagFormEditorPopup:
 	def __updatePoints(self, *args):
 		l = []
 		for point in self.__pointsList:
-			l.append(point.pos)
+			l.append(point.getPos())
 			
 		self.__workingPart.setPoints(l)
 		self.__display.drawPart(self.__workingPart)
@@ -236,7 +252,6 @@ class CollisionFlagFormEditorPopup:
 		
 		self.__defaultTouchDown(touch)
 
-		
 	def __render(self, part, obj):
 		self.__mainScreen.clear_widgets()
 		self.__display = CollisionPartDisplay(obj)
@@ -255,8 +270,17 @@ class CollisionFlagFormEditorPopup:
 			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
 			self.__display.add_widget(self.__pointsList[1])
 			if (points == None):
-				self.__pointsList[0].pos = (0, 0)
-				self.__pointsList[1].pos = (obj.getSize()[0] - 5, obj.getSize()[1] - 5) 
+				self.__pointsList[0].setPos((0, 0)) 
+				self.__pointsList[1].setPos((obj.getSize()[0], obj.getSize()[1]))
+		elif (form == 'sphere'):
+			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
+			self.__display.add_widget(self.__pointsList[0])
+			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
+			self.__display.add_widget(self.__pointsList[1])
+			if (points == None):
+				midPoint = (obj.getSize()[0]/2, obj.getSize()[1]/2)
+				self.__pointsList[0].setPos(midPoint) 
+				self.__pointsList[1].setPos((obj.getSize()[0], obj.getSize()[1]/2))
 
 	def __init__(self):
 
@@ -528,6 +552,17 @@ class CollisionPartDisplay(RelativeLayout):
 	def __drawDefaultSphere(self):
 		self.clearDrawnForm()
 		
+		with self.__image.canvas:
+			Color(0., 1.0, .0, 0.3)
+			self.__operation = Ellipse(
+				pos = (self.pos[0], self.pos[1]),
+				size = (self.size[0], self.size[1])
+			)
+			
+	def __drawDefinedBox(self, points):
+		self.clearDrawnForm()
+		fx, fy = points[0]
+		sx, sy = points[1]		
 		with self.__image.canvas:
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Ellipse(
