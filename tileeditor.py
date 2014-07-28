@@ -32,6 +32,7 @@ class KeyboardShortcutHandler:
 	def __processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'shift'):
 			SceneHandler.Instance().setIsShiftPressed(False)
+			CollisionFlagFormEditorPopup.Instance().setIsShiftPressed(False)
 
 		elif (keycode[1] == 'ctrl'):
 			SceneHandler.Instance().setIsCtrlPressed(False)
@@ -61,6 +62,7 @@ class KeyboardShortcutHandler:
 
 		elif (keycode[1] == 'shift'):
 			SceneHandler.Instance().setIsShiftPressed(True)
+			CollisionFlagFormEditorPopup.Instance().setIsShiftPressed(True)
 
 		elif (keycode[1] == 'ctrl'):
 			SceneHandler.Instance().setIsCtrlPressed(True)

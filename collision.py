@@ -187,9 +187,8 @@ class CollisionInformation:
 class CollisionFormEditorPoints(Scatter):
 
 	def __updateOnMove(self, touch):
-		if (self.collide_point(*touch.pos) == True):
-			self.__updateMethod()
-			self.__defaut_touch_move(touch)
+		self.__updateMethod()
+		self.__defaut_touch_move(touch)
 
 	def __init__(self, updateMethod):
 		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
@@ -216,7 +215,28 @@ class CollisionFlagFormEditorPopup:
 			
 		self.__workingPart.setPoints(l)
 		self.__display.drawPart(self.__workingPart)
+		
+	def __handleScrollAndPassTouchDownToChildren(self, touch):
+		if (self.__mainScreen.collide_point(*touch.pos) == False):
+			return
 
+		if (touch.is_mouse_scrolling == True):
+			if (self.__isShiftPressed == False):
+				if (touch.button == "scrollup" and self.__mainScreen.scroll_y > 0):
+					self.__mainScreen.scroll_y -= 0.05
+				elif (touch.button == "scrolldown" and self.__mainScreen.scroll_y < 1.0):
+					self.__mainScreen.scroll_y += 0.05
+			else:
+				if (touch.button == "scrolldown" and self.__mainScreen.scroll_x > 0):
+					self.__mainScreen.scroll_x -= 0.05
+				elif (touch.button == "scrollup" and self.__mainScreen.scroll_x < 1.0):
+					self.__mainScreen.scroll_x += 0.05
+
+			return 
+		
+		self.__defaultTouchDown(touch)
+
+		
 	def __render(self, part, obj):
 		self.__mainScreen.clear_widgets()
 		self.__display = CollisionPartDisplay(obj)
@@ -240,8 +260,10 @@ class CollisionFlagFormEditorPopup:
 
 	def __init__(self):
 
+		self.__isShiftPressed = False
+	
 		self.__layout = BoxLayout(orientation = 'vertical')
-		self.__mainScreen = ScrollView(size_hint = (1.0, 0.9), )
+		self.__mainScreen = ScrollView(size_hint = (1.0, 0.9), scroll_timeout = 0)
 		self.__bottomMenu = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		self.__cancelButton = Button(text = 'Cancel', size_hint = (0.15, 1.0))
 		self.__doneButton = Button(text = 'Done', size_hint = (0.15, 1.0))
@@ -252,9 +274,16 @@ class CollisionFlagFormEditorPopup:
 		self.__layout.add_widget(self.__mainScreen)
 		self.__layout.add_widget(self.__bottomMenu)
 
+		self.__defaultTouchDown = self.__mainScreen.on_touch_down
+		self.__mainScreen.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+
+		
 		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout)
 		self.__cancelButton.bind(on_release = self.__popup.dismiss)
 
+	def setIsShiftPressed(self, value):
+		self.__isShiftPressed = value
+		
 	def showPopUp(self, part, obj):
 		self.__render(part, obj)
 		self.__popup.open()
