@@ -20,7 +20,7 @@ from kivy.graphics import Color
 
 from operator import itemgetter
 from string import letters, digits
-from math import ceil
+from math import ceil, sqrt
 
 from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, AutoReloadTexture
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
@@ -509,7 +509,9 @@ class CollisionPartDisplay(RelativeLayout):
 	
 		self.__texture = AutoReloadTexture(obj.getSize(), obj.getImage())
 		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = obj.getSize())
-		self.__image = Image(texture = self.__texture.getTexture(), size = obj.getSize())
+		self.__image = Scatter(do_rotation = False, do_translation = False, do_scale = False)
+		im = Image(texture = self.__texture.getTexture(), size = obj.getSize(), allow_strech = True)
+		self.__image.add_widget(im)
 		self.__operation = None
 		self.add_widget(self.__image)
 		self.__operation = None
@@ -559,15 +561,18 @@ class CollisionPartDisplay(RelativeLayout):
 				size = (self.size[0], self.size[1])
 			)
 			
-	def __drawDefinedBox(self, points):
+	def __drawDefinedSphere(self, points):
 		self.clearDrawnForm()
 		fx, fy = points[0]
-		sx, sy = points[1]		
+		sx, sy = points[1]
+		radius = sqrt((fx - sx) * (fx - sx) + (fy - sy) * (fy - sy))
 		with self.__image.canvas:
+			posAdjustX = (self.size[0] - self.pos[0]) / 2.0
+			posAdjustY = (self.size[1] - self.pos[1]) / 2.0
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Ellipse(
-				pos = (self.pos[0], self.pos[1]),
-				size = (self.size[0], self.size[1])
+				pos = (fx - posAdjustX, fy - posAdjustY),
+				size = (radius * 2, radius * 2)
 			)
 
 	def drawPart(self, part):
@@ -582,6 +587,8 @@ class CollisionPartDisplay(RelativeLayout):
 		elif (form == "sphere"):
 			if (points == None):
 				self.__drawDefaultSphere()
+			else:
+				self.__drawDefinedSphere(points)
 	
 class CollisionPartLayout:
 	
