@@ -15,12 +15,12 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
 
-from kivy.graphics.vertex_instructions import Quad, Ellipse
+from kivy.graphics.vertex_instructions import Quad, Ellipse, Mesh
 from kivy.graphics import Color
 
 from operator import itemgetter
 from string import letters, digits
-from math import ceil, sqrt
+from math import ceil, sqrt, cos, sin
 
 from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, AutoReloadTexture
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
@@ -281,6 +281,18 @@ class CollisionFlagFormEditorPopup:
 				midPoint = (obj.getSize()[0]/2, obj.getSize()[1]/2)
 				self.__pointsList[0].setPos(midPoint) 
 				self.__pointsList[1].setPos((obj.getSize()[0], obj.getSize()[1]/2))
+		elif (form == 'mesh'):
+			if (points == None):
+				for i in range(4):
+					point = CollisionFormEditorPoints(self.__updatePoints)
+					self.__pointsList.append(point)
+					self.__display.add_widget(point)
+				
+				self.__pointsList[0].setPos((0, 0))
+				self.__pointsList[1].setPos((obj.getSize()[0], 0))
+				self.__pointsList[2].setPos(obj.getSize())
+				self.__pointsList[3].setPos((0, obj.getSize()[1]))
+
 
 	def __init__(self):
 
@@ -567,13 +579,44 @@ class CollisionPartDisplay(RelativeLayout):
 		sx, sy = points[1]
 		radius = sqrt((fx - sx) * (fx - sx) + (fy - sy) * (fy - sy))
 		with self.__image.canvas:
-			posAdjustX = (self.size[0] - self.pos[0]) / 2.0
-			posAdjustY = (self.size[1] - self.pos[1]) / 2.0
+			posAdjustX = (radius * 2 - self.pos[0]) / 2.0
+			posAdjustY = (radius * 2 - self.pos[1]) / 2.0
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Ellipse(
 				pos = (fx - posAdjustX, fy - posAdjustY),
 				size = (radius * 2, radius * 2)
 			)
+
+	def __drawDefaultMesh(self):
+		self.clearDrawnForm()
+		with self.__image.canvas:
+			Color(0., 1.0, .0, 0.3)
+			self.__operation = Mesh (
+				vertices = [		
+					self.pos[0], self.pos[1], 0, 0,
+					self.pos[0] + self.size[0], self.pos[1], 0, 0,
+					self.pos[0] + self.size[0], self.pos[1] + self.size[1], 0, 0,
+					self.pos[0], self.pos[1] + self.size[1], 0, 0,
+				],
+				indices = range(4),  mode = 'triangle_fan'
+			)
+
+	def __drawDefinedMesh(self, points):
+		self.clearDrawnForm()
+		verticesList = []
+		print "START PRINTING POINTS"
+		for point in points:
+			verticesList.extend([point[0], point[1], 0, 0])
+			print point
+		print "END PRINTING POINTS"
+		with self.__image.canvas:
+			Color(0., 1.0, .0, 0.3)
+			self.__operation = Mesh(
+				vertices = verticesList,
+				indices = range(len(verticesList)),
+				mode = 'triangle_fan'
+			)
+
 
 	def drawPart(self, part):
 		form = part.getFormType()
@@ -589,6 +632,11 @@ class CollisionPartDisplay(RelativeLayout):
 				self.__drawDefaultSphere()
 			else:
 				self.__drawDefinedSphere(points)
+		elif (form == "mesh"):
+			if (points == None):
+				self.__drawDefaultMesh()
+			else:
+				self.__drawDefinedMesh(points)
 	
 class CollisionPartLayout:
 	
