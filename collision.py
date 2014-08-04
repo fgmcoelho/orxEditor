@@ -20,7 +20,7 @@ from kivy.graphics import Color
 
 from operator import itemgetter
 from string import letters, digits
-from math import ceil, sqrt, cos, sin
+from math import ceil, sqrt
 
 from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, AutoReloadTexture
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
@@ -589,6 +589,7 @@ class CollisionPartDisplay(RelativeLayout):
 
 	def __drawDefaultMesh(self):
 		self.clearDrawnForm()
+
 		with self.__image.canvas:
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Mesh (
@@ -598,23 +599,21 @@ class CollisionPartDisplay(RelativeLayout):
 					self.pos[0] + self.size[0], self.pos[1] + self.size[1], 0, 0,
 					self.pos[0], self.pos[1] + self.size[1], 0, 0,
 				],
-				indices = range(4),  mode = 'triangle_fan'
+				indices = range(4),  mode = 'line_loop'
 			)
 
 	def __drawDefinedMesh(self, points):
 		self.clearDrawnForm()
 		verticesList = []
-		print "START PRINTING POINTS"
 		for point in points:
 			verticesList.extend([point[0], point[1], 0, 0])
-			print point
-		print "END PRINTING POINTS"
+
 		with self.__image.canvas:
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Mesh(
 				vertices = verticesList,
-				indices = range(len(verticesList)),
-				mode = 'triangle_fan'
+				indices = range(len(points)),
+				mode = 'line_loop'
 			)
 
 
