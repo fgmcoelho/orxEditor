@@ -296,7 +296,7 @@ class SceneHandler:
 
 		self.__defaultTouchDown(touch)
 	
-	def __init__(self, rightScreen, maxWidthProportion = 1.0, maxHeightProportion = 0.667):
+	def __init__(self, maxWidthProportion = 1.0, maxHeightProportion = 0.667):
 		
 		self.__isShiftPressed = False
 		self.__isCtrlPressed = False

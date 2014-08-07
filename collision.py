@@ -22,7 +22,7 @@ from operator import itemgetter
 from string import letters, digits
 from math import ceil, sqrt
 
-from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, AutoReloadTexture
+from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, AutoReloadTexture, CancelableButton
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
 
 class CollisionFlag:
@@ -299,9 +299,11 @@ class CollisionFlagFormEditorPopup:
 		self.__isShiftPressed = False
 	
 		self.__layout = BoxLayout(orientation = 'vertical')
+		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout)
 		self.__mainScreen = ScrollView(size_hint = (1.0, 0.9), scroll_timeout = 0)
 		self.__bottomMenu = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		self.__cancelButton = Button(text = 'Cancel', size_hint = (0.15, 1.0))
+		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.15, 1.0), 
+				on_release = self.__popup.dismiss)
 		self.__doneButton = Button(text = 'Done', size_hint = (0.15, 1.0))
 		self.__bottomMenu.add_widget(Label(text ='', size_hint = (0.7, 1.0)))
 		self.__bottomMenu.add_widget(self.__cancelButton)
@@ -313,9 +315,6 @@ class CollisionFlagFormEditorPopup:
 		self.__defaultTouchDown = self.__mainScreen.on_touch_down
 		self.__mainScreen.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 
-		
-		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout)
-		self.__cancelButton.bind(on_release = self.__popup.dismiss)
 
 	def setIsShiftPressed(self, value):
 		self.__isShiftPressed = value
@@ -335,7 +334,7 @@ class CollisionFlagsEditor:
 		for flag in flagsList:
 			flagLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 			flagLine.add_widget(Label(text = flag.getName(), size_hint = (0.9, 1.0)))
-			flagLine.add_widget(Button(text = 'Delete', size_hint = (0.1, 1.0), id = 'Delete#' + flag.getName(),
+			flagLine.add_widget(CancelableButton(text = 'Delete', size_hint = (0.1, 1.0), id = 'Delete#' + flag.getName(),
 				on_release = self.__processRemoveFlag))
 			self.__layout.add_widget(flagLine)
 		
@@ -376,7 +375,7 @@ class CollisionFlagsEditor:
 
 		return 0
 	
-	def __doRemoveFlag(self, notUsed = None):	
+	def __doRemoveFlag(self, *args):	
 		objectsList = CollisionToSceneCommunication.Instance().getAllObjects()
 		for obj in objectsList:
 			collisionInfo = obj.getCollisionInfo()
@@ -391,9 +390,10 @@ class CollisionFlagsEditor:
 
 		CollisionGuardian.Instance().removeFlag(self.__flagToRemove)
 		self.__flagToRemove = None
+		self.__flagRemoveWarning.dismiss()
 		self.__render()
 
-	def __processRemoveFlag(self, buttonPressed):
+	def __processRemoveFlag(self, buttonPressed, touch):
 		objectsList = CollisionToSceneCommunication.Instance().getAllObjects()
 		existingObjectsCount = 0
 		editingObjectsCount = 0
@@ -446,7 +446,7 @@ class CollisionFlagsEditor:
 			)
 		self.__flagRemoveWarning.open()
 
-	def __processAddFlag(self, notUsed = None):
+	def __processAddFlag(self, *args):
 		if (self.__flagNameInput.text == ''):
 			error = AlertPopUp('Error', 'Flag name can\'t be empty.', 'Ok')
 			error.open()
@@ -471,7 +471,7 @@ class CollisionFlagsEditor:
 		self.__flagNameInput.text = ''
 		self.__render()
 
-	def __processClose(self, notUsed = None):
+	def __processClose(self, *args):
 		self.__flagNameInput.focus = False
 		
 		CollisionInformationPopup.Instance().updateLayout()
@@ -490,15 +490,13 @@ class CollisionFlagsEditor:
 		self.__inputBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		self.__flagNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0), 
 			on_text_validate = self.__processAddFlag, focus = True)
-		self.__flagAddButton = Button(text = 'Add', size_hint = (0.1, 1.0))
-		self.__flagAddButton.bind(on_release = self.__processAddFlag)
+		self.__flagAddButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__processAddFlag)
 
 		self.__inputBar.add_widget(self.__flagNameInput)
 		self.__inputBar.add_widget(self.__flagAddButton)
 
 		self.__bottomBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		doneButton = Button (text = 'Done', size_hint = (0.1, 1.0))
-		doneButton.bind(on_release = self.__processClose)
+		doneButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release = self.__processClose)
 		self.__bottomBar.add_widget(Label(text = '', size_hint = (0.9, 1.0)))
 		self.__bottomBar.add_widget(doneButton)
 		
@@ -510,7 +508,7 @@ class CollisionFlagsEditor:
 		self.__flagRemoveWarning = Dialog(self.__doRemoveFlag, 'Confirmation', 
 			'This will affect existing objects.\nAre you sure you want to remove this flag?', 'Yes', 'No')
 
-	def showPopUp(self, notUsed = None):
+	def showPopUp(self, *args):
 		self.__render()
 		self.__popup.open()
 
@@ -730,7 +728,7 @@ class CollisionPartLayout:
 		self.__typeLine.add_widget(self.__meshCheckBox)
 		self.__typeLine.add_widget(Label(text = 'Mesh'))
 
-	def __callFormEditPopup(self, notUsed = None):
+	def __callFormEditPopup(self, *args):
 		CollisionFlagFormEditorPopup.Instance().showPopUp(self.__part, self.__obj)
 
 	def __init__(self):
@@ -756,8 +754,7 @@ class CollisionPartLayout:
 
 		pointsLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		self.__pointsText = Label(text = 'Have collision points?')
-		self.__pointsButton = Button(text = 'Edit points')
-		self.__pointsButton.bind(on_release = self.__callFormEditPopup)
+		self.__pointsButton = CancelableButton(text = 'Edit points', on_release = self.__callFormEditPopup)
 		pointsLine.add_widget(self.__pointsText)
 		pointsLine.add_widget(self.__pointsButton)
 		leftLayout.add_widget(pointsLine)
@@ -805,14 +802,14 @@ class CollisionInformationPopup:
 			self.__copiesDict[obj.getIdentifier()] = infoCopy
 			self.__extraPartsDict[obj.getIdentifier()] = extraParts
 			
-	def __applyChanges(self, notUsed = None):
+	def __applyChanges(self, *args):
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
 		if(self.__partsPanel.current_tab.text == 'Edit'):
 			newPart = self.__extraPartsDict[currentId].pop(0)
 			self.__copiesDict[currentId].addPart(newPart)
 			self.__render()
 
-	def __doDeleteCurrentPart(self, notUsed = None):
+	def __doDeleteCurrentPart(self, *args):
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
 		index = int(self.__partsPanel.current_tab.text.split(' ')[1])
 		partsList = self.__copiesDict[currentId].getPartsList()
@@ -823,14 +820,14 @@ class CollisionInformationPopup:
 		self.__warnDelete.dismiss()
 		self.__render()
 
-	def __deleteCurrentPart(self, notUsed = None):
+	def __deleteCurrentPart(self, *args):
 		if (self.__partsPanel.current_tab.text == 'Edit'):
 			errorPopup = AlertPopUp('Error', 'You can\'t delete the edit flag, it hasn\'t been added.', 'Ok')
 			errorPopup.open()
 		else:
 			self.__warnDelete.open()
 
-	def __doApplyChanges(self, notUsed = None):
+	def __doApplyChanges(self, *args):
 		currentObj = self.__objectsList[self.__objectsListIndex]
 		infoToCopy = self.__copiesDict[currentObj.getIdentifier()]
 		for obj in self.__objectsList:
@@ -849,7 +846,7 @@ class CollisionInformationPopup:
 		self.__warnApplyAll.dismiss()
 		self.__render()
 
-	def __applyChangesToAll(self, notUsed = None):
+	def __applyChangesToAll(self, *args):
 		willEraseInfo = 0
 		currentObj = self.__objectsList[self.__objectsListIndex]
 		for obj in self.__objectsList:
@@ -864,11 +861,11 @@ class CollisionInformationPopup:
 		else:
 			self.__doApplyChanges()
 
-	def __selectNextObject(self, notUsed = None):
+	def __selectNextObject(self, *args):
 		self.__objectsListIndex = (self.__objectsListIndex + 1) % len(self.__objectsList)
 		self.__render()
 		
-	def __selectPreviousObject(self, notUsed = None):
+	def __selectPreviousObject(self, *args):
 		self.__objectsListIndex = (self.__objectsListIndex - 1) % len(self.__objectsList)
 		self.__render()
 
@@ -887,7 +884,7 @@ class CollisionInformationPopup:
 		self.__flagsAndPreviewBox.add_widget(self.__objectsCollisionDisplay)
 		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
 		
-	def __changeTabs(self, notUsed = None):
+	def __changeTabs(self, *args):
 		self.__partDisplay.clearDrawnForm()
 
 	def __createPannedHeader(self, text, content, index):
@@ -941,7 +938,7 @@ class CollisionInformationPopup:
 		self.__renderLowerPart()
 
 		
-	def __createOrEditCollisionInfo(self, useless):
+	def __createOrEditCollisionInfo(self, *args):
 		CollisionToMainLayoutCommunication.Instance().giveBackKeyboard()
 		
 		for obj in self.__objectsList:
@@ -954,7 +951,7 @@ class CollisionInformationPopup:
 		
 		self.__collisionPopUp.dismiss()
 
-	def __callPreview(self, notUsed = None):
+	def __callPreview(self, *args):
 		i = int(self.__partsPanel.current_tab.id.split('#')[1])
 		part = self.__partsLayoutList[i].getPart()
 		self.__partDisplay.drawPart(part)
@@ -1006,25 +1003,18 @@ class CollisionInformationPopup:
 
 		self.__lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		
-		self.__okButton = Button(text = 'Done', size_hint = (0.1, 1.0))
-		self.__cancelButton = Button (text = 'Cancel', size_hint = (0.1, 1.0))
-		self.__previewButton = Button (text = 'Preview', size_hint = (0.1, 1.0))
-		self.__applyButton = Button (text = 'Apply', size_hint = (0.1, 1.0))
-		self.__applyToAllButton = Button (text = 'Apply to all', size_hint = (0.1, 1.0))
-		self.__deleteCurrentButton = Button (text = 'Delete', size_hint = (0.1, 1.0))
-		self.__previousObjectButton = Button (text = 'Previous', size_hint = (0.1, 1.0))
-		self.__nextObjectButton = Button (text = 'Next', size_hint = (0.1, 1.0))
-		self.__editFlagsButton = Button (text = 'Edit Flags', size_hint = (0.1, 1.0))
-		
-		self.__okButton.bind(on_release=self.__createOrEditCollisionInfo)
-		self.__cancelButton.bind(on_release = self.__collisionPopUp.dismiss)
-		self.__previewButton.bind(on_release = self.__callPreview)
-		self.__applyButton.bind(on_release = self.__applyChanges)
-		self.__applyToAllButton.bind(on_release = self.__applyChangesToAll)
-		self.__deleteCurrentButton.bind(on_release = self.__deleteCurrentPart)
-		self.__previousObjectButton.bind(on_release = self.__selectPreviousObject)
-		self.__nextObjectButton.bind(on_release = self.__selectNextObject)
-		self.__editFlagsButton.bind(on_release = CollisionFlagsEditor.Instance().showPopUp)
+		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release=self.__createOrEditCollisionInfo)
+		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.__collisionPopUp.dismiss)
+		self.__previewButton = CancelableButton (text = 'Preview', size_hint = (0.1, 1.0), on_release = self.__callPreview)
+		self.__applyButton = CancelableButton(text = 'Apply', size_hint = (0.1, 1.0), on_release = self.__applyChanges)
+		self.__applyToAllButton = CancelableButton(text = 'Apply to all', size_hint = (0.1, 1.0), 
+				on_release = self.__applyChangesToAll)
+		self.__deleteCurrentButton = CancelableButton(text = 'Delete', size_hint = (0.1, 1.0), on_release = self.__deleteCurrentPart)
+		self.__previousObjectButton = CancelableButton(text = 'Previous', size_hint = (0.1, 1.0), 
+				on_release = self.__selectPreviousObject)
+		self.__nextObjectButton = CancelableButton(text = 'Next', size_hint = (0.1, 1.0), on_release = self.__selectNextObject)
+		self.__editFlagsButton = CancelableButton(text = 'Edit Flags', size_hint = (0.1, 1.0), 
+				on_release = CollisionFlagsEditor.Instance().showPopUp)
 		
 		self.__mainLayout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
 		self.__mainLayout.add_widget(self.__lowerBox)

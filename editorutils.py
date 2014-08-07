@@ -10,6 +10,45 @@ from kivy.effects.scroll import ScrollEffect
 from os.path import sep as pathSeparator
 from os import getcwd
 
+class CancelableButton (Button):
+
+	def __getActionByEntry(self, key, dictToLook):
+		if (key in dictToLook):
+			self.__action = dictToLook[key]
+			del dictToLook[key]
+			return True
+
+		else:
+			return False
+
+	def __processAction(self, touch):
+		if (self.collide_point(*touch.pos) == True and self.__lastUid != touch.uid and touch.uid == self.__touchUpUid):
+			self.__lastUid = touch.uid
+			self.__action(self, touch)
+
+		self.__default_on_touch_up(touch)
+
+	def __startButtonSelection(self, touch):
+		if (self.collide_point(*touch.pos) == True):
+			self.__touchUpUid = touch.uid
+
+		self.__default_on_touch_down(touch)
+
+	def __init__(self, **kwargs):
+		assert (not ('on_release' in kwargs and 'on_touch_up' in kwargs))
+		
+		if (self.__getActionByEntry('on_release', kwargs) == False and self.__getActionByEntry('on_touch_up', kwargs) == False):
+			self.__action = None
+
+		super(CancelableButton, self).__init__(**kwargs)
+		if (self.__action is not None):
+			self.__lastUid = None
+			self.__default_on_touch_up = self.on_touch_up
+			self.on_touch_up = self.__processAction
+			self.__default_on_touch_down = self.on_touch_down
+			self.on_touch_down = self.__startButtonSelection
+
+
 def strToDoubleFloatTuple(s):
 	assert(type(s) is str)
 	splitted = s.split(',')
@@ -72,10 +111,10 @@ class Dialog (BaseWarnMethods):
 		else:
 			self.__okMethod = okMethod
 		
-		self.__dialogOkButton = Button(text = dialogOkButtonText, on_release = self.__okMethod)
+		self.__dialogOkButton = CancelableButton(text = dialogOkButtonText, on_release = self.__okMethod)
 		popUpLayout.add_widget(self.mainPopUpText)
 		yesNoLayout.add_widget(self.__dialogOkButton)
-		yesNoLayout.add_widget(Button(text = dialogCancelButtonText, on_release = self.mainPopUp.dismiss))
+		yesNoLayout.add_widget(CancelableButton(text = dialogCancelButtonText, on_release = self.mainPopUp.dismiss))
 		popUpLayout.add_widget(yesNoLayout)
 		self.mainPopUp.content = popUpLayout
 
@@ -92,7 +131,8 @@ class AlertPopUp (BaseWarnMethods):
 			text = alertText, size_hint = (1.0, 0.7)
 		)
 		mainPopUpBox.add_widget(self.mainPopUpText)
-		mainPopUpBox.add_widget(Button(text = closeButtonText, size_hint = (1.0, 0.3), on_release = self.mainPopUp.dismiss))
+		mainPopUpBox.add_widget(CancelableButton(text = closeButtonText, size_hint = (1.0, 0.3), 
+			on_release = self.mainPopUp.dismiss))
 		self.mainPopUp.content = mainPopUpBox
 
 class FileSelectionPopup:
@@ -109,7 +149,7 @@ class FileSelectionPopup:
 		self.__chosenFileInput = TextInput (text = '', multiline = False)
 		self.__fileChooser = FileChooserIconView(path = getcwd(), filters = filters)
 		self.__fileChooser.on_submit = self.__setFilenameWithoutTheFullPath
-		self.__cancelButton = Button(text = cancelButtonText, on_release = self.__contentPopup.dismiss)
+		self.__cancelButton = CancelableButton(text = cancelButtonText, on_release = self.__contentPopup.dismiss)
 
 	def getFileChooser (self):
 		return self.__fileChooser

@@ -6,7 +6,6 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
-from kivy.core.window import Window
 
 from sys import exit
 
@@ -21,10 +20,6 @@ from communicationobjects import CollisionToSceneCommunication, CollisionToMainL
 
 @Singleton
 class KeyboardShortcutHandler:
-	
-	def __finishKeyboard(self):
-		self.__keyboard.unbind(on_key_down=self.__processKeyDown)
-		self.__keyboard.unbind(on_key_up=self.__processKeyUp)
 	
 	def __init__(self):
 		self.getKeyboardAccess()
@@ -96,12 +91,6 @@ class KeyboardShortcutHandler:
 		
 		return True
 	
-	def getKeyboardAccess(self):
-		self.__keyboard = Window.request_keyboard(self.__finishKeyboard, self)
-	
-		self.__keyboard.bind(on_key_down = self.__processKeyDown)
-		self.__keyboard.bind(on_key_up = self.__processKeyUp)
-
 class TileEditor(App):
 	
 	def build_config(self, c):
@@ -140,7 +129,8 @@ class TileEditor(App):
 		RenderObjectGuardian.Instance()
 		SceneAttributes.Instance(40, 20, 20)
 		Scene.Instance()
-		SceneHandler.Instance(self.rightScreen)
+		self.__sceneHandler = SceneHandler()
+		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
 		
 		# Collision Handlers:
 		CollisionGuardian.Instance()
@@ -152,8 +142,9 @@ class TileEditor(App):
 		OptionsMenu.Instance(self.rightScreen)
 
 		# Left Menu Handler
-		ObjectsMenu.Instance(self.leftMenuBase)
-		
+		ObjectsMenu.Instance()
+		self.leftMenuBase.add_widget(ObjectsMenu.Instance().getLayout())
+
 		# Keyboard handling
 		KeyboardShortcutHandler.Instance()
 

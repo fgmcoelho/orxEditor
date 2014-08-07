@@ -73,27 +73,28 @@ class ObjectsMenu:
 			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
 				self.__loadPng(item, pngsToIgnoreList)
 		
-		if (self.__layout is None):
-			self.__layout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None), spacing = (0, 3))
+		if (self.__objectListLayout is None):
+			self.__objectListLayout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None), spacing = (0, 3))
 		else:
-			self.__layout.rows = self.__numberOfItems
+			self.__objectListLayout.rows = self.__numberOfItems
 
 		for menuObject in self.__menuObjectsList:
 			img = menuObject.getDisplayImage()
-			self.__layout.add_widget(img)
+			self.__objectListLayout.add_widget(img)
 
-		self.__layout.size[1] = (self.__numberOfItems * 67)
+		self.__objectListLayout.size[1] = (self.__numberOfItems * 67)
 		
-	def __init__(self, leftMenu):
-		self.__layout = None
+	def __init__(self):
+		self.__objectListLayout = None
 
 		self.__loadItems()
 
 		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
-		self.__scrollView.add_widget(self.__layout)
+		self.__scrollView.add_widget(self.__objectListLayout)
 		self.__scrollView.do_scroll_x = False
 
-		leftMenu.add_widget(self.__scrollView)
+	def getLayout(self):
+		return sefl.__scrollView
 
 	def resetAllWidgets(self):
 		for menuObject in self.__menuObjectsList:

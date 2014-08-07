@@ -61,7 +61,6 @@ class SceneAction:
 				self.__undoList.append(obj.hide)
 				self.__redoList.append(obj.show)
 
-
 	def redo(self):
 		i = 0
 		for method in self.__redoList:
@@ -84,7 +83,6 @@ class SceneAction:
 		for obj in self.__objectsList:
 			if (obj.getHidden() == True):
 				obj.finish()
-
 
 class SceneActionHistory:
 	def __init__(self):
