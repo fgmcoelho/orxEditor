@@ -7,7 +7,6 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.config import Config
-from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.image import Image
 from kivy.core.image import Image as CoreImage
@@ -21,13 +20,13 @@ from kivy.graphics.texture import Texture
 from os.path import  join, exists
 from os import getcwd, sep as pathSeparator
 
-from editorutils import Dialog, AlertPopUp, FileSelectionPopup
+from editorutils import Dialog, AlertPopUp, FileSelectionPopup, EmptyScrollEffect, CancelableButton
 from splittedimagemap import SplittedImageMap
 
 
 class LeftMenu:
 
-	def __processSplit(self, notUsed = None):
+	def __processSplit(self, *args):
 		try:
 			width = int(self.__widthInput.text)
 			height = int(self.__heightInput.text)
@@ -40,7 +39,7 @@ class LeftMenu:
 
 		self.__displayReference.updateDisplay(width, height, startX, startY)
 
-	def __processRelativeSplit(self, notUsed = None):
+	def __processRelativeSplit(self, *args):
 		try:
 			partitionOnX = int (self.__partitionOnXInput.text)
 			partitionOnY = int (self.__partitionOnYInput.text)
@@ -51,11 +50,11 @@ class LeftMenu:
 
 		self.__displayReference.updateDisplayRelative(partitionOnX, partitionOnY)
 
-	def __reset(self, notUsed = None):
+	def __reset(self, *args):
 		if (self.__displayReference.getState() != DisplayStates.showingNoImage):
 			self.__displayReference.showSingleBaseImage()
 	
-	def __export(self, notUsed = None):
+	def __export(self, *args):
 		colorToAlpha = None
 		if (self.__colorToAlphaCheckbox.active == True):
 			colorToAlpha = self.__hexColor
@@ -72,7 +71,7 @@ class LeftMenu:
 		self.__cancelExport()
 		self.__displayReference.clearImage()
 
-	def __validateExportOptions(self, notUsed = None):
+	def __validateExportOptions(self, *args):
 		
 		self.__finalName = ''
 		self.__divs = None
@@ -138,7 +137,7 @@ class LeftMenu:
 			self.__export()
 			
 
-	def __openExportOptions(self, notUsed = None):
+	def __openExportOptions(self, *args):
 		if self.__colorToAlphaCheckbox.active == True:
 			self.__exportColorToAlphaImage.color = self.__whiteImage.color
 			if (self.__exportColorToAlphaBox.parent is None):
@@ -174,7 +173,7 @@ class LeftMenu:
 		
 		self.__whiteImage.color = newColor
 	
-	def __cancelExport(self, notUsed = None):
+	def __cancelExport(self, *args):
 		if (self.__lastDisplayUsed == 'Absolute'):
 			self.__showSplitLayout()
 		else:
@@ -182,24 +181,24 @@ class LeftMenu:
 
 		self.__displayReference.showSingleBaseImage()
 
-	def __showExportLayoutIfPossible(self, notUsed = None):
+	def __showExportLayoutIfPossible(self, *args):
 		if (self.__displayReference.getState() == DisplayStates.showingSplitResult):
 			self.__showExportLayout()
 	
-	def __setFileInput(self, entry, notUsed = None):
+	def __setFileInput(self, entry, *args):
 		sepIndex = entry[0].rfind(pathSeparator)
 		if (sepIndex != -1):
 			self.__exportBaseNameInput.text = entry[0][sepIndex+1:]
 		else:
 			self.__exportBaseNameInput.text = entry[0]
 	
-	def __doOpenNewImage(self, notUsed = None):
+	def __doOpenNewImage(self, *args):
 		src = join(self.__newImageChooser.getFileChooser().path, self.__newImageChooser.getTextInput().text)
 		self.__displayReference.setBaseImage(src)
 		self.__newImageDialog.dismiss()
 		self.__newImageChooser.dismiss()
 
-	def __validateNewOpen(self, notUsed = None):
+	def __validateNewOpen(self, *args):
 		filename = self.__newImageChooser.getTextInput().text
 		filepath = self.__newImageChooser.getFileChooser().path
 		if (filename == ''):
@@ -233,7 +232,7 @@ class LeftMenu:
 		chooser.size_hint = (1.0, 0.8)
 		fullBox.add_widget(chooser)
 		buttonsBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		buttonsBox.add_widget(Button(text = 'Ok', on_release = self.__validateNewOpen))
+		buttonsBox.add_widget(CancelableButton(text = 'Ok', on_release = self.__validateNewOpen))
 		buttonsBox.add_widget(self.__newImageChooser.getCancelButton())
 		fullBox.add_widget(buttonsBox)
 		self.__newImageChooser.setContent(fullBox)
@@ -272,8 +271,8 @@ class LeftMenu:
 		self.__exportRightPartBox.add_widget(self.__exportBlankLabel)
 
 		self.__exportButtonsBottomBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		self.__exportButtonsBottomBar.add_widget(Button(text = 'Ok', on_release = self.__validateExportOptions))
-		self.__exportButtonsBottomBar.add_widget(Button(text = 'Cancel', on_release = self.__exportPopup.dismiss))
+		self.__exportButtonsBottomBar.add_widget(CancelableButton(text = 'Ok', on_release = self.__validateExportOptions))
+		self.__exportButtonsBottomBar.add_widget(CancelableButton(text = 'Cancel', on_release = self.__exportPopup.dismiss))
 
 		self.__exportRightPartBox.add_widget(self.__exportButtonsBottomBar)
 
@@ -308,19 +307,19 @@ class LeftMenu:
 		self.__relativeSplitLayout.add_widget(Label(text='', size_hint = (1.0, 0.55)))
 
 		self.__relativeSplitLayout.add_widget(
-			Button(text = "New Image", on_release = self.__newImageChooser.open, size_hint = (1.0, 0.05))
+			CancelableButton(text = "New Image", on_release = self.__newImageChooser.open, size_hint = (1.0, 0.05))
 		)
 		self.__relativeSplitLayout.add_widget(
-			Button(text = "Change Method", on_release = self.__showSplitLayout, size_hint = (1.0, 0.05))
+			CancelableButton(text = "Change Method", on_release = self.__showSplitLayout, size_hint = (1.0, 0.05))
 		)
 		self.__relativeSplitLayout.add_widget(
-			Button(text = "Split!", on_release = self.__processRelativeSplit, size_hint = (1.0, 0.05))
+			CancelableButton(text = "Split!", on_release = self.__processRelativeSplit, size_hint = (1.0, 0.05))
 		)
 		self.__relativeSplitLayout.add_widget(
-			Button(text = "Export", on_release = self.__showExportLayoutIfPossible, size_hint = (1.0, 0.05))
+			CancelableButton(text = "Export", on_release = self.__showExportLayoutIfPossible, size_hint = (1.0, 0.05))
 		)
 		self.__relativeSplitLayout.add_widget(
-			Button(text = "Reset", on_release = self.__reset, size_hint = (1.0, 0.05))
+			CancelableButton(text = "Reset", on_release = self.__reset, size_hint = (1.0, 0.05))
 		)
 
 	def __createSplitLayout(self):
@@ -342,19 +341,19 @@ class LeftMenu:
 		self.__splitLayout.add_widget(Label(text='', size_hint = (1.0, 0.35)))
 
 		self.__splitLayout.add_widget(
-			Button(text = "New Image", on_release = self.__newImageChooser.open, size_hint = (1.0, 0.05))
+			CancelableButton(text = "New Image", on_release = self.__newImageChooser.open, size_hint = (1.0, 0.05))
 		)
 		self.__splitLayout.add_widget(
-			Button(text = "Change Method", on_release = self.__showRelativeSplitLayout, size_hint = (1.0, 0.05))
+			CancelableButton(text = "Change Method", on_release = self.__showRelativeSplitLayout, size_hint = (1.0, 0.05))
 		)
 		self.__splitLayout.add_widget(
-			Button(text = "Split!", on_release = self.__processSplit, size_hint = (1.0, 0.05))
+			CancelableButton(text = "Split!", on_release = self.__processSplit, size_hint = (1.0, 0.05))
 		)
 		self.__splitLayout.add_widget(
-			Button(text = "Export", on_release = self.__showExportLayoutIfPossible, size_hint = (1.0, 0.05))
+			CancelableButton(text = "Export", on_release = self.__showExportLayoutIfPossible, size_hint = (1.0, 0.05))
 		)
 		self.__splitLayout.add_widget(
-			Button(text = "Reset", on_release = self.__reset, size_hint = (1.0, 0.05))
+			CancelableButton(text = "Reset", on_release = self.__reset, size_hint = (1.0, 0.05))
 		)
 
 	def __createExportLayout(self):
@@ -369,21 +368,21 @@ class LeftMenu:
 		colorToAlphaConfirmationBox.add_widget(Label(text = 'Replace color to alpha 0'))
 
 		self.__exportLayout.add_widget(colorToAlphaConfirmationBox)
-		self.__exportLayout.add_widget(Button(text = 'Done', on_release = self.__openExportOptions))
-		self.__exportLayout.add_widget(Button(text = 'Cancel', on_release = self.__cancelExport))
+		self.__exportLayout.add_widget(CancelableButton(text = 'Done', on_release = self.__openExportOptions))
+		self.__exportLayout.add_widget(CancelableButton(text = 'Cancel', on_release = self.__cancelExport))
 
-	def __showExportLayout(self, notUsed = None):
+	def __showExportLayout(self, *args):
 		self.__baseReference.clear_widgets()
 		self.__whiteImage.color = [1.0, 1.0, 1.0, 1.0]
 		self.__baseReference.add_widget(self.__exportLayout)
 		self.__displayReference.showSplittedImagesList(self.__setAplhaColor)
 
-	def __showSplitLayout(self, notUsed = None):
+	def __showSplitLayout(self, *args):
 		self.__lastDisplayUsed = 'Absolute'
 		self.__baseReference.clear_widgets()
 		self.__baseReference.add_widget(self.__splitLayout)
 
-	def __showRelativeSplitLayout(self, notUsed = None):
+	def __showRelativeSplitLayout(self, *args):
 		self.__lastDisplayUsed = 'Relative'
 		self.__baseReference.clear_widgets()
 		self.__baseReference.add_widget(self.__relativeSplitLayout)
@@ -436,7 +435,8 @@ class Display:
 		
 		self.__grid = GridLayout(cols = 1, rows = 1, size_hint = (None, None))
 
-		self.__scrollView = ScrollView(size_hint = (None, None))
+		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), 
+			effect_cls = EmptyScrollEffect)
 		self.__scrollView.add_widget(self.__grid)
 		base.add_widget(self.__scrollView)
 
