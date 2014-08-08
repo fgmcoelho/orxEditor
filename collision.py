@@ -22,6 +22,7 @@ from operator import itemgetter
 from string import letters, digits
 from math import ceil, sqrt
 
+from editorheritage import SpecialScrollControl
 from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, AutoReloadTexture, CancelableButton
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
 
@@ -221,8 +222,7 @@ class CollisionFormEditorPoints(Scatter):
 		#	Rectangle(pos = self.pos, size = self.size)
 	
 
-@Singleton
-class CollisionFlagFormEditorPopup:
+class CollisionFlagFormEditorLayout(SpecialScrollControl):
 
 	def __updatePoints(self, *args):
 		l = []
@@ -232,34 +232,14 @@ class CollisionFlagFormEditorPopup:
 		self.__workingPart.setPoints(l)
 		self.__display.drawPart(self.__workingPart)
 		
-	def __handleScrollAndPassTouchDownToChildren(self, touch):
-		if (self.__mainScreen.collide_point(*touch.pos) == False):
-			return
-
-		if (touch.is_mouse_scrolling == True):
-			if (self.__isShiftPressed == False):
-				if (touch.button == "scrollup" and self.__mainScreen.scroll_y > 0):
-					self.__mainScreen.scroll_y -= 0.05
-				elif (touch.button == "scrolldown" and self.__mainScreen.scroll_y < 1.0):
-					self.__mainScreen.scroll_y += 0.05
-			else:
-				if (touch.button == "scrolldown" and self.__mainScreen.scroll_x > 0):
-					self.__mainScreen.scroll_x -= 0.05
-				elif (touch.button == "scrollup" and self.__mainScreen.scroll_x < 1.0):
-					self.__mainScreen.scroll_x += 0.05
-
-			return 
-		
-		self.__defaultTouchDown(touch)
-
-	def __render(self, part, obj):
-		self.__mainScreen.clear_widgets()
+	def render(self, part, obj):
+		self._scrollView.clear_widgets()
 		self.__display = CollisionPartDisplay(obj)
 		self.__originalPart = part
 		self.__workingPart = CollisionPartInformation.copy(part)
 
 		self.__display.drawPart(self.__workingPart)
-		self.__mainScreen.add_widget(self.__display)
+		self._scrollView.add_widget(self.__display)
 		
 		self.__pointsList = []
 		form = self.__workingPart.getFormType()
@@ -292,15 +272,30 @@ class CollisionFlagFormEditorPopup:
 				self.__pointsList[1].setPos((obj.getSize()[0], 0))
 				self.__pointsList[2].setPos(obj.getSize())
 				self.__pointsList[3].setPos((0, obj.getSize()[1]))
+	
+	def __handleScrollAndPassTouchDownToChildren(self, touch):
+		if (self._scrollView.collide_point(*touch.pos) == False):
+			return
 
+		if (touch.is_mouse_scrolling == True):
+			return self.specialScroll(touch)
+		
+		self.__defaultTouchDown(touch)
 
 	def __init__(self):
+		super(CollisionFlagFormEditorLayout, self).__init__(size_hint = (1.0, 0.9))
+		
+		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+		self.__defaultTouchDown = self._scrollView.on_touch_down
 
-		self.__isShiftPressed = False
+@Singleton
+class CollisionFlagFormEditorPopup:
+
+	def __init__(self):
 	
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout)
-		self.__mainScreen = ScrollView(size_hint = (1.0, 0.9), scroll_timeout = 0)
+		self.__mainScreen = CollisionFlagFormEditorLayout()
 		self.__bottomMenu = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.15, 1.0), 
 				on_release = self.__popup.dismiss)
@@ -309,18 +304,11 @@ class CollisionFlagFormEditorPopup:
 		self.__bottomMenu.add_widget(self.__cancelButton)
 		self.__bottomMenu.add_widget(self.__doneButton)
 
-		self.__layout.add_widget(self.__mainScreen)
+		self.__layout.add_widget(self.__mainScreen.getLayout())
 		self.__layout.add_widget(self.__bottomMenu)
-
-		self.__defaultTouchDown = self.__mainScreen.on_touch_down
-		self.__mainScreen.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
-
-
-	def setIsShiftPressed(self, value):
-		self.__isShiftPressed = value
 		
 	def showPopUp(self, part, obj):
-		self.__render(part, obj)
+		self.__mainLayout.render(part, obj)
 		self.__popup.open()
 
 @Singleton

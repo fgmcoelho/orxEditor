@@ -1,14 +1,13 @@
-from singleton import Singleton
-from editorutils import AutoReloadTexture
-
 from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
-
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
 from os import sep as pathSeparator
+
 from collision import CollisionInformation
+from editorutils import AutoReloadTexture
+from editorheritage import SpaceLimitedObject
 
 class SceneAction:
 	def __init__(self, action, objectsList, args = []):
@@ -113,7 +112,6 @@ class SceneActionHistory:
 			action.redo()
 			self.__historyList.append(action)
 
-@Singleton
 class RenderObjectGuardian:
 
 	def __getSelectionLimits(self):
@@ -423,15 +421,15 @@ class BaseObject:
 	def getSpriteInfo(self):
 		return self.__spriteInfo
 
-class RenderedObject (Scatter):
+class RenderedObject (Scatter, SpaceLimitedObject):
 
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
 		
-		if (self.__forceMove == False and RenderObjectGuardian.Instance().isSelected(self) == False):
+		if (self.__forceMove == False and self.__renderGuardian.isSelected(self) == False):
 			return
 
 		if (self.__forceMove == False):
-			RenderObjectGuardian.Instance().propagateTranslation(self, trans, post_multiply, anchor)
+			self.__renderGuardian.propagateTranslation(self, trans, post_multiply, anchor)
 
 		xBefore, yBefore = self.bbox[0]
 
@@ -441,17 +439,7 @@ class RenderedObject (Scatter):
 		if (xBefore == x and yBefore == y):
 			return
 
-		if (x < 0):
-			x = 0
-		elif (x + self.__sx > self.__maxX):
-			x = self.__maxX - self.__sx
-
-		if (y < 0):
-			y = 0
-		elif (y + self.__sy > self.__maxY):
-			y = self.__maxY - self.__sy
-
-		self._set_pos((int(x), int(y)))
+		self._set_pos(self.ajustPositionByLimits(x, y, self.__sx, self.__sy, self.__maxX, self.__maxY))
 
 	def applyTranslationStart(self, translation, post_multiply, anchor):
 		self.__defaultApplyTransform(translation, post_multiply, anchor)
@@ -568,14 +556,14 @@ class RenderedObject (Scatter):
 		self.__defaultTouchDown(touch)
 
 	def __handleTouchUp(self, touch):
-		RenderObjectGuardian.Instance().endMovement()
+		self.__renderGuardian.endMovement()
 
 		self.__defaultTouchUp(touch)
 
 	def __handleTouchMove(self, touch):
 		self.__defaultTouchMove(touch)
 
-	def __init__(self, identifier, obj, pos, tileSize, maxX, maxY):
+	def __init__(self, identifier, obj, pos, tileSize, maxX, maxY, guardianToUse):
 		assert (isinstance(obj, BaseObject) or isinstance(obj, RenderedObject))
 		assert (type(maxX) is int and type(maxY) is int)
 		
@@ -621,6 +609,7 @@ class RenderedObject (Scatter):
 
 		self.add_widget(self.image)
 		
+		self.__renderGuardian = guardianToUse
 		self.__isFinished = False
 		self.__isHidden = False
 		self.__forceMove = False

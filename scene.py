@@ -1,13 +1,15 @@
 from singleton import Singleton
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.relativelayout import RelativeLayout
 
-from editorobjects import RenderObjectGuardian
-from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
 from operator import itemgetter
+
+from editorheritage import SpecialScrollControl
+from editorobjects import RenderObjectGuardian
+from keyboard import KeyboardAccess
+from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 
 @Singleton
 class SceneAttributes:
@@ -24,13 +26,13 @@ class SceneAttributes:
 		else:
 			return None
 
-@Singleton
 class Scene:
 	
 	def __init__(self):
 		self.__alignToGrid = False
 		self.__objectDict = {}
 		self.__layout = RelativeLayout(size_hint = (None, None), on_resize = self.redraw)
+		self.__renderGuardian = RenderObjectGuardian()
 		self.loadValues()
 
 	def showGrid(self):
@@ -112,10 +114,10 @@ class Scene:
 				obj[0].alignToGrid()
 
 	def undo(self):
-		RenderObjectGuardian.Instance().undo()
+		self.__renderGuardian.undo()
 
 	def redo(self):
-		RenderObjectGuardian.Instance().redo()
+		self.__renderGuardian.redo()
 
 	def clear(self, unusedDt = None):
 		for key in self.__objectDict.keys():
@@ -124,19 +126,18 @@ class Scene:
 				self.__objectDict[key] = None
 				del self.__objectDict[key]
 
-
 	def increaseScale(self):
-		obj = RenderObjectGuardian.Instance().increaseScale()
+		obj = self.__renderGuardian.increaseScale()
 		if (obj is not None):
 			ObjectDescriptor.Instance().setObject(obj)
 	
 	def decreaseScale(self):
-		obj = RenderObjectGuardian.Instance().decreaseScale()
+		obj = self.__renderGuardian.decreaseScale()
 		if (obj is not None):
 			ObjectDescriptor.Instance().setObject(obj)
 
 	def flipOnX(self):
-		flippedObjects = RenderObjectGuardian.Instance().flipSelectionOnX()
+		flippedObjects = self.__renderGuardian.flipSelectionOnX()
 		numberOfFlippedObjects = len(flippedObjects)
 		if (numberOfFlippedObjects == 1):
 			ObjectDescriptor.Instance().setObject(flippedObjects[0])
@@ -144,7 +145,7 @@ class Scene:
 			MultipleSelectionDescriptor.Instance().setValues(numberOfFlippedObjects)
 
 	def flipOnY(self):
-		flippedObjects = RenderObjectGuardian.Instance().flipSelectionOnY()
+		flippedObjects = self.__renderGuardian.flipSelectionOnY()
 		numberOfFlippedObjects = len(flippedObjects)
 		if (numberOfFlippedObjects == 1):
 			ObjectDescriptor.Instance().setObject(flippedObjects[0])
@@ -153,15 +154,15 @@ class Scene:
 
 	def removeObject(self):
 			
-		deletedObjects = RenderObjectGuardian.Instance().deleteSelection()
+		deletedObjects = self.__renderGuardian.deleteSelection()
 		if (len(deletedObjects) != 0):	
 			ObjectDescriptor.Instance().clearCurrentObject()
 		
 	def alignToGrid(self):
-		RenderObjectGuardian.Instance().alignSelectionToGrid()
+		self.__renderGuardian.alignSelectionToGrid()
 
 	def copyObject(self, direction):
-		newObjects = RenderObjectGuardian.Instance().copySelection(direction, self.__id, self.__tileSize, self.__maxX, self.__maxY)
+		newObjects = self.__renderGuardian.copySelection(direction, self.__id, self.__tileSize, self.__maxX, self.__maxY)
 		for renderedObject in newObjects:
 			self.__layout.add_widget(renderedObject)
 			self.__objectDict[self.__id] = renderedObject
@@ -174,7 +175,7 @@ class Scene:
 			MultipleSelectionDescriptor.Instance().setValues(numberOfNewObjects)
 	
 	def unselectAll(self):
-		RenderObjectGuardian.Instance().unsetSelection()
+		self.__renderGuardian.unsetSelection()
 		ObjectDescriptor.Instance().clearCurrentObject()
 	
 	def resetAllWidgets(self):
@@ -192,7 +193,7 @@ class Scene:
 	def addObject(self, obj, relativeX, relaviveY):
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
 		
-		newRenderedObject = RenderObjectGuardian.Instance().createNewObject(self.__id, obj, pos, self.__tileSize, self.__maxX, 
+		newRenderedObject = self.__renderGuardian.createNewObject(self.__id, obj, pos, self.__tileSize, self.__maxX, 
 				self.__maxY)
 		
 		self.__layout.add_widget(newRenderedObject)
@@ -213,112 +214,162 @@ class Scene:
 		return objectsList
 
 	def getSelectedObjects(self):
-		return RenderObjectGuardian.Instance().getSelection()
+		return self.__renderGuardian.getSelection()
+
+	def getRenderGuardian(self):
+		return self.__renderGuardian
 
 
-@Singleton
-class SceneHandler:
-
-	def setIsShiftPressed(self, value):
-		self.__isShiftPressed = value
+class SceneHandler (SpecialScrollControl, KeyboardAccess):
 	
-	def setIsCtrlPressed(self, value):
-		self.__isCtrlPressed = value
+	# Overloaded method
+	def _processKeyDown(self, keyboard, keycode):
+		if (keycode[1] == 'shift'):
+			self.setIsShiftPressed(False)
+
+		elif (keycode[1] == 'ctrl'):
+			self.setIsCtrlPressed(False)
+	
+	# Overloaded method
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'q'):
+			self.__sceneList[self.__currentIndex].alignToGrid()
+
+		elif (keycode[1] == 'a'):
+			self.__sceneList[self.__currentIndex].copyObject("left")
+
+		elif (keycode[1] == 's'):
+			self.__sceneList[self.__currentIndex].copyObject("down")
+		
+		elif (keycode[1] == 'd'):
+			self.__sceneList[self.__currentIndex].copyObject("right")
+		
+		elif (keycode[1] == 'w'):
+			self.__sceneList[self.__currentIndex].copyObject("up")
+
+		elif (keycode[1] == 'e'):
+			self.__sceneList[self.__currentIndex].unselectAll()
+
+		elif (keycode[1] == 'shift'):
+			self.setIsShiftPressed(True)
+
+		elif (keycode[1] == 'ctrl'):
+			self.setIsCtrlPressed(True)
+
+		elif (keycode[1] == 'delete'):
+			self.__sceneList[self.__currentIndex].removeObject()
+
+		elif (keycode[1] == 'r'):
+			self.__sceneList[self.__currentIndex].increaseScale()
+
+		elif (keycode[1] == 't'):
+			self.__sceneList[self.__currentIndex].decreaseScale()
+
+		elif (keycode[1] == 'f'):
+			self.__sceneList[self.__currentIndex].flipOnX()
+		
+		elif (keycode[1] == 'g'):
+			self.__sceneList[self.__currentIndex].flipOnY()
+
+		elif (keycode[1] == '\''):
+			self.__sceneList[self.__currentIndex].toggleGrid()
+
+		elif (keycode[1] == 'z'):
+			self.__sceneList[self.__currentIndex].undo()
+
+		elif (keycode[1] == '\\'):
+			self.__sceneList[self.__currentIndex].redo()
+
+	def __getSelectedObjectByClick(self, touch):
+		clickedObjectsList = []
+		childDict = self.__sceneList[self.__currentIndex].getObjectsDict()
+		for key in childDict.keys():
+			if (childDict[key].collide_point(*self._scrollView.to_widget(*touch.pos)) == True 
+					and childDict[key].getHidden() == False):
+				clickedObjectsList.append(childDict[key])
+			
+		first = True
+		selectedObject = None
+		for obj in clickedObjectsList:
+
+			if (first == True):
+				selectedObject = obj
+				first = False
+			else:
+				if (selectedObject.getIdentifier() < obj.getIdentifier()):
+					selectedObject = obj
+
+		return selectedObject
+
+	def __selectObject(self, objectToSelect):
+		if (self._isCtrlPressed == False):
+			ObjectDescriptor.Instance().setObject(objectToSelect)
+			self.__sceneList[self.__currentIndex].getRenderGuardian().setSingleSelectionObject(objectToSelect)
+		else:
+			selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().addObjectToSelection(objectToSelect)
+			numberOfSelectedObjects = len(selectedObjectsList)
+			if (numberOfSelectedObjects == 1):
+				ObjectDescriptor.Instance().setObject(selectedObjectsList[0])
+			elif(numberOfSelectedObjects > 1):
+				MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
+
+	def __unselectObject(self, objectToUnselect):
+		selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().unselectObject(objectToUnselect)
+		numberOfSelectedObjects = len(selectedObjectsList)
+		if (numberOfSelectedObjects == 0):
+			ObjectDescriptor.Instance().clearCurrentObject()
+		elif(numberOfSelectedObjects == 1):
+			ObjectDescriptor.Instance().setObject(selectedObjectsList[0])
+		else:
+			MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
 
 	def __ignoreMoves(self, touch):
 		return None
 	
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		
-		Scene.Instance().redraw()
+		self.__sceneList[self.__currentIndex].redraw()
 		self.__defaultTouchUp(touch)
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
-		if (self.__scrollView.collide_point(*touch.pos) == False):
+		if (self._scrollView.collide_point(*touch.pos) == False):
 			return
 
 		if (touch.is_mouse_scrolling == True):
-			if (self.__isShiftPressed == False):
-				if (touch.button == "scrollup" and self.__scrollView.scroll_y > 0):
-					self.__scrollView.scroll_y -= 0.05
-				elif (touch.button == "scrolldown" and self.__scrollView.scroll_y < 1.0):
-					self.__scrollView.scroll_y += 0.05
-			else:
-				if (touch.button == "scrolldown" and self.__scrollView.scroll_x > 0):
-					self.__scrollView.scroll_x -= 0.05
-				elif (touch.button == "scrollup" and self.__scrollView.scroll_x < 1.0):
-					self.__scrollView.scroll_x += 0.05
-
-			return 
+			return self.specialScroll(touch)
 		
 		else:
-			clickedObjectsList = []
-			childDict = Scene.Instance().getObjectsDict()
-			for key in childDict.keys():
-				if (childDict[key].collide_point(*self.__scrollView.to_widget(*touch.pos)) == True 
-						and childDict[key].getHidden() == False):
-					clickedObjectsList.append(childDict[key])
-				
-			first = True
-			selectedObject = None
-			for obj in clickedObjectsList:
-
-				if (first == True):
-					selectedObject = obj
-					first = False
-				else:
-					if (selectedObject.getIdentifier() < obj.getIdentifier()):
-						selectedObject = obj
-
+			selectedObject = self.__getSelectedObjectByClick(touch)
 			if (selectedObject is not None):
 				if (touch.is_double_tap == False):
-					if (self.__isCtrlPressed == False):
-						ObjectDescriptor.Instance().setObject(selectedObject)
-						RenderObjectGuardian.Instance().setSingleSelectionObject(selectedObject)
-					else:
-						selectedObjectsList = RenderObjectGuardian.Instance().addObjectToSelection(selectedObject)
-						numberOfSelectedObjects = len(selectedObjectsList)
-						if (numberOfSelectedObjects == 1):
-							ObjectDescriptor.Instance().setObject(selectedObjectsList[0])
-						elif(numberOfSelectedObjects > 1):
-							MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
-
+					self.__selectObject(selectedObject)
 				else:
-					selectedObjectsList = RenderObjectGuardian.Instance().unselectObject(selectedObject)
-					numberOfSelectedObjects = len(selectedObjectsList)
-					if (numberOfSelectedObjects == 0):
-						ObjectDescriptor.Instance().clearCurrentObject()
-					elif(numberOfSelectedObjects == 1):
-						ObjectDescriptor.Instance().setObject(selectedObjectsList[0])
-					else:
-						MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
-
+					self.__unselectObject(selectedObject)
 
 		self.__defaultTouchDown(touch)
 	
 	def __init__(self, maxWidthProportion = 1.0, maxHeightProportion = 0.667):
 		
-		self.__isShiftPressed = False
-		self.__isCtrlPressed = False
 		self.__maxWidthProportion = maxWidthProportion
 		self.__maxHeightProportion = maxHeightProportion
 		
-		self.__scrollView = ScrollView(scroll_timeout = 0, size_hint = (maxWidthProportion, maxHeightProportion))
-		self.__scrollView.on_touch_move = self.__ignoreMoves
-		self.__defaultTouchDown = self.__scrollView.on_touch_down
-		self.__defaultTouchUp = self.__scrollView.on_touch_up
+		super(SceneHandler, self).__init__(size_hint = (maxWidthProportion, maxHeightProportion))
+		
+		self._scrollView.on_touch_move = self.__ignoreMoves
+		self.__defaultTouchDown = self._scrollView.on_touch_down
+		self.__defaultTouchUp = self._scrollView.on_touch_up
 
-		self.__scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
-		self.__scrollView.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
+		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+		self._scrollView.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
 
-		self.__scrollView.add_widget(Scene.Instance().getLayout())
-		rightScreen.add_widget(self.__scrollView)
+		self.__sceneList = []
+		self.__sceneList.append(Scene())
+		self.__currentIndex = 0
+
+		self._scrollView.add_widget(self.__sceneList[self.__currentIndex].getLayout())
 		
 	def draw(self, obj):
-		relativeX = self.__scrollView.hbar[0]
-		relaviveY = self.__scrollView.vbar[0]
-		Scene.Instance().addObject(obj, relativeX, relaviveY)
+		relativeX = self._scrollView.hbar[0]
+		relaviveY = self._scrollView.vbar[0]
+		self.__sceneList[self.__currentIndex].addObject(obj, relativeX, relaviveY)
 
-	def getLayout(self):
-		return self.__scrollView
 

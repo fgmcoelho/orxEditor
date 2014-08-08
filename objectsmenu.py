@@ -94,7 +94,7 @@ class ObjectsMenu:
 		self.__scrollView.do_scroll_x = False
 
 	def getLayout(self):
-		return sefl.__scrollView
+		return self.__scrollView
 
 	def resetAllWidgets(self):
 		for menuObject in self.__menuObjectsList:

@@ -7,90 +7,13 @@ from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 
-from sys import exit
-
-from singleton import Singleton
 from optionsmenu import OptionsMenu
-from scene import Scene, SceneHandler,SceneAttributes
+from scene import SceneHandler, SceneAttributes
 from objectsmenu import ObjectsMenu
-from editorobjects import RenderObjectGuardian
 from tilemapfiles import FilesManager
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
 from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
 
-@Singleton
-class KeyboardShortcutHandler:
-	
-	def __init__(self):
-		self.getKeyboardAccess()
-	
-	def __processKeyUp(self, keyboard, keycode):
-		if (keycode[1] == 'shift'):
-			SceneHandler.Instance().setIsShiftPressed(False)
-			CollisionFlagFormEditorPopup.Instance().setIsShiftPressed(False)
-
-		elif (keycode[1] == 'ctrl'):
-			SceneHandler.Instance().setIsCtrlPressed(False)
-
-	def __processKeyDown(self, keyboard, keycode, text, modifiers):
-		#print('The key', keycode, 'have been pressed')
-		#print(' - text is %r' % text)
-		#print(' - modifiers are %r' % modifiers)
-
-		if (keycode[1] == 'q'):
-			Scene.Instance().alignToGrid()
-
-		elif (keycode[1] == 'a'):
-			Scene.Instance().copyObject("left")
-
-		elif (keycode[1] == 's'):
-			Scene.Instance().copyObject("down")
-		
-		elif (keycode[1] == 'd'):
-			Scene.Instance().copyObject("right")
-		
-		elif (keycode[1] == 'w'):
-			Scene.Instance().copyObject("up")
-
-		elif (keycode[1] == 'e'):
-			Scene.Instance().unselectAll()
-
-		elif (keycode[1] == 'shift'):
-			SceneHandler.Instance().setIsShiftPressed(True)
-			CollisionFlagFormEditorPopup.Instance().setIsShiftPressed(True)
-
-		elif (keycode[1] == 'ctrl'):
-			SceneHandler.Instance().setIsCtrlPressed(True)
-
-		elif (keycode[1] == 'delete'):
-			Scene.Instance().removeObject()
-
-		elif (keycode[1] == 'escape'):
-			exit()
-
-		elif (keycode[1] == 'r'):
-			Scene.Instance().increaseScale()
-
-		elif (keycode[1] == 't'):
-			Scene.Instance().decreaseScale()
-
-		elif (keycode[1] == 'f'):
-			Scene.Instance().flipOnX()
-		
-		elif (keycode[1] == 'g'):
-			Scene.Instance().flipOnY()
-
-		elif (keycode[1] == '\''):
-			Scene.Instance().toggleGrid()
-
-		elif (keycode[1] == 'z'):
-			Scene.Instance().undo()
-
-		elif (keycode[1] == '\\'):
-			Scene.Instance().redo()
-		
-		return True
-	
 class TileEditor(App):
 	
 	def build_config(self, c):
@@ -126,9 +49,7 @@ class TileEditor(App):
 		FilesManager.Instance()
 
 		# Scene Editor handlers:
-		RenderObjectGuardian.Instance()
 		SceneAttributes.Instance(40, 20, 20)
-		Scene.Instance()
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
 		
@@ -145,11 +66,7 @@ class TileEditor(App):
 		ObjectsMenu.Instance()
 		self.leftMenuBase.add_widget(ObjectsMenu.Instance().getLayout())
 
-		# Keyboard handling
-		KeyboardShortcutHandler.Instance()
-
 		# Communication Objects
-		CollisionToMainLayoutCommunication.Instance(KeyboardShortcutHandler.Instance().getKeyboardAccess)
 		CollisionToSceneCommunication.Instance(Scene.Instance().getSelectedObjects, Scene.Instance().getAllValidObjects)
 
 		# Periodic functions:
