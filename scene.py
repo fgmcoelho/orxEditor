@@ -223,7 +223,8 @@ class Scene:
 class SceneHandler (SpecialScrollControl, KeyboardAccess):
 	
 	# Overloaded method
-	def _processKeyDown(self, keyboard, keycode):
+	def _processKeyUp(self, keyboard, keycode):
+	
 		if (keycode[1] == 'shift'):
 			self.setIsShiftPressed(False)
 
@@ -231,7 +232,8 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 			self.setIsCtrlPressed(False)
 	
 	# Overloaded method
-	def _processKeyUp(self, keyboard, keycode):
+	def _processKeyDown(self, keyboard, keycode, text, modifiers):
+
 		if (keycode[1] == 'q'):
 			self.__sceneList[self.__currentIndex].alignToGrid()
 
@@ -284,7 +286,7 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 		clickedObjectsList = []
 		childDict = self.__sceneList[self.__currentIndex].getObjectsDict()
 		for key in childDict.keys():
-			if (childDict[key].collide_point(*self._scrollView.to_widget(*touch.pos)) == True 
+			if (childDict[key].collide_point(*self.__sceneList[self.__currentIndex].getLayout().to_widget(*touch.pos, relative = False)) == True 
 					and childDict[key].getHidden() == False):
 				clickedObjectsList.append(childDict[key])
 			
@@ -339,6 +341,7 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 		
 		else:
 			selectedObject = self.__getSelectedObjectByClick(touch)
+			print selectedObject
 			if (selectedObject is not None):
 				if (touch.is_double_tap == False):
 					self.__selectObject(selectedObject)
@@ -366,10 +369,23 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 		self.__currentIndex = 0
 
 		self._scrollView.add_widget(self.__sceneList[self.__currentIndex].getLayout())
-		
+				
 	def draw(self, obj):
 		relativeX = self._scrollView.hbar[0]
 		relaviveY = self._scrollView.vbar[0]
 		self.__sceneList[self.__currentIndex].addObject(obj, relativeX, relaviveY)
 
+	def getAllObjects(self):
+		allObjectsList = []
+		for singleScene in self.__sceneList:
+			allObjectsList.extend(singleScene.getAllValidObjects())
+		
+		return allObjectsList
+		
+	def getCurrentSelection(self):
+		return self.__sceneList[self.__currentIndex].getSelectedObjects()
 
+	def clearScenes(self, dt = None):
+		for singleScene in self.__sceneList:
+			singleScene.clear(dt)
+		

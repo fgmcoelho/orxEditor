@@ -10,8 +10,8 @@ from kivy.uix.scrollview import ScrollView
 from splittedimagemap import SplittedImageMap
 from editorobjects import BaseObject
 from objectdescriptor import ObjectDescriptor
-from scene import SceneHandler
 from editorutils import EmptyScrollEffect
+from communicationobjects import SceneToObjectsMenu
 
 class ObjectMenuItem:
 
@@ -19,7 +19,7 @@ class ObjectMenuItem:
 		if (touch.is_mouse_scrolling == False and self.getDisplayImage().collide_point(*touch.pos) == True and 
 				touch.is_double_tap == True):
 			if (ObjectDescriptor.Instance().getCurrentObject() == self.getBaseObject()):
-				SceneHandler.Instance().draw(self.getBaseObject())
+				SceneToObjectsMenu.Instance().draw(self.getBaseObject())
 			else:
 				ObjectDescriptor.Instance().setObject(self.getBaseObject())
 

@@ -343,7 +343,7 @@ class RenderObjectGuardian:
 			newPos = (pos[0] + xAdjust, pos[1] + yAdjust)
 
 			if (newPos[0] >= 0 and newPos[1] >= 0 and newPos[0] < maxX and newPos[1] < maxY):
-				newObj = RenderedObject(newId, obj, newPos, tileSize, maxX, maxY)
+				newObj = RenderedObject(newId, obj, newPos, tileSize, maxX, maxY, self)
 				newId += 1
 				newSelection.append(newObj)
 
@@ -364,7 +364,7 @@ class RenderObjectGuardian:
 		return self.__multiSelectionObjects[:]
 
 	def createNewObject(self, idToUse, obj, pos, tileSize, maxX, maxY):
-		renderedObject = RenderedObject(idToUse, obj, pos, tileSize, maxX, maxY)
+		renderedObject = RenderedObject(idToUse, obj, pos, tileSize, maxX, maxY, self)
 		self.setSingleSelectionObject(renderedObject)
 
 		action = SceneAction("create", [renderedObject])

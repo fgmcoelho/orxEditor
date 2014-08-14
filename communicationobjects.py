@@ -21,3 +21,11 @@ class CollisionToMainLayoutCommunication:
 
 	def giveBackKeyboard(self):
 		self.__giveBackKeyboardMethod()
+
+@Singleton
+class SceneToObjectsMenu:
+	def __init__(self, drawMethod):
+		self.__drawMethod = drawMethod
+		
+	def draw(self, obj):
+		self.__drawMethod(obj)

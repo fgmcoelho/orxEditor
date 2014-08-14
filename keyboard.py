@@ -16,29 +16,31 @@ class KeyboardGuardian:
 		assert (isinstance(obj, KeyboardAccess))
 		assert (self.__stack != [])
 		assert (self.__stack[-1] == obj)
+		
 		obj.dropKeyboardAccess()
 		self.__stack.pop()
+		if (self.__stack != []):
+			self.__stack[-1].acquireKeyboard()
 
 	def __init__(self):
 		self.__stack = []
 
-
 class KeyboardAccess (object):
 
-	def _processKeyDown(self, keyboard, keycode):
+	def _processKeyDown(self, keyboard, keycode, text, modifiers):
 		pass
 
 	def _processKeyUp(self, keyboard, keycode):
 		pass
 
 	def dropKeyboardAccess(self):
-		self.__keyboard.unbind(on_key_down=self.__processKeyDown)
-		self.__keyboard.unbind(on_key_up=self.__processKeyUp)
+		self._keyboard.unbind(on_key_down=self._processKeyDown)
+		self._keyboard.unbind(on_key_up=self._processKeyUp)
 	
 	def acquireKeyboardAccess(self):
-		self.__keyboard = Window.request_keyboard(self.__finishKeyboard, self)
+		self._keyboard = Window.request_keyboard(None, None)
 	
-		self.__keyboard.bind(on_key_down = self._processKeyDown)
-		self.__keyboard.bind(on_key_up = self._processKeyUp)
+		self._keyboard.bind(on_key_down = self._processKeyDown)
+		self._keyboard.bind(on_key_up = self._processKeyUp)
 
 	

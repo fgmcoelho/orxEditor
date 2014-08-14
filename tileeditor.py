@@ -7,12 +7,13 @@ from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 
+from keyboard import KeyboardGuardian
 from optionsmenu import OptionsMenu
 from scene import SceneHandler, SceneAttributes
 from objectsmenu import ObjectsMenu
 from tilemapfiles import FilesManager
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
-from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
+from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu
 
 class TileEditor(App):
 	
@@ -45,6 +46,9 @@ class TileEditor(App):
 		self.root.add_widget(self.leftMenuBase)
 		self.root.add_widget(self.rightScreen)
 		
+		#Keyboard handler:
+		KeyboardGuardian.Instance()
+		
 		# Files handlers 
 		FilesManager.Instance()
 
@@ -52,6 +56,7 @@ class TileEditor(App):
 		SceneAttributes.Instance(40, 20, 20)
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
+		KeyboardGuardian.Instance().acquireKeyboard(self.__sceneHandler)
 		
 		# Collision Handlers:
 		CollisionGuardian.Instance()
@@ -67,10 +72,11 @@ class TileEditor(App):
 		self.leftMenuBase.add_widget(ObjectsMenu.Instance().getLayout())
 
 		# Communication Objects
-		CollisionToSceneCommunication.Instance(Scene.Instance().getSelectedObjects, Scene.Instance().getAllValidObjects)
-
+		CollisionToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection, self.__sceneHandler.getAllObjects)
+		SceneToObjectsMenu.Instance(self.__sceneHandler.draw)
+		
 		# Periodic functions:
-		Clock.schedule_interval(Scene.Instance().clear, 30)
+		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)
 
 		return self.root
 	
