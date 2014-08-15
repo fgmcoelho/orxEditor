@@ -20,7 +20,7 @@ class KeyboardGuardian:
 		obj.dropKeyboardAccess()
 		self.__stack.pop()
 		if (self.__stack != []):
-			self.__stack[-1].acquireKeyboard()
+			self.__stack[-1].acquireKeyboardAccess()
 
 	def __init__(self):
 		self.__stack = []

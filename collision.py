@@ -24,7 +24,8 @@ from math import ceil, sqrt
 
 from editorheritage import SpecialScrollControl
 from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, AutoReloadTexture, CancelableButton
-from communicationobjects import CollisionToSceneCommunication, CollisionToMainLayoutCommunication
+from communicationobjects import CollisionToSceneCommunication
+from keyboard import KeyboardAccess, KeyboardGuardian
 
 class CollisionFlag:
 	def __init__(self, name):
@@ -235,6 +236,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl):
 	def render(self, part, obj):
 		self._scrollView.clear_widgets()
 		self.__display = CollisionPartDisplay(obj)
+		self._zoomList.append(self.__display.getImage())
 		self.__originalPart = part
 		self.__workingPart = CollisionPartInformation.copy(part)
 
@@ -272,7 +274,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl):
 				self.__pointsList[1].setPos((obj.getSize()[0], 0))
 				self.__pointsList[2].setPos(obj.getSize())
 				self.__pointsList[3].setPos((0, obj.getSize()[1]))
-	
+		
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self._scrollView.collide_point(*touch.pos) == False):
 			return
@@ -285,8 +287,8 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl):
 	def __init__(self):
 		super(CollisionFlagFormEditorLayout, self).__init__(size_hint = (1.0, 0.9))
 		
-		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 		self.__defaultTouchDown = self._scrollView.on_touch_down
+		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 
 @Singleton
 class CollisionFlagFormEditorPopup:
@@ -308,7 +310,7 @@ class CollisionFlagFormEditorPopup:
 		self.__layout.add_widget(self.__bottomMenu)
 		
 	def showPopUp(self, part, obj):
-		self.__mainLayout.render(part, obj)
+		self.__mainScreen.render(part, obj)
 		self.__popup.open()
 
 @Singleton
@@ -622,6 +624,9 @@ class CollisionPartDisplay(RelativeLayout):
 				self.__drawDefaultMesh()
 			else:
 				self.__drawDefinedMesh(points)
+
+	def getImage(self):
+		return self.__image	
 	
 class CollisionPartLayout:
 	
@@ -772,6 +777,10 @@ class CollisionPartLayout:
 	
 	def getPart(self):
 		return self.__part
+
+class CollisionInformationPopupKeyboardHandler(KeyboardAccess):
+	def __init__(self):
+		pass
 
 @Singleton
 class CollisionInformationPopup:
@@ -925,10 +934,9 @@ class CollisionInformationPopup:
 		self.__renderTabbedPanel(currentObj, collisionInfo, extraParts)
 		self.__renderLowerPart()
 
-		
+	
+
 	def __createOrEditCollisionInfo(self, *args):
-		CollisionToMainLayoutCommunication.Instance().giveBackKeyboard()
-		
 		for obj in self.__objectsList:
 			currentId = obj.getIdentifier()
 			if (obj.getCollisionInfo() is None):
@@ -937,7 +945,7 @@ class CollisionInformationPopup:
 			else:
 				obj.setCollisionInfo(self.__copiesDict[currentId])
 		
-		self.__collisionPopUp.dismiss()
+		self.dismissPopUp()
 
 	def __callPreview(self, *args):
 		i = int(self.__partsPanel.current_tab.id.split('#')[1])
@@ -992,7 +1000,7 @@ class CollisionInformationPopup:
 		self.__lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		
 		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release=self.__createOrEditCollisionInfo)
-		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.__collisionPopUp.dismiss)
+		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.dismissPopUp)
 		self.__previewButton = CancelableButton (text = 'Preview', size_hint = (0.1, 1.0), on_release = self.__callPreview)
 		self.__applyButton = CancelableButton(text = 'Apply', size_hint = (0.1, 1.0), on_release = self.__applyChanges)
 		self.__applyToAllButton = CancelableButton(text = 'Apply to all', size_hint = (0.1, 1.0), 
@@ -1016,6 +1024,7 @@ class CollisionInformationPopup:
 		self.__warnApplyAll = Dialog(self.__doApplyChanges, 'Confirmation', 'This will replace information of other objects.',
 				'Yes', 'No')
 		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
+		self.__keyboardHandler = CollisionInformationPopupKeyboardHandler()
 
 	def updateLayout(self):
 		self.__render()
@@ -1027,6 +1036,7 @@ class CollisionInformationPopup:
 		return self.__extraPartsDict.values()
 
 	def showPopUp(self):
+		KeyboardGuardian.Instance().acquireKeyboard(self.__keyboardHandler)
 		objList = CollisionToSceneCommunication.Instance().getSelectedObjects()
 		if (objList == []):
 			self.__errorPopUp.setText('No object(s) selected!\nYou need to select at least one object from the scene.')
@@ -1040,3 +1050,6 @@ class CollisionInformationPopup:
 			self.__render()
 			self.__collisionPopUp.open()
 
+	def dismissPopUp(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self.__keyboardHandler)
+		self.__collisionPopUp.dismiss()
