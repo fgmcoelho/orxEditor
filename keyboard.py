@@ -15,7 +15,12 @@ class KeyboardGuardian:
 	def dropKeyboard(self, obj):
 		assert (isinstance(obj, KeyboardAccess))
 		assert (self.__stack != [])
-		assert (self.__stack[-1] == obj)
+		
+		# There are some times where you can press a button
+		# twice too fast, which would cause the function to
+		# be called twice.
+		if(self.__stack[-1] != obj):
+			return
 		
 		obj.dropKeyboardAccess()
 		self.__stack.pop()

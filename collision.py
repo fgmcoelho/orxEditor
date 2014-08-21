@@ -4,314 +4,21 @@ from kivy.uix.popup import Popup
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.scatter import Scatter
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
-from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.switch import Switch
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelHeader
 from kivy.uix.togglebutton import ToggleButton
-from kivy.uix.relativelayout import RelativeLayout
-from kivy.uix.image import Image
 
-from kivy.graphics.vertex_instructions import Quad, Ellipse, Mesh
-from kivy.graphics import Color
 
-from operator import itemgetter
 from string import letters, digits
-from math import ceil, sqrt
 
-from editorheritage import SpecialScrollControl
-from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, AutoReloadTexture, CancelableButton
+from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, CancelableButton
 from communicationobjects import CollisionToSceneCommunication
 from keyboard import KeyboardAccess, KeyboardGuardian
-
-class CollisionFlag:
-	def __init__(self, name):
-		self.__name = name
-		self.__isDeleted = False
-
-	def getName(self):
-		return self.__name
-	
-	def setDeleted (self):
-		self.__isDeleted = True
-
-	def getDeleted (self):
-		return self.__isDeleted
-
-@Singleton
-class CollisionGuardian:
-	def __init__(self):
-		self.__id = 0
-		self.__flagsDict = {}
-
-	def addNewFlag(self, name):
-		if (name not in self.__flagsDict):
-			flag = CollisionFlag(name)
-			self.__flagsDict[name] = (self.__id, flag)
-			self.__id += 1
-	
-	def removeFlag(self, name):
-		if (name in self.__flagsDict):
-			del self.__flagsDict[name]
-
-	def getFlags(self):
-		flagsList = []
-		for flag in self.__flagsDict.values():
-			if (flag[1].getDeleted() == False):
-				flagsList.append(flag)
-		
-		flagsOrderedList = sorted(flagsList, key=itemgetter(0))
-
-		listToReturn = []
-		for flag in flagsOrderedList:
-			listToReturn.append(flag[1])
-
-		return listToReturn
-
-	def getFlagByName(self, name):
-		if (name not in self.__flagsDict):
-			return None
-		return self.__flagsDict[name][1]
-
-class CollisionPartInformation:
-
-	@staticmethod
-	def copy(part):
-		assert (isinstance(part, CollisionPartInformation))
-		return CollisionPartInformation(
-			part.getCheckMask(),
-			part.getSelfFlags(),
-			part.getSolid(),
-			part.getFormType(),
-			part.getPoints()
-		)
-
-	def __assertPointsValue(self, form, points): 	
-		assert ((points is None) or (form == "box" and len(points) == 2) or (form == "sphere" and
-			len(points) == 2) or (form == "mesh" and len(points) >= 3))
-	
-	def __init__(self, checkMask = [], selfFlags = [], solid = False, formType = "box", points = None):
-		self.__assertPointsValue(formType, points)
-		self.__checkMask = checkMask[:]
-		self.__selfFlags = selfFlags[:]
-		self.__solid = solid
-		self.__formType = formType
-		self.__points = points
-
-	def getCheckMask(self):
-		return self.__checkMask
-		
-	def getSelfFlags(self):
-		return self.__selfFlags
-
-	def addFlagToCheckMask(self, flag):
-		assert (len(self.__checkMask) <= 16)
-		self.__checkMask.append(flag)
-		
-	def setFormType(self, newForm):
-		assert (newForm in ['box', 'sphere', 'mesh'])
-		self.__formType = newForm
-		self.__points = None
-		
-	def setPoints(self, newPoints):
-		self.__assertPointsValue(self.__formType, newPoints)
-		self.__points = newPoints
-		
-	def addFlagToSelfFlags(self, flag):
-		assert (len(self.__selfFlags) <= 16)
-		self.__selfFlags.append(flag)
-
-	def removeFlagFromCheckMask(self, flag):
-		self.__checkMask.remove(flag)
-	
-	def removeFlagFromSelfFlags(self, flag):
-		self.__selfFlags.remove(flag)
-
-	def getSolid(self):
-		return self.__solid
-		
-	def getFormType(self):
-		return self.__formType
-	
-	def getPoints(self):
-		return self.__points
-
-class CollisionInformation:
-
-	@staticmethod
-	def copy(info):
-		assert(isinstance(info, CollisionInformation))
-		newInfo = CollisionInformation(
-			info.getDynamic(),
-			info.getHighSpeed(),
-			info.getFixedRotation()
-		)
-		for part in info.getPartsList():
-			newInfo.addPart(CollisionPartInformation.copy(part))
-			
-		return newInfo
-
-	def __init__(self, dynamic = False, highSpeed = False, fixedRotation = False):
-		self.__dynamic = dynamic
-		self.__highSpeed = highSpeed
-		self.__fixedRotation = fixedRotation
-		self.__partsList = []
-
-	def getDynamic(self):
-		return self.__dynamic
-	
-	def getHighSpeed(self):
-		return self.__highSpeed
-
-	def getFixedRotation(self):
-		return self.__fixedRotation
-		
-	def getPartsList(self):
-		return self.__partsList
-
-	def setDynamic(self, value):
-		self.__dynamic = value
-	
-	def setHighSpeed(self, value):
-		self.__highSpeed = value
-
-	def setFixedRotation(self, value):
-		self.__fixedRotation = value
-
-	def addPart(self, newPart):
-		self.__partsList.append(newPart)
-
-	def removePart(self, partToRemove):
-		self.__partsList.remove(partToRemove)
-
-class CollisionFormEditorPoints(Scatter):
-
-	dotSize = 11
-
-	def getPos(self):
-		x, y = self.pos
-		x += ceil(CollisionFormEditorPoints.dotSize/2.)
-		y += ceil(CollisionFormEditorPoints.dotSize/2.)
-		return (x, y)
-		
-	def setPos(self, newPos):
-		x, y = newPos
-		x -= ceil(CollisionFormEditorPoints.dotSize/2.)
-		y -= ceil(CollisionFormEditorPoints.dotSize/2.)		
-		self.pos = (x, y)
-	
-	def __updateOnMove(self, touch):
-		self.__updateMethod()
-		self.__defaut_touch_move(touch)
-
-	def __init__(self, updateMethod):
-		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
-			size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize), size_hint = (None, None), 
-			auto_bring_to_front = False)
-
-		self.__updateMethod = updateMethod
-		self.__defaut_touch_move = self.on_touch_move
-		self.on_touch_move = self.__updateOnMove
-		
-		img = Image (size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize))
-		self.add_widget(img)
-		#with self.canvas:
-		#	Color (1, 0, 1, 0)
-		#	Rectangle(pos = self.pos, size = self.size)
-	
-
-class CollisionFlagFormEditorLayout(SpecialScrollControl):
-
-	def __updatePoints(self, *args):
-		l = []
-		for point in self.__pointsList:
-			l.append(point.getPos())
-			
-		self.__workingPart.setPoints(l)
-		self.__display.drawPart(self.__workingPart)
-		
-	def render(self, part, obj):
-		self._scrollView.clear_widgets()
-		self.__display = CollisionPartDisplay(obj)
-		self._zoomList.append(self.__display.getImage())
-		self.__originalPart = part
-		self.__workingPart = CollisionPartInformation.copy(part)
-
-		self.__display.drawPart(self.__workingPart)
-		self._scrollView.add_widget(self.__display)
-		
-		self.__pointsList = []
-		form = self.__workingPart.getFormType()
-		points = self.__workingPart.getPoints()
-		if (form == 'box'):
-			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
-			self.__display.add_widget(self.__pointsList[0])
-			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
-			self.__display.add_widget(self.__pointsList[1])
-			if (points == None):
-				self.__pointsList[0].setPos((0, 0)) 
-				self.__pointsList[1].setPos((obj.getSize()[0], obj.getSize()[1]))
-		elif (form == 'sphere'):
-			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
-			self.__display.add_widget(self.__pointsList[0])
-			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
-			self.__display.add_widget(self.__pointsList[1])
-			if (points == None):
-				midPoint = (obj.getSize()[0]/2, obj.getSize()[1]/2)
-				self.__pointsList[0].setPos(midPoint) 
-				self.__pointsList[1].setPos((obj.getSize()[0], obj.getSize()[1]/2))
-		elif (form == 'mesh'):
-			if (points == None):
-				for i in range(4):
-					point = CollisionFormEditorPoints(self.__updatePoints)
-					self.__pointsList.append(point)
-					self.__display.add_widget(point)
-				
-				self.__pointsList[0].setPos((0, 0))
-				self.__pointsList[1].setPos((obj.getSize()[0], 0))
-				self.__pointsList[2].setPos(obj.getSize())
-				self.__pointsList[3].setPos((0, obj.getSize()[1]))
-		
-	def __handleScrollAndPassTouchDownToChildren(self, touch):
-		if (self._scrollView.collide_point(*touch.pos) == False):
-			return
-
-		if (touch.is_mouse_scrolling == True):
-			return self.specialScroll(touch)
-		
-		self.__defaultTouchDown(touch)
-
-	def __init__(self):
-		super(CollisionFlagFormEditorLayout, self).__init__(size_hint = (1.0, 0.9))
-		
-		self.__defaultTouchDown = self._scrollView.on_touch_down
-		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
-
-@Singleton
-class CollisionFlagFormEditorPopup:
-
-	def __init__(self):
-	
-		self.__layout = BoxLayout(orientation = 'vertical')
-		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout)
-		self.__mainScreen = CollisionFlagFormEditorLayout()
-		self.__bottomMenu = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.15, 1.0), 
-				on_release = self.__popup.dismiss)
-		self.__doneButton = Button(text = 'Done', size_hint = (0.15, 1.0))
-		self.__bottomMenu.add_widget(Label(text ='', size_hint = (0.7, 1.0)))
-		self.__bottomMenu.add_widget(self.__cancelButton)
-		self.__bottomMenu.add_widget(self.__doneButton)
-
-		self.__layout.add_widget(self.__mainScreen.getLayout())
-		self.__layout.add_widget(self.__bottomMenu)
-		
-	def showPopUp(self, part, obj):
-		self.__mainScreen.render(part, obj)
-		self.__popup.open()
+from collisioninfo import CollisionGuardian, CollisionPartInformation, CollisionInformation
+from collisionform import CollisionPartDisplay, CollisionFlagFormEditorPopup
 
 @Singleton
 class CollisionFlagsEditor:
@@ -502,132 +209,6 @@ class CollisionFlagsEditor:
 		self.__render()
 		self.__popup.open()
 
-class CollisionPartDisplay(RelativeLayout):
-	def __init__(self, obj):
-		if (obj is None):
-			return
-	
-		self.__texture = AutoReloadTexture(obj.getSize(), obj.getImage())
-		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = obj.getSize())
-		self.__image = Scatter(do_rotation = False, do_translation = False, do_scale = False)
-		im = Image(texture = self.__texture.getTexture(), size = obj.getSize(), allow_strech = True)
-		self.__image.add_widget(im)
-		self.__operation = None
-		self.add_widget(self.__image)
-		self.__operation = None
-
-	def clearDrawnForm(self):
-		if (self.__operation != None):
-			self.__image.canvas.remove(self.__operation)
-			self.__operation = None
-
-	def __drawDefaultBox(self):
-		self.clearDrawnForm()
-
-		with self.__image.canvas:
-			Color(0., 1.0, .0, 0.3)
-			self.__operation = Quad(
-				points = [
-					self.pos[0], self.pos[1], 
-					self.pos[0] + self.size[0], self.pos[1], 
-					self.pos[0] + self.size[0], self.pos[1] + self.size[1], 
-					self.pos[0], self.pos[1] + self.size[1], 
-				]
-			)
-	
-	def __drawDefinedBox(self, points):
-		self.clearDrawnForm()
-
-		fx, fy = points[0]
-		sx, sy = points[1]
-		with self.__image.canvas:
-			Color(0., 1.0, .0, 0.3)
-			self.__operation = Quad(
-				points = [
-					fx, fy, 
-					fx, sy, 
-					sx, sy, 
-					sx, fy, 
-				]
-			)	
-
-	def __drawDefaultSphere(self):
-		self.clearDrawnForm()
-		
-		with self.__image.canvas:
-			Color(0., 1.0, .0, 0.3)
-			self.__operation = Ellipse(
-				pos = (self.pos[0], self.pos[1]),
-				size = (self.size[0], self.size[1])
-			)
-			
-	def __drawDefinedSphere(self, points):
-		self.clearDrawnForm()
-		fx, fy = points[0]
-		sx, sy = points[1]
-		radius = sqrt((fx - sx) * (fx - sx) + (fy - sy) * (fy - sy))
-		with self.__image.canvas:
-			posAdjustX = (radius * 2 - self.pos[0]) / 2.0
-			posAdjustY = (radius * 2 - self.pos[1]) / 2.0
-			Color(0., 1.0, .0, 0.3)
-			self.__operation = Ellipse(
-				pos = (fx - posAdjustX, fy - posAdjustY),
-				size = (radius * 2, radius * 2)
-			)
-
-	def __drawDefaultMesh(self):
-		self.clearDrawnForm()
-
-		with self.__image.canvas:
-			Color(0., 1.0, .0, 0.3)
-			self.__operation = Mesh (
-				vertices = [		
-					self.pos[0], self.pos[1], 0, 0,
-					self.pos[0] + self.size[0], self.pos[1], 0, 0,
-					self.pos[0] + self.size[0], self.pos[1] + self.size[1], 0, 0,
-					self.pos[0], self.pos[1] + self.size[1], 0, 0,
-				],
-				indices = range(4),  mode = 'line_loop'
-			)
-
-	def __drawDefinedMesh(self, points):
-		self.clearDrawnForm()
-		verticesList = []
-		for point in points:
-			verticesList.extend([point[0], point[1], 0, 0])
-
-		with self.__image.canvas:
-			Color(0., 1.0, .0, 0.3)
-			self.__operation = Mesh(
-				vertices = verticesList,
-				indices = range(len(points)),
-				mode = 'line_loop'
-			)
-
-
-	def drawPart(self, part):
-		form = part.getFormType()
-		points = part.getPoints()
-		if (form == "box"):
-			if (points == None):
-				self.__drawDefaultBox()
-			else:
-				self.__drawDefinedBox(points)
-
-		elif (form == "sphere"):
-			if (points == None):
-				self.__drawDefaultSphere()
-			else:
-				self.__drawDefinedSphere(points)
-		elif (form == "mesh"):
-			if (points == None):
-				self.__drawDefaultMesh()
-			else:
-				self.__drawDefinedMesh(points)
-
-	def getImage(self):
-		return self.__image	
-	
 class CollisionPartLayout:
 	
 	def __togglePartFlag(self, buttonObject):
@@ -934,8 +515,6 @@ class CollisionInformationPopup:
 		self.__renderTabbedPanel(currentObj, collisionInfo, extraParts)
 		self.__renderLowerPart()
 
-	
-
 	def __createOrEditCollisionInfo(self, *args):
 		for obj in self.__objectsList:
 			currentId = obj.getIdentifier()
@@ -1036,12 +615,12 @@ class CollisionInformationPopup:
 		return self.__extraPartsDict.values()
 
 	def showPopUp(self):
-		KeyboardGuardian.Instance().acquireKeyboard(self.__keyboardHandler)
 		objList = CollisionToSceneCommunication.Instance().getSelectedObjects()
 		if (objList == []):
 			self.__errorPopUp.setText('No object(s) selected!\nYou need to select at least one object from the scene.')
 			self.__errorPopUp.open()
 		else:
+			KeyboardGuardian.Instance().acquireKeyboard(self.__keyboardHandler)
 			self.__objectsList = objList
 			self.__copiesDict = {}
 			self.__extraPartsDict = {}

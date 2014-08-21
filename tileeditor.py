@@ -18,7 +18,6 @@ from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMe
 class TileEditor(App):
 	
 	def build_config(self, c):
-		
 		Config.set('graphics', 'width', 800)
 		Config.set('graphics', 'height', 600)
 		Config.set('graphics', 'fullscreen', 0)

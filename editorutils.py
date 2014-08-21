@@ -68,6 +68,15 @@ def strToDoubleIntTuple(s):
 def vector2ToVector3String(v, default = 0):
 	return '(' + str(v[0]) + ', ' + str(v[1]) + ', ' + str (default) + ')'
 
+def vector2Multiply(v, x):
+	assert(type(v) is tuple or type(v) is list)
+	assert(len(v) == 2)
+	if (type(v) is tuple):
+		return (v[0] * x, v[1] * x)
+	else:
+		return [v[0] * x, v[1] * x]
+	
+
 def copyTexture(sizeToUse, imageToUse):
 	newTexture = Texture.create(size = sizeToUse)
 	pixels = imageToUse.texture.pixels[:]

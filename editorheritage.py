@@ -13,7 +13,7 @@ class SpecialScrollControl (object):
 		self._zoom *= magnitude
 		for obj in self._zoomList:
 			assert(isinstance(obj, Scatter))
-			obj.scale *= self._zoom
+			obj.scale = self._zoom
 
 	def specialScroll(self, touch):
 		if (self._isShiftPressed == False):
@@ -28,10 +28,10 @@ class SpecialScrollControl (object):
 				self._scrollView.scroll_x += 0.05
 
 		if (self._isCtrlPressed == True):
-			if (touch.button == "scrollup" and self._zoom > 0.125):
+			if (touch.button == "scrollup" and self._zoom > 0.25):
 				self.__applyZoom(0.5)
 
-			elif (touch.button == "scrolldown" and self._zoom < 8):
+			elif (touch.button == "scrolldown" and self._zoom < 4):
 				self.__applyZoom(2.0)
 	
 	def __init__(self, **kwargs):
