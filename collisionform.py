@@ -17,7 +17,7 @@ from collisioninfo import CollisionPartInformation
 from keyboard import KeyboardAccess, KeyboardGuardian
 
 class CollisionPartDisplay(RelativeLayout):
-	def __init__(self, obj):
+	def __init__(self, obj, expandLevel = 1.0):
 		if (obj is None):
 			return
 	
@@ -28,8 +28,12 @@ class CollisionPartDisplay(RelativeLayout):
 		self.__image.add_widget(im)
 		self.__operation = None
 		self.add_widget(self.__image)
-		self.size = vector2Multiply(tuple(self.size), 2.0)
-		self.__image.pos = (self.size[0]/4., self.size[1]/4.)
+		self.__expandLevel = expandLevel
+		self.size = vector2Multiply(tuple(self.size), self.__expandLevel)
+		if (self.__expandLevel == 1.0):
+			self.__image.pos = (0, 0)
+		else:
+			self.__image.pos = (self.size[0]/(self.__expandLevel * 2.), self.size[1]/(self.__expandLevel * 2.))
 		self.__originalSize = tuple(self.size)
 		self.__operation = None
 
@@ -45,10 +49,10 @@ class CollisionPartDisplay(RelativeLayout):
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Line(
 				points = [
-					self.pos[0], self.pos[1], 
-					self.pos[0] + self.size[0], self.pos[1], 
-					self.pos[0] + self.size[0], self.pos[1] + self.size[1], 
-					self.pos[0], self.pos[1] + self.size[1], 
+					0, 0,
+					0, self.size[1]/self.__expandLevel,
+					self.size[0]/self.__expandLevel, self.size[1]/self.__expandLevel,
+					self.size[0]/self.__expandLevel, 0,
 				],
 				close = True
 			)
@@ -143,6 +147,9 @@ class CollisionPartDisplay(RelativeLayout):
 			else:
 				self.__drawDefinedMesh(points)
 
+	def getExpandLevel(self):
+		return self.__expandLevel
+
 	def getImage(self):
 		return self.__image	
 	
@@ -153,7 +160,6 @@ class CollisionPartDisplay(RelativeLayout):
 class CollisionFormEditorPoints(Scatter):
 
 	dotSize = 11
-
 	def getPos(self):
 		x, y = self.pos
 		x += ceil(CollisionFormEditorPoints.dotSize/2.)
@@ -215,7 +221,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		
 	def render(self, part, obj):
 		self._scrollView.clear_widgets()
-		self.__display = CollisionPartDisplay(obj)
+		self.__display = CollisionPartDisplay(obj, 2.0)
 		self._zoomList.append(self.__display.getImage())
 		self.__originalPart = part
 		self.__workingPart = CollisionPartInformation.copy(part)
@@ -232,8 +238,11 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
 			self.__display.add_widget(self.__pointsList[1])
 			if (points == None):
-				self.__pointsList[0].setPos((0, 0)) 
-				self.__pointsList[1].setPos((obj.getSize()[0], obj.getSize()[1]))
+				self.__pointsList[0].setPos(tuple(self.__display.getImage().pos)) 
+				self.__pointsList[1].setPos((
+					tuple(self.__display.getImage().pos)[0] + tuple(self.__display.size)[0]/self.__display.getExpandLevel(), 
+					tuple(self.__display.getImage().pos)[1] + tuple(self.__display.size)[1]/self.__display.getExpandLevel()
+					))
 
 		elif (form == 'sphere'):
 			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
