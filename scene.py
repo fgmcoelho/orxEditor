@@ -286,8 +286,8 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 		clickedObjectsList = []
 		childDict = self.__sceneList[self.__currentIndex].getObjectsDict()
 		for key in childDict.keys():
-			if (childDict[key].collide_point(*self.__sceneList[self.__currentIndex].getLayout().to_widget(*touch.pos, relative = False)) == True 
-					and childDict[key].getHidden() == False):
+			if (childDict[key].collide_point(*self.__sceneList[self.__currentIndex].getLayout().to_widget(*touch.pos, 
+					relative = False)) == True and childDict[key].getHidden() == False):
 				clickedObjectsList.append(childDict[key])
 			
 		first = True
@@ -325,9 +325,6 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 		else:
 			MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
 
-	def __ignoreMoves(self, touch):
-		return None
-	
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
 		self.__sceneList[self.__currentIndex].redraw()
 		self.__defaultTouchUp(touch)
@@ -341,7 +338,6 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 		
 		else:
 			selectedObject = self.__getSelectedObjectByClick(touch)
-			print selectedObject
 			if (selectedObject is not None):
 				if (touch.is_double_tap == False):
 					self.__selectObject(selectedObject)
@@ -357,7 +353,7 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 		
 		super(SceneHandler, self).__init__(size_hint = (maxWidthProportion, maxHeightProportion))
 		
-		self._scrollView.on_touch_move = self.__ignoreMoves
+		self._scrollView.on_touch_move = self._ignoreMoves
 		self.__defaultTouchDown = self._scrollView.on_touch_down
 		self.__defaultTouchUp = self._scrollView.on_touch_up
 

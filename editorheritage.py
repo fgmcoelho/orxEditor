@@ -14,6 +14,9 @@ class SpecialScrollControl (object):
 		for obj in self._zoomList:
 			assert(isinstance(obj, Scatter))
 			obj.scale = self._zoom
+	
+	def _ignoreMoves(self, touch):
+		return None
 
 	def specialScroll(self, touch):
 		if (self._isShiftPressed == False):
@@ -44,6 +47,9 @@ class SpecialScrollControl (object):
 		kwargs['scroll_timeout'] = 0.
 		
 		self._scrollView = ScrollView(**kwargs)
+		self._scrollView.scroll_x = 0.
+		self._scrollView.scroll_y = 0.
+		self._scrollView.scroll_y = 1.
 		self._zoomList = []
 		self._zoom = 1
 	

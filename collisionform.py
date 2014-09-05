@@ -26,6 +26,7 @@ class CollisionPartDisplay(RelativeLayout):
 		self.__image = Scatter(do_rotation = False, do_translation = False, do_scale = False)
 		im = Image(texture = self.__texture.getTexture(), size = obj.getSize(), allow_strech = True)
 		self.__image.add_widget(im)
+		self.__image.size =  obj.getSize()
 		self.__operation = None
 		self.add_widget(self.__image)
 		self.__expandLevel = expandLevel
@@ -39,20 +40,22 @@ class CollisionPartDisplay(RelativeLayout):
 
 	def clearDrawnForm(self):
 		if (self.__operation != None):
-			self.__image.canvas.remove(self.__operation)
+			self.canvas.remove(self.__operation)
 			self.__operation = None
 
 	def __drawDefaultBox(self):
 		self.clearDrawnForm()
 
-		with self.__image.canvas:
+		with self.canvas:
 			Color(0., 1.0, .0, 0.3)
+			imgPos = tuple(self.__image.pos)
+			imgSize = tuple(self.__image.size)
 			self.__operation = Line(
 				points = [
-					0, 0,
-					0, self.size[1]/self.__expandLevel,
-					self.size[0]/self.__expandLevel, self.size[1]/self.__expandLevel,
-					self.size[0]/self.__expandLevel, 0,
+					imgPos[0], imgPos[1],
+					imgPos[0], imgPos[1] +imgSize[1],
+					imgPos[0] + imgSize[0], imgPos[1] + imgSize[1],
+					imgPos[0] + imgSize[0], imgPos[1]
 				],
 				close = True
 			)
@@ -62,7 +65,7 @@ class CollisionPartDisplay(RelativeLayout):
 
 		fx, fy = points[0]
 		sx, sy = points[1]
-		with self.__image.canvas:
+		with self.canvas:
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Line(
 				points = [
@@ -238,11 +241,10 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
 			self.__display.add_widget(self.__pointsList[1])
 			if (points == None):
-				self.__pointsList[0].setPos(tuple(self.__display.getImage().pos)) 
-				self.__pointsList[1].setPos((
-					tuple(self.__display.getImage().pos)[0] + tuple(self.__display.size)[0]/self.__display.getExpandLevel(), 
-					tuple(self.__display.getImage().pos)[1] + tuple(self.__display.size)[1]/self.__display.getExpandLevel()
-					))
+				imgPos = tuple(self.__display.getImage().pos) 
+				imgSize = tuple(self.__display.getImage().size)
+				self.__pointsList[0].setPos(imgPos) 
+				self.__pointsList[1].setPos((imgPos[0] + imgSize[0], imgPos[1] + imgSize[1]))
 
 		elif (form == 'sphere'):
 			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
@@ -269,6 +271,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 	def __replacePoints(self, x):
 		for point in self.__pointsList:
 			point.pos = vector2Multiply(tuple(point.pos), x)
+		self.__updatePoints()
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self._scrollView.collide_point(*touch.pos) == False):
@@ -279,7 +282,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 			self.specialScroll(touch)
 			if (oldZoom != self._zoom):
 				self.__display.resize(self._zoom)
-				#self.__replacePoints(self._zoom)
+				self.__replacePoints(self._zoom)
 
 			return
 
@@ -289,7 +292,10 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		super(CollisionFlagFormEditorLayout, self).__init__(size_hint = (1.0, 0.9))
 		
 		self.__defaultTouchDown = self._scrollView.on_touch_down
+		self._scrollView.on_touch_move = self._ignoreMoves
 		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+		self._scrollView.scroll_y = 0.5
+		self._scrollView.scroll_x = 0.5
 
 @Singleton
 class CollisionFlagFormEditorPopup:
