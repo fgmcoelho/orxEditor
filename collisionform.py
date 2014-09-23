@@ -4,7 +4,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.scatter import Scatter
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
-from kivy.graphics.vertex_instructions import Ellipse, Mesh, Line
+from kivy.graphics.vertex_instructions import Mesh, Line
 from kivy.graphics import Color
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -53,7 +53,7 @@ class CollisionPartDisplay(RelativeLayout):
 			self.__operation = Line(
 				points = [
 					imgPos[0], imgPos[1],
-					imgPos[0], imgPos[1] +imgSize[1],
+					imgPos[0], imgPos[1] + imgSize[1],
 					imgPos[0] + imgSize[0], imgPos[1] + imgSize[1],
 					imgPos[0] + imgSize[0], imgPos[1]
 				],
@@ -80,11 +80,16 @@ class CollisionPartDisplay(RelativeLayout):
 	def __drawDefaultSphere(self):
 		self.clearDrawnForm()
 		
-		with self.__image.canvas:
+		imgPos = tuple(self.__image.pos)
+		imgSize = tuple(self.__image.size)
+		with self.canvas:
 			Color(0., 1.0, .0, 0.3)
-			self.__operation = Ellipse(
-				pos = (self.pos[0], self.pos[1]),
-				size = (self.size[0], self.size[1])
+			self.__operation = Line(
+				circle = (
+					imgPos[0] + imgSize[0]/2.,
+					imgPos[1] + imgSize[1]/2.,
+					imgSize[0]/2.,
+				)
 			)
 			
 	def __drawDefinedSphere(self, points):
@@ -92,26 +97,29 @@ class CollisionPartDisplay(RelativeLayout):
 		fx, fy = points[0]
 		sx, sy = points[1]
 		radius = sqrt((fx - sx) * (fx - sx) + (fy - sy) * (fy - sy))
-		with self.__image.canvas:
-			posAdjustX = (radius * 2 - self.pos[0]) / 2.0
-			posAdjustY = (radius * 2 - self.pos[1]) / 2.0
+		with self.canvas:
 			Color(0., 1.0, .0, 0.3)
-			self.__operation = Ellipse(
-				pos = (fx - posAdjustX, fy - posAdjustY),
-				size = (radius * 2, radius * 2)
+			self.__operation = Line(
+				circle = (
+					fx, 
+					fy,
+					radius
+				)
 			)
 
 	def __drawDefaultMesh(self):
 		self.clearDrawnForm()
 
-		with self.__image.canvas:
+		with self.canvas:
 			Color(0., 1.0, .0, 0.3)
+			imgPos = tuple(self.__image.pos)
+			imgSize = tuple(self.__image.size)
 			self.__operation = Mesh (
 				vertices = [		
-					self.pos[0], self.pos[1], 0, 0,
-					self.pos[0] + self.size[0], self.pos[1], 0, 0,
-					self.pos[0] + self.size[0], self.pos[1] + self.size[1], 0, 0,
-					self.pos[0], self.pos[1] + self.size[1], 0, 0,
+					imgPos[0], imgPos[0], 0, 0,
+					imgPos[0] + imgSize[0], imgPos[1], 0, 0,
+					imgPos[0] + imgSize[0], imgPos[1] + imgSize[1], 0, 0,
+					imgPos[0], imgPos[1] + imgSize[1], 0, 0,
 				],
 				indices = range(4),  mode = 'line_loop'
 			)
@@ -122,7 +130,7 @@ class CollisionPartDisplay(RelativeLayout):
 		for point in points:
 			verticesList.extend([point[0], point[1], 0, 0])
 
-		with self.__image.canvas:
+		with self.canvas:
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Mesh(
 				vertices = verticesList,
@@ -225,7 +233,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 	def render(self, part, obj):
 		self._scrollView.clear_widgets()
 		self.__display = CollisionPartDisplay(obj, 2.0)
-		self._zoomList.append(self.__display.getImage())
+		#self._zoomList.append(self.__display.getImage())
 		self.__originalPart = part
 		self.__workingPart = CollisionPartInformation.copy(part)
 
@@ -252,7 +260,9 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
 			self.__display.add_widget(self.__pointsList[1])
 			if (points == None):
-				midPoint = (obj.getSize()[0]/2, obj.getSize()[1]/2)
+				imgPos = tuple(self.__display.getImage().pos) 
+				imgSize = tuple(self.__display.getImage().size)
+				midPoint = (imgPos[0] + imgSize[0]/2., imgPos[1] + imgSize[1]/2.)
 				self.__pointsList[0].setPos(midPoint) 
 				self.__pointsList[1].setPos((obj.getSize()[0], obj.getSize()[1]/2))
 	
@@ -263,10 +273,12 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 					self.__pointsList.append(point)
 					self.__display.add_widget(point)
 				
-				self.__pointsList[0].setPos((0, 0))
-				self.__pointsList[1].setPos((obj.getSize()[0], 0))
-				self.__pointsList[2].setPos(obj.getSize())
-				self.__pointsList[3].setPos((0, obj.getSize()[1]))
+				imgPos = tuple(self.__display.getImage().pos) 
+				imgSize = tuple(self.__display.getImage().size)
+				self.__pointsList[0].setPos(imgPos)
+				self.__pointsList[1].setPos((imgPos[0] + imgSize[0], imgPos[1]))
+				self.__pointsList[2].setPos((imgPos[0] + imgSize[0], imgPos[1] + imgSize[1]))
+				self.__pointsList[3].setPos((imgPos[0], imgPos[1] + imgSize[1]))
 	
 	def __replacePoints(self, x):
 		for point in self.__pointsList:
