@@ -126,6 +126,7 @@ class CollisionPartDisplay(RelativeLayout):
 
 	def __drawDefinedMesh(self, points):
 		self.clearDrawnForm()
+
 		verticesList = []
 		for point in points:
 			verticesList.extend([point[0], point[1], 0, 0])
@@ -184,7 +185,7 @@ class CollisionFormEditorPoints(Scatter):
 		self.pos = (x, y)
 	
 	def __updateOnMove(self, touch):
-		self.__updateMethod()
+		self.__updateMethod(self)
 		self.__defaut_touch_move(touch)
 
 	def __init__(self, updateMethod):
@@ -214,6 +215,14 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		elif (keycode[1] == 'ctrl'):
 			self.setIsCtrlPressed(False)
 
+		if (keycode[1] == 'delete' and self.__lastPointPressed is not None):
+			form = self.__workingPart.getFormType()
+			numberOfPoints = len(self.__pointsList)
+			if (form == 'mesh' and numberOfPoints > 3):
+				self.__display.remove_widget(self.__lastPointPressed)
+				self.__pointsList.remove(self.__lastPointPressed)
+				self.__updatePoints(None)
+
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
 		if (keycode[1] == 'shift'):
@@ -222,7 +231,8 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		elif (keycode[1] == 'ctrl'):
 			self.setIsCtrlPressed(True)
 
-	def __updatePoints(self, *args):
+	def __updatePoints(self, point):
+		self.__lastPointPressed = point
 		l = []
 		for point in self.__pointsList:
 			l.append(point.getPos())
@@ -280,13 +290,19 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 				self.__pointsList[2].setPos((imgPos[0] + imgSize[0], imgPos[1] + imgSize[1]))
 				self.__pointsList[3].setPos((imgPos[0], imgPos[1] + imgSize[1]))
 	
-	def __replacePoints(self, x):
-		for point in self.__pointsList:
-			point.pos = vector2Multiply(tuple(point.pos), x)
-		self.__updatePoints()
-
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self._scrollView.collide_point(*touch.pos) == False):
+			return
+
+		if (touch.is_double_tap == True):
+			form = self.__workingPart.getFormType()
+			if (form == 'mesh'):
+				newPoint = CollisionFormEditorPoints(self.__updatePoints)
+				self.__pointsList.append(newPoint)
+				self.__display.add_widget(newPoint)
+				newPoint.setPos(self.__display.to_widget(*touch.pos))
+				self.__updatePoints(newPoint)
+
 			return
 
 		if (touch.is_mouse_scrolling == True):
@@ -308,6 +324,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 		self._scrollView.scroll_y = 0.5
 		self._scrollView.scroll_x = 0.5
+		self.__lastPointPressed = None
 
 @Singleton
 class CollisionFlagFormEditorPopup:
@@ -335,5 +352,8 @@ class CollisionFlagFormEditorPopup:
 
 	def showPopUp(self, part, obj):
 		KeyboardGuardian.Instance().acquireKeyboard(self.__mainScreen)
+		if (part.getFormType() == 'mesh'):
+			#TODO: Add the add/remove point instruction here.
+			pass
 		self.__mainScreen.render(part, obj)
 		self.__popup.open()
