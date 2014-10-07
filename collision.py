@@ -34,36 +34,36 @@ class CollisionFlagsEditor:
 			flagLine.add_widget(CancelableButton(text = 'Delete', size_hint = (0.1, 1.0), id = 'Delete#' + flag.getName(),
 				on_release = self.__processRemoveFlag))
 			self.__layout.add_widget(flagLine)
-		
+
 
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, 1.0 - ((len(flagsList) + 3) * self.__baseHeight))))
-		
+
 		if (len(flagsList) == self.__maxCollisionFlags):
-			self.__layout.add_widget(Label(text = 'Maximum number of flags (%u) reached.' % (self.__maxCollisionFlags, ), 
+			self.__layout.add_widget(Label(text = 'Maximum number of flags (%u) reached.' % (self.__maxCollisionFlags, ),
 				size_hint = (1.0, self.__baseHeight)))
 		else:
 			self.__inputBar.clear_widgets()
 			oldText = self.__flagNameInput.text
-			self.__flagNameInput = TextInput(text = oldText, multiline = False, size_hint = (0.9, 1.0), 
+			self.__flagNameInput = TextInput(text = oldText, multiline = False, size_hint = (0.9, 1.0),
 				on_text_validate = self.__processAddFlag, focus = True)
 			self.__inputBar.add_widget(self.__flagNameInput)
 			self.__inputBar.add_widget(self.__flagAddButton)
 
 			self.__layout.add_widget(self.__inputBar)
-		
+
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
-		
+
 		self.__layout.add_widget(self.__bottomBar)
-	
+
 	def __removeFlagsFromPartsList(self, partsList):
 		flagObject = CollisionGuardian.Instance().getFlagByName(self.__flagToRemove)
 		for part in partsList:
 			if (flagObject in part.getSelfFlags()):
 				part.removeFlagFromSelfFlags(self.__flagToRemove)
-				
+
 			if (flagObject in part.getCheckMask()):
 				part.removeFlagFromCheckMask(self.__flagToRemove)
-	
+
 	def __isPartsListAffected(self, partsList):
 		flagObject = CollisionGuardian.Instance().getFlagByName(self.__flagToRemove)
 		for part in partsList:
@@ -71,8 +71,8 @@ class CollisionFlagsEditor:
 				return 1
 
 		return 0
-	
-	def __doRemoveFlag(self, *args):	
+
+	def __doRemoveFlag(self, *args):
 		objectsList = CollisionToSceneCommunication.Instance().getAllObjects()
 		for obj in objectsList:
 			collisionInfo = obj.getCollisionInfo()
@@ -105,7 +105,7 @@ class CollisionFlagsEditor:
 
 		for partsList in CollisionInformationPopup.Instance().getExtraPartsDictAsList():
 			editingObjectsCount += self.__isPartsListAffected(partsList)
-		
+
 		if (existingObjectsCount == 0 and editingObjectsCount == 0):
 			self.__flagRemoveWarning.setText(
 				'Are you sure that you want to delete the\n'
@@ -113,7 +113,7 @@ class CollisionFlagsEditor:
 				'This operation can\'t be reverted.' %
 				(self.__flagToRemove, )
 			)
-		
+
 		elif (existingObjectsCount == 0 and editingObjectsCount != 0):
 			self.__flagRemoveWarning.setText(
 				'This will affect %d objects being edited.\n'
@@ -148,12 +148,12 @@ class CollisionFlagsEditor:
 			error = AlertPopUp('Error', 'Flag name can\'t be empty.', 'Ok')
 			error.open()
 			return
-		
+
 		if (CollisionGuardian.Instance().getFlagByName(self.__flagNameInput.text) is not None):
 			error = AlertPopUp('Error', 'This name has already been used.', 'Ok')
 			error.open()
 			return
-		
+
 		invalidSet = []
 		for char in self.__flagNameInput.text:
 			if (char not in self.__validCharacters):
@@ -170,7 +170,7 @@ class CollisionFlagsEditor:
 
 	def __processClose(self, *args):
 		self.__flagNameInput.focus = False
-		
+
 		CollisionInformationPopup.Instance().updateLayout()
 		self.__popup.dismiss()
 
@@ -181,11 +181,11 @@ class CollisionFlagsEditor:
 		self.__validCharacters = letters + digits
 		self.__maxCollisionFlags = 16
 		self.__baseHeight = 0.05
-		
+
 		emptyLabel = Label(text = '', size_hint = (0.9, 1.0))
 
 		self.__inputBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		self.__flagNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0), 
+		self.__flagNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0),
 			on_text_validate = self.__processAddFlag, focus = True)
 		self.__flagAddButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__processAddFlag)
 
@@ -196,13 +196,13 @@ class CollisionFlagsEditor:
 		doneButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release = self.__processClose)
 		self.__bottomBar.add_widget(Label(text = '', size_hint = (0.9, 1.0)))
 		self.__bottomBar.add_widget(doneButton)
-		
+
 		self.__layout.add_widget(self.__inputBar)
 		self.__layout.add_widget(emptyLabel)
 		self.__layout.add_widget(self.__bottomBar)
 
 		self.__flagToRemove = None
-		self.__flagRemoveWarning = Dialog(self.__doRemoveFlag, 'Confirmation', 
+		self.__flagRemoveWarning = Dialog(self.__doRemoveFlag, 'Confirmation',
 			'This will affect existing objects.\nAre you sure you want to remove this flag?', 'Yes', 'No')
 
 	def showPopUp(self, *args):
@@ -210,7 +210,7 @@ class CollisionFlagsEditor:
 		self.__popup.open()
 
 class CollisionPartLayout:
-	
+
 	def __togglePartFlag(self, buttonObject):
 		buttonInfo = buttonObject.id.split('#')
 		if (buttonObject.state == 'normal'):
@@ -229,13 +229,13 @@ class CollisionPartLayout:
 			#TODO: Warn that points data will be lost.
 			checkboxInfo = checkboxObject.id.split('#')
 			self.__part.setFormType(checkboxInfo[1])
-				
+
 	def __render(self, part, obj):
 		self.__obj = obj
 		self.__part = part
 		flagsList = CollisionGuardian.Instance().getFlags()
 		numberOfFlags = len(flagsList)
-		
+
 		partSelfFlags = []
 		for flag in part.getSelfFlags():
 			partSelfFlags.append(flag.getName())
@@ -243,7 +243,7 @@ class CollisionPartLayout:
 		partCheckMask = []
 		for flag in part.getCheckMask():
 			partCheckMask.append(flag.getName())
-		
+
 		self.__selfFlagsGrid.clear_widgets()
 		self.__checkMaskGrid.clear_widgets()
 
@@ -254,7 +254,7 @@ class CollisionPartLayout:
 					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'down',
 						on_release = self.__togglePartFlag, id = 'togglebutton#selfflags#' + name))
 				else:
-					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), 
+					self.__selfFlagsGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25),
 						state = 'normal', on_release = self.__togglePartFlag, id = 'togglebutton#selfflags#' + name))
 			else:
 				self.__selfFlagsGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
@@ -277,20 +277,20 @@ class CollisionPartLayout:
 			self.__pointsText.text = 'Have collision points? Yes.'
 
 		self.__partSolidSwitch.active = part.getSolid()
-			
+
 		self.__typeLine.clear_widgets()
 		self.__boxCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#box')
 		self.__sphereCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#sphere')
 		self.__meshCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#mesh')
-		
+
 		formType = part.getFormType()
 		if (formType == "box"):
 			self.__boxCheckBox.active = True
 		elif (formType == "sphere"):
 			self.__sphereCheckBox.active = True
 		else:
-			self.__meshCheckBox.active = True		
-		
+			self.__meshCheckBox.active = True
+
 		self.__boxCheckBox.bind (active = self.__updateFormType)
 		self.__sphereCheckBox.bind(active = self.__updateFormType)
 		self.__meshCheckBox.bind(active = self.__updateFormType)
@@ -309,7 +309,7 @@ class CollisionPartLayout:
 		self.__layout = BoxLayout(orientation = 'horizontal')
 		self.__baseHeight = 0.1
 		self.__part = None
-		
+
 		leftLayout = BoxLayout(orientation = 'vertical', size_hint = (0.5, 1.0))
 		rightLayout = BoxLayout(orientation = 'vertical', size_hint = (0.5, 1.0))
 
@@ -317,7 +317,7 @@ class CollisionPartLayout:
 		self.__selfFlagsGrid = GridLayout(cols = 4, row = 4, size_hint = (1.0, 4 * self.__baseHeight))
 
 		leftLayout.add_widget(self.__selfFlagsGrid)
-		
+
 		leftLayout.add_widget(Label(text = '', size_hint = (1.0, 1.0 - (self.__baseHeight * 7))))
 
 		solidLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
@@ -332,30 +332,30 @@ class CollisionPartLayout:
 		pointsLine.add_widget(self.__pointsText)
 		pointsLine.add_widget(self.__pointsButton)
 		leftLayout.add_widget(pointsLine)
-		
+
 		self.__layout.add_widget(leftLayout)
-		
+
 		rightLayout.add_widget(Label(text = 'Check Mask:', size_hint = (1.0, self.__baseHeight)))
 		self.__checkMaskGrid = GridLayout(cols = 4, row = 4, size_hint = (1.0, 4 * self.__baseHeight))
 
 		rightLayout.add_widget(self.__checkMaskGrid)
-		
+
 		rightLayout.add_widget(Label(text = '', size_hint = (1.0, 1.0 - (self.__baseHeight * 7))))
 
 		rightLayout.add_widget(Label(text = 'Type', size_hint = (1.0, self.__baseHeight)))
 		self.__typeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		
+
 		rightLayout.add_widget(self.__typeLine)
 
 		self.__layout.add_widget(rightLayout)
 
 	def getLayout(self):
 		return self.__layout
-		
+
 	def updateLayout(self, part, obj):
 		assert (isinstance(part, CollisionPartInformation))
 		self.__render(part, obj)
-	
+
 	def getPart(self):
 		return self.__part
 
@@ -375,11 +375,11 @@ class CollisionInformationPopup:
 
 			extraParts = []
 			for i in range (8 - len(infoCopy.getPartsList())):
-				extraParts.append(CollisionPartInformation())				
-							
+				extraParts.append(CollisionPartInformation())
+
 			self.__copiesDict[obj.getIdentifier()] = infoCopy
 			self.__extraPartsDict[obj.getIdentifier()] = extraParts
-			
+
 	def __applyChanges(self, *args):
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
 		if(self.__partsPanel.current_tab.text == 'Edit'):
@@ -431,7 +431,7 @@ class CollisionInformationPopup:
 			if (obj != currentObj):
 				if (obj.getCollisionInfo() is not None):
 					willEraseInfo += 1
-		
+
 		if (willEraseInfo != 0):
 			self.__warnApplyAll.setText('This will replace information of other ' + str(willEraseInfo) + ' objects.')
 			self.__warnApplyAll.open()
@@ -442,7 +442,7 @@ class CollisionInformationPopup:
 	def __selectNextObject(self, *args):
 		self.__objectsListIndex = (self.__objectsListIndex + 1) % len(self.__objectsList)
 		self.__render()
-		
+
 	def __selectPreviousObject(self, *args):
 		self.__objectsListIndex = (self.__objectsListIndex - 1) % len(self.__objectsList)
 		self.__render()
@@ -457,11 +457,11 @@ class CollisionInformationPopup:
 		self.__dynamicSwitch.active = collisionInfo.getDynamic()
 		self.__fixedRotationSwitch.active = collisionInfo.getFixedRotation()
 		self.__highSpeedSwitch.active = collisionInfo.getHighSpeed()
-		
+
 		self.__flagsAndPreviewBox.clear_widgets()
 		self.__flagsAndPreviewBox.add_widget(self.__objectsCollisionDisplay)
 		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
-		
+
 	def __changeTabs(self, *args):
 		self.__partDisplay.clearDrawnForm()
 
@@ -469,19 +469,19 @@ class CollisionInformationPopup:
 			th = TabbedPanelHeader(text = text, on_press = self.__changeTabs, id = 'tab#' + str(index))
 			th.content = content
 			return th
-			
+
 	def __renderTabbedPanel(self, obj, collisionInfo, extraParts):
 		parts = collisionInfo.getPartsList()
 		numberOfParts = len(parts)
 		self.__partsPanel.clear_tabs()
 		for i in range(numberOfParts):
 			self.__partsLayoutList[i].updateLayout(parts[i], obj)
-			self.__partsPanel.add_widget(self.__createPannedHeader('Part ' + str(i + 1), 
+			self.__partsPanel.add_widget(self.__createPannedHeader('Part ' + str(i + 1),
 				self.__partsLayoutList[i].getLayout(), i))
-	
+
 		if (extraParts != []):
 			self.__partsLayoutList[numberOfParts].updateLayout(extraParts[0], obj)
-			self.__partsPanel.add_widget(self.__createPannedHeader('Edit', 
+			self.__partsPanel.add_widget(self.__createPannedHeader('Edit',
 				self.__partsLayoutList[numberOfParts].getLayout(), numberOfParts))
 
 		self.__partsPanel.switch_to(self.__partsPanel.tab_list[0])
@@ -505,7 +505,7 @@ class CollisionInformationPopup:
 		self.__lowerBox.add_widget(self.__cancelButton)
 
 	def __render(self):
-		
+
 		currentObj = self.__objectsList[self.__objectsListIndex]
 		currentId = currentObj.getIdentifier()
 		collisionInfo = self.__copiesDict[currentId]
@@ -519,18 +519,32 @@ class CollisionInformationPopup:
 		for obj in self.__objectsList:
 			currentId = obj.getIdentifier()
 			if (obj.getCollisionInfo() is None):
-				if (self.__copiesDict[currentId].getPartsList() != []):
+				copiedInfo = self.__copiesDict[currentId]
+				if (copiedInfo.getPartsList() != [] or copiedInfo.getDynamic() == True or
+						copiedInfo.getFixedRotation() == True or copiedInfo.getHighSpeed() == True):
 					obj.setCollisionInfo(self.__copiesDict[currentId])
 			else:
 				obj.setCollisionInfo(self.__copiesDict[currentId])
-		
+
 		self.dismissPopUp()
 
 	def __callPreview(self, *args):
 		i = int(self.__partsPanel.current_tab.id.split('#')[1])
 		part = self.__partsLayoutList[i].getPart()
 		self.__partDisplay.drawPart(part)
-		
+
+	def __updateDynamicFlag(self, instance, value):
+		idToUse = self.__objectsList[self.__objectsListIndex].getIdentifier()
+		self.__copiesDict[idToUse].setDynamic(value)
+
+	def __updateFixedRotationFlag(self, instance, value):
+		idToUse = self.__objectsList[self.__objectsListIndex].getIdentifier()
+		self.__copiesDict[idToUse].setFixedRotation(value)
+
+	def __updateHighSpeedFlag(self, instance, value):
+		idToUse = self.__objectsList[self.__objectsListIndex].getIdentifier()
+		self.__copiesDict[idToUse].setHighSpeed(value)
+
 	def __init__(self):
 		self.__baseHeight = 0.05
 
@@ -538,7 +552,7 @@ class CollisionInformationPopup:
 		self.__extraPartsDict = {}
 		self.__objectsList = []
 		self.__objectsListIndex = 0
-		
+
 		self.__collisionPopUp = Popup (title = 'Collision configs', auto_dismiss = False)
 		self.__mainLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 
@@ -549,19 +563,22 @@ class CollisionInformationPopup:
 		self.__bodyInfoBox = GridLayout(orientation = 'vertical', size_hint = (0.5, 1.0), cols = 2, rows = 4)
 		self.__bodyInfoBox.add_widget(Label(text = 'Dynamic', size_hint = (0.3, 0.15)))
 		self.__dynamicSwitch = Switch(active = False, size_hint = (0.7, 0.15))
+		self.__dynamicSwitch.bind(active = self.__updateDynamicFlag)
 		self.__bodyInfoBox.add_widget(self.__dynamicSwitch)
 
 		self.__bodyInfoBox.add_widget(Label(text = 'Fixed Rotation', size_hint = (0.3, 0.15)))
 		self.__fixedRotationSwitch = Switch(active = False, size_hint = (0.7, 0.15))
+		self.__fixedRotationSwitch.bind(active = self.__updateFixedRotationFlag)
 		self.__bodyInfoBox.add_widget(self.__fixedRotationSwitch)
 
 		self.__bodyInfoBox.add_widget(Label(text = 'High Speed', size_hint = (0.3, 0.15)))
 		self.__highSpeedSwitch = Switch(active = False, size_hint = (0.7, 0.15))
+		self.__highSpeedSwitch.bind(active = self.__updateHighSpeedFlag)
 		self.__bodyInfoBox.add_widget(self.__highSpeedSwitch)
-		
+
 		self.__bodyInfoBox.add_widget(Label(text = '', size_hint = (0.5, 0.55)))
 		self.__bodyInfoBox.add_widget(Label(text = '', size_hint = (0.5, 0.55)))
-		
+
 		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
 
 		self.__mainLayout.add_widget(self.__flagsAndPreviewBox)
@@ -577,27 +594,27 @@ class CollisionInformationPopup:
 		self.__mainLayout.add_widget(self.__partsPanel)
 
 		self.__lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		
+
 		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.dismissPopUp)
 		self.__previewButton = CancelableButton (text = 'Preview', size_hint = (0.1, 1.0), on_release = self.__callPreview)
 		self.__applyButton = CancelableButton(text = 'Apply', size_hint = (0.1, 1.0), on_release = self.__applyChanges)
-		self.__applyToAllButton = CancelableButton(text = 'Apply to all', size_hint = (0.1, 1.0), 
+		self.__applyToAllButton = CancelableButton(text = 'Apply to all', size_hint = (0.1, 1.0),
 				on_release = self.__applyChangesToAll)
 		self.__deleteCurrentButton = CancelableButton(text = 'Delete', size_hint = (0.1, 1.0), on_release = self.__deleteCurrentPart)
-		self.__previousObjectButton = CancelableButton(text = 'Previous', size_hint = (0.1, 1.0), 
+		self.__previousObjectButton = CancelableButton(text = 'Previous', size_hint = (0.1, 1.0),
 				on_release = self.__selectPreviousObject)
 		self.__nextObjectButton = CancelableButton(text = 'Next', size_hint = (0.1, 1.0), on_release = self.__selectNextObject)
-		self.__editFlagsButton = CancelableButton(text = 'Edit Flags', size_hint = (0.1, 1.0), 
+		self.__editFlagsButton = CancelableButton(text = 'Edit Flags', size_hint = (0.1, 1.0),
 				on_release = CollisionFlagsEditor.Instance().showPopUp)
-		
+
 		self.__mainLayout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
 		self.__mainLayout.add_widget(self.__lowerBox)
-		
+
 		self.__collisionPopUp.content = self.__mainLayout
 		self.__editingObject = None
-			
-		
+
+
 		self.__warnDelete = Dialog(self.__doDeleteCurrentPart, 'Confirmation', 'Are you sure you want to\ndelete this part?',
 				'Yes', 'No')
 		self.__warnApplyAll = Dialog(self.__doApplyChanges, 'Confirmation', 'This will replace information of other objects.',

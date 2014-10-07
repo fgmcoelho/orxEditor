@@ -16,7 +16,7 @@ from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformat
 from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu
 
 class TileEditor(App):
-	
+
 	def build_config(self, c):
 		Config.set('graphics', 'width', 800)
 		Config.set('graphics', 'height', 600)
@@ -29,26 +29,26 @@ class TileEditor(App):
 		self.root = BoxLayout(orientation='horizontal', padding = 0, spacing = 0)
 
 		self.leftMenuBase = BoxLayout(
-			orientation='vertical', 
-			padding = 0, 
+			orientation='vertical',
+			padding = 0,
 			spacing = 0,
 			size_hint = (0.25, 1.0)
 		)
 
 		self.rightScreen = BoxLayout(
 			orientation = 'vertical',
-			padding = 0, 
+			padding = 0,
 			spacing = 0,
 			size_hint = (0.75, 1.0),
 		)
 
 		self.root.add_widget(self.leftMenuBase)
 		self.root.add_widget(self.rightScreen)
-		
+
 		#Keyboard handler:
 		KeyboardGuardian.Instance()
-		
-		# Files handlers 
+
+		# Files handlers
 		FilesManager.Instance()
 
 		# Scene Editor handlers:
@@ -56,7 +56,7 @@ class TileEditor(App):
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
 		KeyboardGuardian.Instance().acquireKeyboard(self.__sceneHandler)
-		
+
 		# Collision Handlers:
 		CollisionGuardian.Instance()
 		CollisionFlagFormEditorPopup.Instance()
@@ -73,11 +73,11 @@ class TileEditor(App):
 		# Communication Objects
 		CollisionToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection, self.__sceneHandler.getAllObjects)
 		SceneToObjectsMenu.Instance(self.__sceneHandler.draw)
-		
+
 		# Periodic functions:
 		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)
 
 		return self.root
-	
+
 if __name__ == '__main__':
 	TileEditor().run()

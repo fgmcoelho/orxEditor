@@ -11,7 +11,7 @@ from editorheritage import SpaceLimitedObject
 
 class SceneAction:
 	def __init__(self, action, objectsList, args = []):
-		
+
 		assert (type(objectsList) is list)
 		assert ((len (args) == 0) or (len(args) == len (objectsList)))
 
@@ -19,17 +19,17 @@ class SceneAction:
 		self.__undoList = []
 		self.__redoList = []
 		self.__actionArgs = args[:]
-		
+
 		if (action == "increaseScale"):
 			for obj in self.__objectsList:
 				self.__undoList.append(obj.decreaseScale)
 				self.__redoList.append(obj.increaseScale)
-		
+
 		elif (action == "decreaseScale"):
 			for obj in self.__objectsList:
 				self.__undoList.append(obj.increaseScale)
 				self.__redoList.append(obj.decreaseScale)
-		
+
 		elif (action == "flipOnX"):
 			for obj in self.__objectsList:
 				self.__undoList.append(obj.flipOnX)
@@ -157,7 +157,7 @@ class RenderObjectGuardian:
 				start = self.__movePositions[0]
 				end = self.__multiSelectionObjects[0].getPos()
 				amountMovedList = []
-				x = end[0] - start[0] 
+				x = end[0] - start[0]
 				y = end[1] - start[1]
 				if (x == 0 and y == 0):
 					# Movement was started, but the final position kept the same.
@@ -177,7 +177,7 @@ class RenderObjectGuardian:
 			return value in self.__multiSelectionObjects
 
 		return False
-	
+
 	def addObjectToSelection(self, value):
 		if (value not in self.__multiSelectionObjects):
 			self.__multiSelectionObjects.append(value)
@@ -186,7 +186,7 @@ class RenderObjectGuardian:
 		return self.__multiSelectionObjects
 
 	def propagateTranslation(self, callingObject, translation, post, anchor):
-		
+
 		if (self.__moveStarted == False):
 			self.__movePositions = []
 			for obj in self.__multiSelectionObjects:
@@ -218,10 +218,10 @@ class RenderObjectGuardian:
 	def increaseScale(self):
 		if len(self.__multiSelectionObjects) == 1:
 			self.__multiSelectionObjects[0].increaseScale()
-			
+
 			action = SceneAction("increaseScale", [ self.__multiSelectionObjects[0] ] )
 			self.__history.registerAction(action)
-			
+
 			return self.__multiSelectionObjects[0]
 
 		return None
@@ -238,35 +238,35 @@ class RenderObjectGuardian:
 		return None
 
 	def flipSelectionOnX(self):
-		
+
 		tempSelection = self.__multiSelectionObjects[:]
 		for obj in tempSelection:
 			self.__multiSelectionObjects = [ obj ]
 			obj.flipOnX()
 
 		self.__multiSelectionObjects = tempSelection
-		
+
 		action = SceneAction("flipOnX", self.__multiSelectionObjects)
 		self.__history.registerAction(action)
 
 		return self.__multiSelectionObjects
 
 	def flipSelectionOnY(self):
-		
+
 		tempSelection = self.__multiSelectionObjects[:]
 		for obj in tempSelection:
 			self.__multiSelectionObjects = [ obj ]
 			obj.flipOnY()
 
 		self.__multiSelectionObjects = tempSelection
-		
+
 		action = SceneAction("flipOnY", self.__multiSelectionObjects)
 		self.__history.registerAction(action)
 
 		return self.__multiSelectionObjects
 
 	def alignSelectionToGrid(self):
-		
+
 		# By default every translation one object in the multiple selection is
 		# propagated to the others. So we need to clean the list to alighn each
 		# object properly.
@@ -274,7 +274,7 @@ class RenderObjectGuardian:
 		# lost.
 		if (self.__multiSelectionObjects != []):
 			self.endMovement()
-			
+
 			tempSelection = self.__multiSelectionObjects[:]
 			movementDoneList = []
 			allZero = True
@@ -286,7 +286,7 @@ class RenderObjectGuardian:
 				movementDoneList.append((fx - sx, fy - sy))
 				if (fx - sx != 0 or fy - sy != 0):
 					allZero = False
-			
+
 			if (allZero == False):
 				action = SceneAction("move", tempSelection, movementDoneList)
 				self.__history.registerAction(action)
@@ -320,7 +320,7 @@ class RenderObjectGuardian:
 			return []
 
 		startX, startY, endX, endY = self.__getSelectionLimits()
-		
+
 		if (direction == 'left'):
 			xAdjust = (startX - endX)
 			yAdjust = 0
@@ -336,13 +336,15 @@ class RenderObjectGuardian:
 		elif (direction == 'down'):
 			xAdjust = 0
 			yAdjust = (startY - endY)
-		
-		newSelection = []		
+
+		newSelection = []
 		for obj in self.__multiSelectionObjects:
 			pos = obj.getPos()
 			newPos = (pos[0] + xAdjust, pos[1] + yAdjust)
+			size = obj.getSize()
 
-			if (newPos[0] >= 0 and newPos[1] >= 0 and newPos[0] < maxX and newPos[1] < maxY):
+			if (newPos[0] >= 0 and newPos[1] >= 0 and newPos[0] < maxX and newPos[1] < maxY
+					and newPos[0] + size[0] < maxX and newPos[1] + size[1] < maxY):
 				newObj = RenderedObject(newId, obj, newPos, tileSize, maxX, maxY, self)
 				newId += 1
 				newSelection.append(newObj)
@@ -357,7 +359,7 @@ class RenderObjectGuardian:
 			self.__multiSelectionObjects = newSelection
 			action = SceneAction("copySelection", newSelection)
 			self.__history.registerAction(action)
-			
+
 		return newSelection
 
 	def getSelection(self):
@@ -408,7 +410,7 @@ class BaseObject:
 
 	def getSize(self):
 		return self.__size
-	
+
 	def getPath(self):
 		return self.__fullPath
 
@@ -424,7 +426,7 @@ class BaseObject:
 class RenderedObject (Scatter, SpaceLimitedObject):
 
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
-		
+
 		if (self.__forceMove == False and self.__renderGuardian.isSelected(self) == False):
 			return
 
@@ -434,7 +436,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		xBefore, yBefore = self.bbox[0]
 
 		self.__defaultApplyTransform(trans, post_multiply, anchor)
-		
+
 		x, y = self.bbox[0]
 		if (xBefore == x and yBefore == y):
 			return
@@ -463,17 +465,17 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 	def increaseScale(self):
 		self.setScale (self.__scale + 0.25, True)
-	
+
 	def decreaseScale(self):
 		self.setScale (self.__scale - 0.25, True)
 
 	def setScale(self, newScale, preservePos = False):
 		if (newScale == 0.0):
 			return
-		
+
 		if (preservePos == True):
 			oldPos = self.bbox[0]
-		
+
 		self.__scale = newScale
 		self.scale = self.__scale
 		self.__sx, self.__sy = self.bbox[1]
@@ -524,11 +526,11 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 	def flipOnY(self):
 		self.__flipY = not self.__flipY
 		finalAlpha = self.image.color[3]
-		
+
 		x, y = self.bbox[0]
 		self.__flipVertical()
 		self._set_pos((x,y))
-		
+
 		self.image.color[3] = finalAlpha
 
 	def move(self, x, y):
@@ -542,7 +544,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 				x -= x % self.__tileSize
 			else:
 				x += self.__tileSize - (x % self.__tileSize)
-		
+
 		distY = y % self.__tileSize
 		if (distY != 0):
 			if (distY < self.__tileSize/2):
@@ -550,7 +552,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			else:
 				y += self.__tileSize - (y % self.__tileSize)
 
-		self._set_pos((x, y))		
+		self._set_pos((x, y))
 
 	def __handleTouchDown(self, touch):
 		self.__defaultTouchDown(touch)
@@ -566,7 +568,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 	def __init__(self, identifier, obj, pos, tileSize, maxX, maxY, guardianToUse):
 		assert (isinstance(obj, BaseObject) or isinstance(obj, RenderedObject))
 		assert (type(maxX) is int and type(maxY) is int)
-		
+
 		self.__markLine = None
 		self.__id = identifier
 		self.__spriteInfo = obj.getSpriteInfo()
@@ -603,12 +605,12 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 				self.__collisionInfo = None
 			else:
 				self.__collisionInfo = CollisionInformation.copy(obj.getCollisionInfo())
-		
+
 		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None),
 			size = self.__baseSize, auto_bring_to_front = False)
 
 		self.add_widget(self.image)
-		
+
 		self.__renderGuardian = guardianToUse
 		self.__isFinished = False
 		self.__isHidden = False
@@ -621,7 +623,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__path = path
 		self._set_pos(pos)
 		self.size = self.getSize()
-		
+
 		self.__defaultTouchDown = self.on_touch_down
 		self.on_touch_down = self.__handleTouchDown
 		self.__defaultTouchUp = self.on_touch_up
@@ -630,7 +632,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.apply_transform = self.__checkAndTransform
 		#self.__defaultTouchMove = self.on_touch_move
 		#self.on_touch_move = self.__handleTouchMove
-		
+
 	def hide(self):
 		self.unsetMarked()
 		self.remove_widget(self.image)
@@ -681,10 +683,10 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 	def getFlipY(self):
 		return self.__flipY
-	
+
 	def getName(self):
 		return self.__name
-	
+
 	def getCollisionInfo(self):
 		return self.__collisionInfo
 
