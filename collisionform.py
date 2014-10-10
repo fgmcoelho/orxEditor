@@ -20,7 +20,7 @@ class CollisionPartDisplay(RelativeLayout):
 	def __init__(self, obj, expandLevel = 1.0):
 		if (obj is None):
 			return
-	
+
 		self.__texture = AutoReloadTexture(obj.getSize(), obj.getImage())
 		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = obj.getSize())
 		self.__image = Scatter(do_rotation = False, do_translation = False, do_scale = False)
@@ -59,7 +59,7 @@ class CollisionPartDisplay(RelativeLayout):
 				],
 				close = True
 			)
-	
+
 	def __drawDefinedBox(self, points):
 		self.clearDrawnForm()
 
@@ -69,17 +69,17 @@ class CollisionPartDisplay(RelativeLayout):
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Line(
 				points = [
-					fx, fy, 
-					fx, sy, 
-					sx, sy, 
-					sx, fy, 
+					fx, fy,
+					fx, sy,
+					sx, sy,
+					sx, fy,
 				],
 				close = True
-			)	
+			)
 
 	def __drawDefaultSphere(self):
 		self.clearDrawnForm()
-		
+
 		imgPos = tuple(self.__image.pos)
 		imgSize = tuple(self.__image.size)
 		with self.canvas:
@@ -91,7 +91,7 @@ class CollisionPartDisplay(RelativeLayout):
 					imgSize[0]/2.,
 				)
 			)
-			
+
 	def __drawDefinedSphere(self, points):
 		self.clearDrawnForm()
 		fx, fy = points[0]
@@ -101,7 +101,7 @@ class CollisionPartDisplay(RelativeLayout):
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Line(
 				circle = (
-					fx, 
+					fx,
 					fy,
 					radius
 				)
@@ -115,7 +115,7 @@ class CollisionPartDisplay(RelativeLayout):
 			imgPos = tuple(self.__image.pos)
 			imgSize = tuple(self.__image.size)
 			self.__operation = Mesh (
-				vertices = [		
+				vertices = [
 					imgPos[0], imgPos[0], 0, 0,
 					imgPos[0] + imgSize[0], imgPos[1], 0, 0,
 					imgPos[0] + imgSize[0], imgPos[1] + imgSize[1], 0, 0,
@@ -163,8 +163,8 @@ class CollisionPartDisplay(RelativeLayout):
 		return self.__expandLevel
 
 	def getImage(self):
-		return self.__image	
-	
+		return self.__image
+
 	def resize(self, x):
 		self.size = vector2Multiply(self.__originalSize, x)
 		self.__image.pos = (self.size[0]/4., self.size[1]/4.)
@@ -177,38 +177,38 @@ class CollisionFormEditorPoints(Scatter):
 		x += ceil(CollisionFormEditorPoints.dotSize/2.)
 		y += ceil(CollisionFormEditorPoints.dotSize/2.)
 		return (x, y)
-		
+
 	def setPos(self, newPos):
 		x, y = newPos
 		x -= ceil(CollisionFormEditorPoints.dotSize/2.)
-		y -= ceil(CollisionFormEditorPoints.dotSize/2.)		
+		y -= ceil(CollisionFormEditorPoints.dotSize/2.)
 		self.pos = (x, y)
-	
+
 	def __updateOnMove(self, touch):
 		self.__updateMethod(self)
 		self.__defaut_touch_move(touch)
 
 	def __init__(self, updateMethod):
 		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
-			size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize), size_hint = (None, None), 
+			size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize), size_hint = (None, None),
 			auto_bring_to_front = False)
 
 		self.__updateMethod = updateMethod
 		self.__defaut_touch_move = self.on_touch_move
 		self.on_touch_move = self.__updateOnMove
-		
+
 		img = Image (size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize))
 		self.add_widget(img)
 		#with self.canvas:
 		#	Color (1, 0, 1, 0)
 		#	Rectangle(pos = self.pos, size = self.size)
-	
+
 
 class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
-	
+
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
-	
+
 		if (keycode[1] == 'shift'):
 			self.setIsShiftPressed(False)
 
@@ -236,10 +236,10 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		l = []
 		for point in self.__pointsList:
 			l.append(point.getPos())
-			
+
 		self.__workingPart.setPoints(l)
 		self.__display.drawPart(self.__workingPart)
-		
+
 	def render(self, part, obj):
 		self._scrollView.clear_widgets()
 		self.__display = CollisionPartDisplay(obj, 2.0)
@@ -249,7 +249,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 
 		self.__display.drawPart(self.__workingPart)
 		self._scrollView.add_widget(self.__display)
-		
+
 		self.__pointsList = []
 		form = self.__workingPart.getFormType()
 		points = self.__workingPart.getPoints()
@@ -259,9 +259,9 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
 			self.__display.add_widget(self.__pointsList[1])
 			if (points == None):
-				imgPos = tuple(self.__display.getImage().pos) 
+				imgPos = tuple(self.__display.getImage().pos)
 				imgSize = tuple(self.__display.getImage().size)
-				self.__pointsList[0].setPos(imgPos) 
+				self.__pointsList[0].setPos(imgPos)
 				self.__pointsList[1].setPos((imgPos[0] + imgSize[0], imgPos[1] + imgSize[1]))
 
 		elif (form == 'sphere'):
@@ -270,26 +270,26 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 			self.__pointsList.append(CollisionFormEditorPoints(self.__updatePoints))
 			self.__display.add_widget(self.__pointsList[1])
 			if (points == None):
-				imgPos = tuple(self.__display.getImage().pos) 
+				imgPos = tuple(self.__display.getImage().pos)
 				imgSize = tuple(self.__display.getImage().size)
 				midPoint = (imgPos[0] + imgSize[0]/2., imgPos[1] + imgSize[1]/2.)
-				self.__pointsList[0].setPos(midPoint) 
+				self.__pointsList[0].setPos(midPoint)
 				self.__pointsList[1].setPos((obj.getSize()[0], obj.getSize()[1]/2))
-	
+
 		elif (form == 'mesh'):
 			if (points == None):
 				for i in range(4):
 					point = CollisionFormEditorPoints(self.__updatePoints)
 					self.__pointsList.append(point)
 					self.__display.add_widget(point)
-				
-				imgPos = tuple(self.__display.getImage().pos) 
+
+				imgPos = tuple(self.__display.getImage().pos)
 				imgSize = tuple(self.__display.getImage().size)
 				self.__pointsList[0].setPos(imgPos)
 				self.__pointsList[1].setPos((imgPos[0] + imgSize[0], imgPos[1]))
 				self.__pointsList[2].setPos((imgPos[0] + imgSize[0], imgPos[1] + imgSize[1]))
 				self.__pointsList[3].setPos((imgPos[0], imgPos[1] + imgSize[1]))
-	
+
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self._scrollView.collide_point(*touch.pos) == False):
 			return
@@ -318,7 +318,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 
 	def __init__(self):
 		super(CollisionFlagFormEditorLayout, self).__init__(size_hint = (1.0, 0.9))
-		
+
 		self.__defaultTouchDown = self._scrollView.on_touch_down
 		self._scrollView.on_touch_move = self._ignoreMoves
 		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
@@ -330,21 +330,24 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 class CollisionFlagFormEditorPopup:
 
 	def __init__(self):
-	
+
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout)
 		self.__mainScreen = CollisionFlagFormEditorLayout()
 		self.__bottomMenu = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.15, 1.0), 
+		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.15, 1.0),
 				on_release = self.dismissPopUp)
 		self.__doneButton = CancelableButton(text = 'Done', size_hint = (0.15, 1.0))
-		self.__bottomMenu.add_widget(Label(text ='', size_hint = (0.7, 1.0)))
+		self.__tooltipLabel = Label(text='', size_hint = (0.6, 1.0))
+
+		self.__bottomMenu.add_widget(self.__tooltipLabel)
+		self.__bottomMenu.add_widget(Label(text ='', size_hint = (0.1, 1.0)))
 		self.__bottomMenu.add_widget(self.__cancelButton)
 		self.__bottomMenu.add_widget(self.__doneButton)
 
 		self.__layout.add_widget(self.__mainScreen.getLayout())
 		self.__layout.add_widget(self.__bottomMenu)
-	
+
 	def dismissPopUp(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self.__mainScreen)
 
@@ -353,7 +356,9 @@ class CollisionFlagFormEditorPopup:
 	def showPopUp(self, part, obj):
 		KeyboardGuardian.Instance().acquireKeyboard(self.__mainScreen)
 		if (part.getFormType() == 'mesh'):
-			#TODO: Add the add/remove point instruction here.
-			pass
+			self.__tooltipLabel.text = 'Double click to Add a point.\nPress delete to remove the last used point.'
+		else:
+			self.__tooltipLabel.text = ''
+
 		self.__mainScreen.render(part, obj)
 		self.__popup.open()

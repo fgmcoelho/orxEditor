@@ -230,6 +230,9 @@ class CollisionPartLayout:
 			checkboxInfo = checkboxObject.id.split('#')
 			self.__part.setFormType(checkboxInfo[1])
 
+	def __updateSolidFlag(self, instance, newValue):
+			self.__part.setSolid(newValue)
+
 	def __render(self, part, obj):
 		self.__obj = obj
 		self.__part = part
@@ -277,6 +280,7 @@ class CollisionPartLayout:
 			self.__pointsText.text = 'Have collision points? Yes.'
 
 		self.__partSolidSwitch.active = part.getSolid()
+		self.__partSolidSwitch.bind(active = self.__updateSolidFlag)
 
 		self.__typeLine.clear_widgets()
 		self.__boxCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#box')

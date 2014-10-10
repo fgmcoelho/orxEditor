@@ -9,7 +9,7 @@ class CollisionFlag:
 
 	def getName(self):
 		return self.__name
-	
+
 	def setDeleted (self):
 		self.__isDeleted = True
 
@@ -27,7 +27,7 @@ class CollisionGuardian:
 			flag = CollisionFlag(name)
 			self.__flagsDict[name] = (self.__id, flag)
 			self.__id += 1
-	
+
 	def removeFlag(self, name):
 		if (name in self.__flagsDict):
 			del self.__flagsDict[name]
@@ -37,7 +37,7 @@ class CollisionGuardian:
 		for flag in self.__flagsDict.values():
 			if (flag[1].getDeleted() == False):
 				flagsList.append(flag)
-		
+
 		flagsOrderedList = sorted(flagsList, key=itemgetter(0))
 
 		listToReturn = []
@@ -64,10 +64,10 @@ class CollisionPartInformation:
 			part.getPoints()
 		)
 
-	def __assertPointsValue(self, form, points): 	
+	def __assertPointsValue(self, form, points):
 		assert ((points is None) or (form == "box" and len(points) == 2) or (form == "sphere" and
 			len(points) == 2) or (form == "mesh" and len(points) >= 3))
-	
+
 	def __init__(self, checkMask = [], selfFlags = [], solid = False, formType = "box", points = None):
 		self.__assertPointsValue(formType, points)
 		self.__checkMask = checkMask[:]
@@ -78,39 +78,42 @@ class CollisionPartInformation:
 
 	def getCheckMask(self):
 		return self.__checkMask
-		
+
 	def getSelfFlags(self):
 		return self.__selfFlags
 
 	def addFlagToCheckMask(self, flag):
 		assert (len(self.__checkMask) <= 16)
 		self.__checkMask.append(flag)
-		
+
 	def setFormType(self, newForm):
 		assert (newForm in ['box', 'sphere', 'mesh'])
 		self.__formType = newForm
 		self.__points = None
-		
+
+	def setSolid(self, newValue):
+		self.__solid = newValue
+
 	def setPoints(self, newPoints):
 		self.__assertPointsValue(self.__formType, newPoints)
 		self.__points = newPoints
-		
+
 	def addFlagToSelfFlags(self, flag):
 		assert (len(self.__selfFlags) <= 16)
 		self.__selfFlags.append(flag)
 
 	def removeFlagFromCheckMask(self, flag):
 		self.__checkMask.remove(flag)
-	
+
 	def removeFlagFromSelfFlags(self, flag):
 		self.__selfFlags.remove(flag)
 
 	def getSolid(self):
 		return self.__solid
-		
+
 	def getFormType(self):
 		return self.__formType
-	
+
 	def getPoints(self):
 		return self.__points
 
@@ -126,7 +129,7 @@ class CollisionInformation:
 		)
 		for part in info.getPartsList():
 			newInfo.addPart(CollisionPartInformation.copy(part))
-			
+
 		return newInfo
 
 	def __init__(self, dynamic = False, highSpeed = False, fixedRotation = False):
@@ -137,19 +140,19 @@ class CollisionInformation:
 
 	def getDynamic(self):
 		return self.__dynamic
-	
+
 	def getHighSpeed(self):
 		return self.__highSpeed
 
 	def getFixedRotation(self):
 		return self.__fixedRotation
-		
+
 	def getPartsList(self):
 		return self.__partsList
 
 	def setDynamic(self, value):
 		self.__dynamic = value
-	
+
 	def setHighSpeed(self, value):
 		self.__highSpeed = value
 
