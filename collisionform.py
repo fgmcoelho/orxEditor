@@ -9,9 +9,9 @@ from kivy.graphics import Color
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 
-from math import ceil, sqrt
+from math import ceil
 
-from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply
+from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, distance
 from editorheritage import SpecialScrollControl
 from collisioninfo import CollisionPartInformation
 from keyboard import KeyboardAccess, KeyboardGuardian
@@ -95,8 +95,7 @@ class CollisionPartDisplay(RelativeLayout):
 	def __drawDefinedSphere(self, points):
 		self.clearDrawnForm()
 		fx, fy = points[0]
-		sx, sy = points[1]
-		radius = sqrt((fx - sx) * (fx - sx) + (fy - sy) * (fy - sy))
+		radius = distance(points[0], points[1])
 		with self.canvas:
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Line(
@@ -290,6 +289,21 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 				self.__pointsList[2].setPos((imgPos[0] + imgSize[0], imgPos[1] + imgSize[1]))
 				self.__pointsList[3].setPos((imgPos[0], imgPos[1] + imgSize[1]))
 
+	def __findBestPlaceForMesh(self, newPoint):
+		assert isinstance(newPoint, CollisionFormEditorPoints)
+		l = []
+		for point in self.__pointsList:
+			l.append(distance(point.pos, newPoint.pos))
+
+		smallest = l[0]
+		smallestIndex = 0
+		for i in range(1, len(l)):
+			if (smallest > l[i]):
+				smallest = l[i]
+				smallestIndex = i
+
+		return smallestIndex
+
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self._scrollView.collide_point(*touch.pos) == False):
 			return
@@ -298,9 +312,10 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 			form = self.__workingPart.getFormType()
 			if (form == 'mesh'):
 				newPoint = CollisionFormEditorPoints(self.__updatePoints)
-				self.__pointsList.append(newPoint)
-				self.__display.add_widget(newPoint)
 				newPoint.setPos(self.__display.to_widget(*touch.pos))
+				indexToInsert = self.__findBestPlaceForMesh(newPoint)
+				self.__pointsList.insert(indexToInsert + 1, newPoint)
+				self.__display.add_widget(newPoint)
 				self.__updatePoints(newPoint)
 
 			return

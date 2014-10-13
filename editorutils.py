@@ -9,6 +9,7 @@ from kivy.effects.scroll import ScrollEffect
 
 from os.path import sep as pathSeparator
 from os import getcwd
+from math import sqrt
 
 class CancelableButton (Button):
 
@@ -36,7 +37,7 @@ class CancelableButton (Button):
 
 	def __init__(self, **kwargs):
 		assert (not ('on_release' in kwargs and 'on_touch_up' in kwargs))
-		
+
 		if (self.__getActionByEntry('on_release', kwargs) == False and self.__getActionByEntry('on_touch_up', kwargs) == False):
 			self.__action = None
 
@@ -75,7 +76,7 @@ def vector2Multiply(v, x):
 		return (v[0] * x, v[1] * x)
 	else:
 		return [v[0] * x, v[1] * x]
-	
+
 
 def copyTexture(sizeToUse, imageToUse):
 	newTexture = Texture.create(size = sizeToUse)
@@ -87,7 +88,7 @@ def copyTexture(sizeToUse, imageToUse):
 
 class EmptyScrollEffect(ScrollEffect):
 	pass
-	
+
 class BaseWarnMethods:
 
 	def open(self):
@@ -109,17 +110,17 @@ class Dialog (BaseWarnMethods):
 		return None
 
 	def __init__(self, okMethod = None, dialogTitle = '', dialogText = '', dialogOkButtonText = '', dialogCancelButtonText = ''):
-		
+
 		self.mainPopUp = Popup(title = dialogTitle, auto_dismiss = False, size_hint = (0.7, 0.5))
 		self.mainPopUpText = Label(text = dialogText)
 		popUpLayout = BoxLayout(orientation = 'vertical')
 		yesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.3))
-		
+
 		if (okMethod is None):
 			self.__okMethod = self.__doNothing
 		else:
 			self.__okMethod = okMethod
-		
+
 		self.__dialogOkButton = CancelableButton(text = dialogOkButtonText, on_release = self.__okMethod)
 		popUpLayout.add_widget(self.mainPopUpText)
 		yesNoLayout.add_widget(self.__dialogOkButton)
@@ -128,10 +129,10 @@ class Dialog (BaseWarnMethods):
 		self.mainPopUp.content = popUpLayout
 
 class AlertPopUp (BaseWarnMethods):
-	
+
 	def __init__(self, alertTitle = '', alertText = '', closeButtonText = ''):
 		self.mainPopUp = Popup(
-			title = alertTitle, 
+			title = alertTitle,
 			auto_dismiss = False,
 			size_hint = (0.5, 0.5)
 		)
@@ -140,7 +141,7 @@ class AlertPopUp (BaseWarnMethods):
 			text = alertText, size_hint = (1.0, 0.7)
 		)
 		mainPopUpBox.add_widget(self.mainPopUpText)
-		mainPopUpBox.add_widget(CancelableButton(text = closeButtonText, size_hint = (1.0, 0.3), 
+		mainPopUpBox.add_widget(CancelableButton(text = closeButtonText, size_hint = (1.0, 0.3),
 			on_release = self.mainPopUp.dismiss))
 		self.mainPopUp.content = mainPopUpBox
 
@@ -195,4 +196,9 @@ class AutoReloadTexture:
 
 	def getTexture(self):
 		return self.__texture
-		
+
+def distance(pos1, pos2):
+	fx, fy = pos1
+	sx, sy = pos2
+	return sqrt((fx - sx) * (fx - sx) + (fy - sy) * (fy - sy))
+
