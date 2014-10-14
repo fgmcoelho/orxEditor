@@ -44,6 +44,7 @@ class CancelableButton (Button):
 		super(CancelableButton, self).__init__(**kwargs)
 		if (self.__action is not None):
 			self.__lastUid = None
+			self.__touchUpUid = None
 			self.__default_on_touch_up = self.on_touch_up
 			self.on_touch_up = self.__processAction
 			self.__default_on_touch_down = self.on_touch_down
@@ -109,7 +110,19 @@ class Dialog (BaseWarnMethods):
 	def __doNothing(self, notUsed = None):
 		return None
 
-	def __init__(self, okMethod = None, dialogTitle = '', dialogText = '', dialogOkButtonText = '', dialogCancelButtonText = ''):
+	def __processCancel(self, *args):
+		self.mainPopUp.dismiss()
+		if (self.__afterCancelAction is not None):
+			self.__afterCancelAction()
+
+	def __processOk(self, *args):
+		self.__okMethod()
+		self.mainPopUp.dismiss()
+		if (self.__afterOkAction is not None):
+			self.__afterOkAction()
+
+	def __init__(self, okMethod = None, dialogTitle = '', dialogText = '', dialogOkButtonText = '', dialogCancelButtonText = '',
+			afterOkAction = None, afterCancelAction = None):
 
 		self.mainPopUp = Popup(title = dialogTitle, auto_dismiss = False, size_hint = (0.7, 0.5))
 		self.mainPopUpText = Label(text = dialogText)
@@ -121,28 +134,37 @@ class Dialog (BaseWarnMethods):
 		else:
 			self.__okMethod = okMethod
 
-		self.__dialogOkButton = CancelableButton(text = dialogOkButtonText, on_release = self.__okMethod)
+		self.__afterOkAction = afterOkAction
+		self.__afterCancelAction = afterCancelAction
+
+		self.__dialogOkButton = CancelableButton(text = dialogOkButtonText, on_release = self.__processOk)
 		popUpLayout.add_widget(self.mainPopUpText)
 		yesNoLayout.add_widget(self.__dialogOkButton)
-		yesNoLayout.add_widget(CancelableButton(text = dialogCancelButtonText, on_release = self.mainPopUp.dismiss))
+		yesNoLayout.add_widget(CancelableButton(text = dialogCancelButtonText, on_release = self.__processCancel))
 		popUpLayout.add_widget(yesNoLayout)
 		self.mainPopUp.content = popUpLayout
 
 class AlertPopUp (BaseWarnMethods):
 
-	def __init__(self, alertTitle = '', alertText = '', closeButtonText = ''):
+	def __processClose(self, *args):
+		self.mainPopUp.dismiss()
+		if (self.__processCloseAction is not None):
+			self.__processCloseAction()
+
+	def __init__(self, alertTitle = '', alertText = '', closeButtonText = '', processCloseAction = None):
 		self.mainPopUp = Popup(
 			title = alertTitle,
 			auto_dismiss = False,
 			size_hint = (0.5, 0.5)
 		)
+		self.__processCloseAction = processCloseAction
 		mainPopUpBox = BoxLayout(orientation = 'vertical')
 		self.mainPopUpText = Label(
 			text = alertText, size_hint = (1.0, 0.7)
 		)
 		mainPopUpBox.add_widget(self.mainPopUpText)
 		mainPopUpBox.add_widget(CancelableButton(text = closeButtonText, size_hint = (1.0, 0.3),
-			on_release = self.mainPopUp.dismiss))
+			on_release = self.__processClose))
 		self.mainPopUp.content = mainPopUpBox
 
 class FileSelectionPopup:

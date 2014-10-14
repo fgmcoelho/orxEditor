@@ -68,6 +68,16 @@ class CollisionPartInformation:
 		assert ((points is None) or (form == "box" and len(points) == 2) or (form == "sphere" and
 			len(points) == 2) or (form == "mesh" and len(points) >= 3))
 
+	def __removeFlagFromList(self, listToUse, flag):
+		flagObjectToRemove = None
+		for flagObject in listToUse:
+			if (flagObject.getName() == flag):
+				flagObjectToRemove = flagObject
+				break
+
+		if (flagObjectToRemove is not None):
+			listToUse.remove(flagObjectToRemove)
+
 	def __init__(self, checkMask = [], selfFlags = [], solid = False, formType = "box", points = None):
 		self.__assertPointsValue(formType, points)
 		self.__checkMask = checkMask[:]
@@ -103,10 +113,10 @@ class CollisionPartInformation:
 		self.__selfFlags.append(flag)
 
 	def removeFlagFromCheckMask(self, flag):
-		self.__checkMask.remove(flag)
+		self.__removeFlagFromList(self.__checkMask, flag)
 
 	def removeFlagFromSelfFlags(self, flag):
-		self.__selfFlags.remove(flag)
+		self.__removeFlagFromList(self.__selfFlags, flag)
 
 	def getSolid(self):
 		return self.__solid

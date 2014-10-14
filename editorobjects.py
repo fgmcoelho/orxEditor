@@ -19,6 +19,7 @@ class SceneAction:
 		self.__undoList = []
 		self.__redoList = []
 		self.__actionArgs = args[:]
+		self.__name = action
 
 		if (action == "increaseScale"):
 			for obj in self.__objectsList:
@@ -78,6 +79,9 @@ class SceneAction:
 				method(self.__actionArgs[i])
 				i += 1
 
+	def getName(self):
+		return self.__name
+
 	def clear(self):
 		for obj in self.__objectsList:
 			if (obj.getHidden() == True):
@@ -104,12 +108,14 @@ class SceneActionHistory:
 		if (self.__historyList != []):
 			action = self.__historyList.pop()
 			action.undo()
+			#print action.getName()
 			self.__redoList.append(action)
 
 	def redo(self):
 		if (self.__redoList != []):
 			action = self.__redoList.pop()
 			action.redo()
+			#print action.getName()
 			self.__historyList.append(action)
 
 class RenderObjectGuardian:
@@ -144,11 +150,21 @@ class RenderObjectGuardian:
 		self.__multiSelectionObjects = []
 		self.__history = SceneActionHistory()
 
+	def __reviewSelection(self):
+		newSelection = []
+		for obj in self.__multiSelectionObjects:
+			if (obj.getHidden() == False):
+				newSelection.append(obj)
+
+		self.__multiSelectionObjects = newSelection
+
 	def undo(self):
 		self.__history.undo()
+		self.__reviewSelection()
 
 	def redo(self):
 		self.__history.redo()
+		self.__reviewSelection()
 
 	def endMovement(self):
 
@@ -343,8 +359,8 @@ class RenderObjectGuardian:
 			newPos = (pos[0] + xAdjust, pos[1] + yAdjust)
 			size = obj.getSize()
 
-			if (newPos[0] >= 0 and newPos[1] >= 0 and newPos[0] < maxX and newPos[1] < maxY
-					and newPos[0] + size[0] < maxX and newPos[1] + size[1] < maxY):
+			if (newPos[0] >= 0 and newPos[1] >= 0 and newPos[0] <= maxX and newPos[1] <= maxY
+					and newPos[0] + size[0] <= maxX and newPos[1] + size[1] <= maxY):
 				newObj = RenderedObject(newId, obj, newPos, tileSize, maxX, maxY, self)
 				newId += 1
 				newSelection.append(newObj)
@@ -455,13 +471,16 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__defaultApplyTransform(translation, post_multiply, anchor)
 
 	def setMarked(self):
-		with self.image.canvas:
-			Color(1., 0., 0.)
-			sx, sy = self.getSize()
-			self.__borderLine = Line(points = [0, 0, sx, 0, sx, sy, 0, sy, 0, 0])
+		if (self.__borderLine is None):
+			with self.image.canvas:
+				Color(1., 0., 0.)
+				sx, sy = self.getSize()
+				self.__borderLine = Line(points = [0, 0, sx, 0, sx, sy, 0, sy, 0, 0])
 
 	def unsetMarked(self):
-		self.image.canvas.remove(self.__borderLine)
+		if (self.__borderLine is not None):
+			self.image.canvas.remove(self.__borderLine)
+			self.__borderLine = None
 
 	def increaseScale(self):
 		self.setScale (self.__scale + 0.25, True)
@@ -487,6 +506,11 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__collisionInfo = value
 
 	def __flipVertical(self):
+		mustRemark = False
+		if (self.__borderLine is not None):
+			self.unsetMarked()
+			mustRemark = True
+
 		sizeToUse = self.image.size
 		newTexture = self.image.texture
 		newTexture.flip_vertical()
@@ -494,7 +518,15 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.image = Image(texture = newTexture, size = (sizeToUse), nocache = True)
 		self.add_widget(self.image)
 
+		if (mustRemark == True):
+			self.setMarked()
+
 	def __flipHorizontal(self):
+		mustRemark = False
+		if (self.__borderLine is not None):
+			self.unsetMarked()
+			mustRemark = True
+
 		newTexture = self.image.texture
 		uvx, uvy = newTexture.uvpos
 		uvw, uvh = newTexture.uvsize
@@ -507,15 +539,15 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.image = Image(texture = newTexture, size = (sizeToUse), nocache = True)
 		self.add_widget(self.image)
 
+		if (mustRemark == True):
+			self.setMarked()
+
 	def flipOnX(self):
 		self.__flipX = not self.__flipX
-		finalAlpha = self.image.color[3]
 
 		x, y = self.bbox[0]
 		self.__flipHorizontal()
 		self._set_pos((x,y))
-
-		self.image.color[3] = finalAlpha
 
 	def increaseLayer(self):
 		self.__layer += 1
@@ -525,13 +557,10 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 	def flipOnY(self):
 		self.__flipY = not self.__flipY
-		finalAlpha = self.image.color[3]
 
 		x, y = self.bbox[0]
 		self.__flipVertical()
 		self._set_pos((x,y))
-
-		self.image.color[3] = finalAlpha
 
 	def move(self, x, y):
 		self._set_pos((x, y))
@@ -569,7 +598,6 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		assert (isinstance(obj, BaseObject) or isinstance(obj, RenderedObject))
 		assert (type(maxX) is int and type(maxY) is int)
 
-		self.__markLine = None
 		self.__id = identifier
 		self.__spriteInfo = obj.getSpriteInfo()
 		path = obj.getPath()
@@ -615,6 +643,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__isFinished = False
 		self.__isHidden = False
 		self.__forceMove = False
+		self.__borderLine = None
 
 		self.__objectType = ObjectTypes.renderedObject
 		self.__tileSize = tileSize
@@ -630,8 +659,6 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.on_touch_up = self.__handleTouchUp
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
-		#self.__defaultTouchMove = self.on_touch_move
-		#self.on_touch_move = self.__handleTouchMove
 
 	def hide(self):
 		self.unsetMarked()

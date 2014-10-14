@@ -23,6 +23,16 @@ from collisionform import CollisionPartDisplay, CollisionFlagFormEditorPopup
 @Singleton
 class CollisionFlagsEditor:
 
+	def __reaplyFocus(self):
+		flagsList = CollisionGuardian.Instance().getFlags()
+		if (len(flagsList) != self.__maxCollisionFlags):
+			self.__inputBar.clear_widgets()
+			oldText = self.__flagNameInput.text
+			self.__flagNameInput = TextInput(text = oldText, multiline = False, size_hint = (0.9, 1.0),
+				on_text_validate = self.__processAddFlag, focus = True)
+			self.__inputBar.add_widget(self.__flagNameInput)
+			self.__inputBar.add_widget(self.__flagAddButton)
+
 	def __render(self):
 		self.__layout.clear_widgets()
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
@@ -42,13 +52,7 @@ class CollisionFlagsEditor:
 			self.__layout.add_widget(Label(text = 'Maximum number of flags (%u) reached.' % (self.__maxCollisionFlags, ),
 				size_hint = (1.0, self.__baseHeight)))
 		else:
-			self.__inputBar.clear_widgets()
-			oldText = self.__flagNameInput.text
-			self.__flagNameInput = TextInput(text = oldText, multiline = False, size_hint = (0.9, 1.0),
-				on_text_validate = self.__processAddFlag, focus = True)
-			self.__inputBar.add_widget(self.__flagNameInput)
-			self.__inputBar.add_widget(self.__flagAddButton)
-
+			self.__reaplyFocus()
 			self.__layout.add_widget(self.__inputBar)
 
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
@@ -145,12 +149,12 @@ class CollisionFlagsEditor:
 
 	def __processAddFlag(self, *args):
 		if (self.__flagNameInput.text == ''):
-			error = AlertPopUp('Error', 'Flag name can\'t be empty.', 'Ok')
+			error = AlertPopUp('Error', 'Flag name can\'t be empty.', 'Ok', self.__reaplyFocus)
 			error.open()
 			return
 
 		if (CollisionGuardian.Instance().getFlagByName(self.__flagNameInput.text) is not None):
-			error = AlertPopUp('Error', 'This name has already been used.', 'Ok')
+			error = AlertPopUp('Error', 'This name has already been used.', 'Ok', self.__reaplyFocus)
 			error.open()
 			return
 
@@ -160,7 +164,7 @@ class CollisionFlagsEditor:
 				invalidSet.append(char)
 
 		if (invalidSet != []):
-			error = AlertPopUp('Error', 'Found invalid characters in the name:\n ' + ''.join(invalidSet), 'Ok')
+			error = AlertPopUp('Error', 'Found invalid characters in the name:\n ' + ''.join(invalidSet), 'Ok', self.__reaplyFocus)
 			error.open()
 			return
 
@@ -203,7 +207,8 @@ class CollisionFlagsEditor:
 
 		self.__flagToRemove = None
 		self.__flagRemoveWarning = Dialog(self.__doRemoveFlag, 'Confirmation',
-			'This will affect existing objects.\nAre you sure you want to remove this flag?', 'Yes', 'No')
+			'This will affect existing objects.\nAre you sure you want to remove this flag?', 'Yes', 'No',
+			self.__reaplyFocus, self.__reaplyFocus)
 
 	def showPopUp(self, *args):
 		self.__render()
