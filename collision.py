@@ -389,12 +389,12 @@ class CollisionInformationPopup:
 			self.__copiesDict[obj.getIdentifier()] = infoCopy
 			self.__extraPartsDict[obj.getIdentifier()] = extraParts
 
-	def __applyChanges(self, *args):
+	def __addPart(self, *args):
+		assert self.__partsPanel.current_tab.text == 'Edit'
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
-		if(self.__partsPanel.current_tab.text == 'Edit'):
-			newPart = self.__extraPartsDict[currentId].pop(0)
-			self.__copiesDict[currentId].addPart(newPart)
-			self.__render()
+		newPart = self.__extraPartsDict[currentId].pop(0)
+		self.__copiesDict[currentId].addPart(newPart)
+		self.__render()
 
 	def __doDeleteCurrentPart(self, *args):
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
@@ -473,11 +473,12 @@ class CollisionInformationPopup:
 
 	def __changeTabs(self, *args):
 		self.__partDisplay.clearDrawnForm()
+		self.__renderLowerPart(args[0].text)
 
 	def __createPannedHeader(self, text, content, index):
-			th = TabbedPanelHeader(text = text, on_press = self.__changeTabs, id = 'tab#' + str(index))
-			th.content = content
-			return th
+		th = TabbedPanelHeader(text = text, on_press = self.__changeTabs, id = 'tab#' + str(index))
+		th.content = content
+		return th
 
 	def __renderTabbedPanel(self, obj, collisionInfo, extraParts):
 		parts = collisionInfo.getPartsList()
@@ -495,20 +496,23 @@ class CollisionInformationPopup:
 
 		self.__partsPanel.switch_to(self.__partsPanel.tab_list[0])
 
-	def __renderLowerPart(self):
+	def __renderLowerPart(self, selectedTab = None):
 
 		self.__lowerBox.clear_widgets()
 		self.__lowerBox.add_widget(self.__editFlagsButton)
-		self.__lowerBox.add_widget(self.__applyButton)
+		if(selectedTab is None or selectedTab == 'Edit'):
+			self.__lowerBox.add_widget(self.__addButton)
+		else:
+			self.__lowerBox.add_widget(self.__deleteCurrentButton)
+
 		self.__lowerBox.add_widget(self.__previewButton)
-		self.__lowerBox.add_widget(self.__deleteCurrentButton)
 		if (len (self.__objectsList) > 1):
 			self.__lowerBox.add_widget(self.__applyToAllButton)
-			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.1, 1.0)))
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.2, 1.0)))
 			self.__lowerBox.add_widget(self.__previousObjectButton)
 			self.__lowerBox.add_widget(self.__nextObjectButton)
 		else:
-			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.4, 1.0)))
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.5, 1.0)))
 
 		self.__lowerBox.add_widget(self.__okButton)
 		self.__lowerBox.add_widget(self.__cancelButton)
@@ -607,7 +611,7 @@ class CollisionInformationPopup:
 		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.dismissPopUp)
 		self.__previewButton = CancelableButton (text = 'Preview', size_hint = (0.1, 1.0), on_release = self.__callPreview)
-		self.__applyButton = CancelableButton(text = 'Apply', size_hint = (0.1, 1.0), on_release = self.__applyChanges)
+		self.__addButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__addPart)
 		self.__applyToAllButton = CancelableButton(text = 'Apply to all', size_hint = (0.1, 1.0),
 				on_release = self.__applyChangesToAll)
 		self.__deleteCurrentButton = CancelableButton(text = 'Delete', size_hint = (0.1, 1.0), on_release = self.__deleteCurrentPart)

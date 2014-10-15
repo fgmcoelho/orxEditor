@@ -10,7 +10,7 @@ from collision import CollisionInformationPopup
 
 @Singleton
 class BaseObjectDescriptor:
-	
+
 	def __init__(self, accordionItem):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.5))
@@ -43,9 +43,9 @@ class MultipleSelectionDescriptor:
 	def __init__(self, accordionItem):
 		self.__layout = BoxLayout (orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__selectedLabel = Label(text = 'Selected: 0')
-		
+
 		self.__layout.add_widget(self.__selectedLabel)
-		
+
 		self.__accordionItemReference = accordionItem
 		self.__accordionItemReference.add_widget(self.__layout)
 
@@ -70,7 +70,6 @@ class RenderedObjectDescriptor:
 	def __init__(self, accordionItem, popUpMethod):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.2))
-
 		self.__nameLabel = Label(text = 'Name: ', size_hint = (1.0, 0.2))
 
 		self.__flipBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
@@ -83,7 +82,7 @@ class RenderedObjectDescriptor:
 		self.__sizeLabel = Label(text = 'Size: ', size_hint = (0.333, 1.0))
 		self.__scaleLabel = Label(text = 'Scale: ', size_hint = (0.333, 1.0))
 		self.__layerLabel = Label(text = 'Layer: ', size_hint = (0.3334, 1.0))
-		
+
 		self.__sizeScaleLayerBox.add_widget(self.__sizeLabel)
 		self.__sizeScaleLayerBox.add_widget(self.__scaleLabel)
 		self.__sizeScaleLayerBox.add_widget(self.__layerLabel)
@@ -92,7 +91,7 @@ class RenderedObjectDescriptor:
 		self.__collisionInfoLabel = Label(text = 'Has collision info: ')
 		self.__collisionHandler = Button(text = 'Edit Collision', size_hint = (0.3, 1.0))
 		self.__collisionHandler.bind(on_release=popUpMethod)
-		
+
 		self.__collisionBox.add_widget(self.__collisionInfoLabel)
 		self.__collisionBox.add_widget(self.__collisionHandler)
 
@@ -104,7 +103,7 @@ class RenderedObjectDescriptor:
 
 		self.__accordionItemReference = accordionItem
 		self.__accordionItemReference.add_widget(self.__layout)
-	
+
 	def getLayout(self):
 		return self.__layout
 
@@ -115,7 +114,7 @@ class RenderedObjectDescriptor:
 		self.__setValues(path, size, scale, layer, name, flipX, flipY, collisionInfo)
 		self.setActive()
 
-	def setValuesNoActive(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '', 
+	def setValuesNoActive(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '',
 			collisionInfo = None):
 		self.__setValues(path, size, scale, layer, name, flipX, flipY, collisionInfo)
 
@@ -134,18 +133,18 @@ class RenderedObjectDescriptor:
 
 @Singleton
 class ObjectDescriptor:
-	
+
 	def updateObjectDescriptors(self):
 		self.setObject(self.__currentObject)
 
 	def openCollisionPopUp(self, ignore):
-		
+
 		CollisionInformationPopup.Instance().showPopUp()
 		if (self.__currentObject is not None):
 			self.setObject(self.__currentObject)
 
 	def __init__(self, baseObjectAccordion, renderedObjectAccordion):
-		
+
 		self.__currentObject = None
 
 		self.__baseObjectDescriptor = BaseObjectDescriptor.Instance(baseObjectAccordion)
@@ -157,7 +156,7 @@ class ObjectDescriptor:
 	def resetAllWidgets(self):
 		self.__baseObjectDescriptor.setValues()
 		self.__renderedObjectDescriptor.setValuesNoActive()
-			
+
 	def setObject(self, obj):
 
 		path = obj.getPath()
@@ -169,7 +168,7 @@ class ObjectDescriptor:
 		if (obj.getType() == ObjectTypes.renderedObject):
 			self.__renderedObjectDescriptor.setValues(path, size, obj.getScale(), obj.getLayer(), obj.getName(), obj.getFlipX(),
 				obj.getFlipY(), obj.getCollisionInfo())
-		
+
 		else:
 			self.__baseObjectDescriptor.setValues(path, size)
 
@@ -181,7 +180,7 @@ class ObjectDescriptor:
 	def clearCurrentObject(self):
 		if (self.__currentObject is None):
 			return
-		
+
 		if (self.__currentObject.getType() == ObjectTypes.renderedObject):
 			MultipleSelectionDescriptor.Instance().setValuesNoActive()
 			self.__renderedObjectDescriptor.setValuesNoActive()
@@ -190,6 +189,6 @@ class ObjectDescriptor:
 			MultipleSelectionDescriptor.Instance().setValuesNoActive()
 			self.__renderedObjectDescriptor.setValuesNoActive()
 			self.__baseObjectDescriptor.setValues()
-		
+
 		self.__currentObject = None
 

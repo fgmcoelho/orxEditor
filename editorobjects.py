@@ -495,12 +495,20 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		if (preservePos == True):
 			oldPos = self.bbox[0]
 
+		mustRemark = False
+		if (self.__borderLine is not None):
+			self.unsetMarked()
+			mustRemark = True
+
 		self.__scale = newScale
 		self.scale = self.__scale
 		self.__sx, self.__sy = self.bbox[1]
 
 		if (preservePos == True):
 			self._set_pos(oldPos)
+
+		if (mustRemark == True):
+			self.setMarked()
 
 	def setCollisionInfo(self, value):
 		self.__collisionInfo = value
