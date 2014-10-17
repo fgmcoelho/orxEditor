@@ -474,7 +474,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		if (self.__borderLine is None):
 			with self.image.canvas:
 				Color(1., 0., 0.)
-				sx, sy = self.getSize()
+				sx, sy = self.size
 				self.__borderLine = Line(points = [0, 0, sx, 0, sx, sy, 0, sy, 0, 0])
 
 	def unsetMarked(self):
@@ -491,10 +491,15 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 	def setScale(self, newScale, preservePos = False):
 		if (newScale == 0.0):
 			return
-
+			
+		newLimitX = (self.__baseSize[0] * newScale) + self.bbox[0][0]
+		newLimitY = (self.__baseSize[1] * newScale) - self.bbox[0][1]
+		if (newLimitX > self.__maxX or newLimitY > self.__maxY):
+			return
+			
 		if (preservePos == True):
 			oldPos = self.bbox[0]
-
+	
 		mustRemark = False
 		if (self.__borderLine is not None):
 			self.unsetMarked()
