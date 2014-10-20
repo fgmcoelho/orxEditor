@@ -460,7 +460,7 @@ class CollisionInformationPopup:
 
 		self.__objectsCollisionDisplay.clear_widgets()
 		self.__partDisplay = CollisionPartDisplay(self.__objectsList[self.__objectsListIndex])
-		self.__objectsCollisionDisplay.size = self.__objectsList[self.__objectsListIndex].getSize()
+		self.__objectsCollisionDisplay.size = self.__objectsList[self.__objectsListIndex].getBaseSize()
 		self.__objectsCollisionDisplay.add_widget(self.__partDisplay)
 
 		self.__dynamicSwitch.active = collisionInfo.getDynamic()
