@@ -229,11 +229,40 @@ class CollisionPartLayout:
 			else:
 				self.__part.addFlagToCheckMask(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
 
+	def __doUpdateFormType(self):
+		self.__part.setFormType(self.__formToSet)
+
+	def __restoreFormCheckbox(self):
+		form = self.__part.getFormType()
+		if (form == 'box'):
+			self.__boxCheckBox.active = True
+			self.__sphereCheckBox.active = False
+			self.__meshCheckBox.active = False
+		elif (form == 'sphere'):
+			self.__boxCheckBox.active = False
+			self.__sphereCheckBox.active = True
+			self.__meshCheckBox.active = False
+		else:
+			self.__boxCheckBox.active = False
+			self.__sphereCheckBox.active = False
+			self.__meshCheckBox.active = True
+
 	def __updateFormType(self, checkboxObject, newValue):
 		if (newValue == True):
-			#TODO: Warn that points data will be lost.
 			checkboxInfo = checkboxObject.id.split('#')
-			self.__part.setFormType(checkboxInfo[1])
+			if (checkboxInfo[1] == self.__part.getFormType()):
+				return
+
+			self.__formToSet = checkboxInfo[1]
+			if (self.__part.getPoints() is not None):
+				dialog = Dialog(self.__doUpdateFormType, 'Confirmation',
+					'This object have manually set collision form data,\n'\
+					'if you set a new form, the former date will be lost!\n'
+					'Do you wish to continue?', 'Yes', 'No', None, self.__restoreFormCheckbox)
+				dialog.open()
+			else:
+				self.__doUpdateFormType()
+
 
 	def __updateSolidFlag(self, instance, newValue):
 			self.__part.setSolid(newValue)
