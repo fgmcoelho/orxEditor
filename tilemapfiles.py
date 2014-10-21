@@ -1,12 +1,19 @@
 from singleton import Singleton
 
-from scene import Scene, SceneAttributes
-from editorutils import vector2ToVector3String, strToDoubleFloatTuple
+from scene import SceneAttributes
+from editorutils import vector2ToVector3String, strToDoubleFloatTuple, boolToStr
+from communicationobjects import SceneToFilesManager
 from ConfigParser import ConfigParser
-from collision import CollisionInformation
+from collisioninfo import CollisionGuardian, CollisionInformation
 
 @Singleton
 class FilesManager:
+
+	def __compileFlagsNames(self, listToCompile):
+		l = []
+		for flag in listToCompile:
+			l.append(flag.getName())
+		return '#'.join(l)
 
 	def __init__(self):
 		pass
@@ -108,48 +115,51 @@ class FilesManager:
 		parser.optionxform = str
 		objectListName = 'ObjectList'
 		
-		renderedObjectsDict = Scene.Instance().getObjectsDict()
+		parser.add_section('Physics')
+		parser.set('Physics', 'CollisionFlagList', self.__compileFlagsNames(CollisionGuardian.Instance().getFlags()))
+
+		renderedObjectsList = SceneToFilesManager.Instance().getSceneObjects()
 		objectsInScene = ''
-		for inSceneId in renderedObjectsDict.keys():
-			objectsInScene += renderedObjectsDict[inSceneId].getName() + ' # '
+		for obj in renderedObjectsList:
+			objectsInScene += obj.getName() + ' # '
 
 		parser.add_section(objectListName)
 		parser.set(objectListName, 'ObjectNames', objectsInScene)
 
-		for inSceneId in renderedObjectsDict.keys():
+		for obj in renderedObjectsList:
 			# Needed data
-			newSectionName = renderedObjectsDict[inSceneId].getName() 
+			newSectionName = obj.getName() 
 			graphicSectionName = newSectionName + "_Graphic"
 			bodySectionName = newSectionName + "_Body"
 			bodyPartSectionName = newSectionName + "_BodyPart"
-			collisionObject = renderedObjectsDict[inSceneId].getCollisionInfo()
+			collisionInfo = obj.getCollisionInfo()
 
 			# Object
 			parser.add_section(newSectionName)
 			
-			scale = (renderedObjectsDict[inSceneId].getScale(), renderedObjectsDict[inSceneId].getScale())
-			layer = renderedObjectsDict[inSceneId].getLayer() * 0.01
-			parser.set(newSectionName, 'Position', vector2ToVector3String(renderedObjectsDict[inSceneId].getPos(), layer))
-			if(renderedObjectsDict[inSceneId].getFlipX() == True and renderedObjectsDict[inSceneId].getFlipY() == True):
-				parser.set(newSectionName, 'Flip', 'Both')	
-			elif (renderedObjectsDict[inSceneId].getFlipX() == True):
+			scale = (obj.getScale(), obj.getScale())
+			layer = obj.getLayer() * 0.01
+			parser.set(newSectionName, 'Position', vector2ToVector3String(obj.getPos(), layer))
+			if(obj.getFlipX() == True and obj.getFlipY() == True):
+				parser.set(newSectionName, 'Flip', 'both')	
+			elif (obj.getFlipX() == True):
 				parser.set(newSectionName, 'Flip', 'x')	
-			elif (renderedObjectsDict[inSceneId].getFlipY() == True):
+			elif (obj.getFlipY() == True):
 				parser.set(newSectionName, 'Flip', 'y')	
 			
 
 			parser.set(newSectionName, 'Scale', vector2ToVector3String(scale, 1))
-			if (collisionObject is not None):
+			if (collisionInfo is not None):
 				parser.set(newSectionName, 'Body', bodySectionName)
 			
 			# Graphic Part		
 			parser.add_section(graphicSectionName);
-			parser.set(graphicSectionName, 'Texture',  str(renderedObjectsDict[inSceneId].getPath()))
-			parser.set(graphicSectionName, 'Smoothing',  'True')
-			spriteInfo = renderedObjectsDict[inSceneId].getSpriteInfo()
+			parser.set(graphicSectionName, 'Texture',  str(obj.getPath()))
+			parser.set(graphicSectionName, 'Smoothing',  'true')
+			spriteInfo = obj.getSpriteInfo()
 			if (spriteInfo is not None):
 				coords = spriteInfo.getSpriteCoords()
-				size = renderedObjectsDict[inSceneId].getBaseSize()
+				size = obj.getBaseSize()
 				pivot = (size[0]/2, size[1]/2)
 				corner = (coords[0] * size[0], coords[1] * size[1])
 				parser.set(graphicSectionName, 'TextureSize', vector2ToVector3String(size))
@@ -157,18 +167,28 @@ class FilesManager:
 				parser.set(graphicSectionName, 'TextureCorner',  vector2ToVector3String(corner))
 			
 			# Body Part
-			if (collisionObject is not None):
-				
+			if (collisionInfo is not None):
 				parser.add_section(bodySectionName)
-				parser.set(bodySectionName, 'Dynamic', str(int(collisionObject.getIsDynamic())))
-				parser.set(bodySectionName, 'AllowSleep', str(int(collisionObject.getAllowSleep())))
-				parser.set(bodySectionName, 'PartList', bodyPartSectionName)
-				
-				parser.add_section(bodyPartSectionName)
-				parser.set(bodyPartSectionName, 'SelfFlag', str(collisionObject.getSelfFlag()))
-				parser.set(bodyPartSectionName, 'CheckMask', str(collisionObject.getCheckMask()))
-				parser.set(bodyPartSectionName, 'Solid', str(int(collisionObject.getIsSolid())))
-				parser.set(bodyPartSectionName, 'Type', str(collisionObject.getCollisionType()))
+				objPartNames = []
+				objParts = collisionInfo.getPartsList()
+				for i in range(len(objParts)):
+					objPartNames.append(obj.getName() + '_part_' + str(i))
+
+				parser.set(bodySectionName, 'PartList', '#'.join(objPartNames))
+				parser.set(bodySectionName, 'Dynamic', boolToStr(collisionInfo.getDynamic()))
+				parser.set(bodySectionName, 'FixedRotation', boolToStr(collisionInfo.getFixedRotation()))
+				parser.set(bodySectionName, 'HighSpeed', boolToStr(collisionInfo.getHighSpeed()))
+
+				for i in range(len(objParts)):
+					partSectionName = objPartNames[i]
+					currentPart = objParts[i]
+					form = currentPart.getFormType()
+					parser.add_section(partSectionName)
+					parser.set(partSectionName, 'Solid', boolToStr(currentPart.getSolid()))
+					parser.set(partSectionName, 'Type', form)
+					parser.set(partSectionName, 'CheckMask', self.__compileFlagsNames(currentPart.getCheckMask()))
+					parser.set(partSectionName, 'SelfFlags', self.__compileFlagsNames(currentPart.getSelfFlags()))
+
 
 		f = open(filename, 'w')
 		parser.write(f)

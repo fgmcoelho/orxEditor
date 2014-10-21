@@ -389,6 +389,9 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 			allObjectsList.extend(singleScene.getAllValidObjects())
 
 		return allObjectsList
+		
+	def getCurrentSceneObjects(self):
+		return self.__sceneList[self.__currentIndex].getAllValidObjects()
 
 	def getCurrentSelection(self):
 		return self.__sceneList[self.__currentIndex].getSelectedObjects()

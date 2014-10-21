@@ -615,11 +615,16 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__spriteInfo = obj.getSpriteInfo()
 		path = obj.getPath()
 
+		#TODO: Find why this is not working on Windows.
 		sepIndex = path.rfind(pathSeparator)
 		if (sepIndex != -1):
 			self.__name = path[sepIndex+1:-4] + '_' + str(self.__id)
 		else:
-			self.__name = path[0:-4] + '_' + str(self.__id)
+			sepIndex = path.rfind('/')
+			if (sepIndex != -1):
+				self.__name = path[sepIndex+1:-4] + '_' + str(self.__id)
+			else:
+				self.__name = path[0:-4] + '_' + str(self.__id)
 
 		if (isinstance(obj, BaseObject)):
 			self.__baseSize = obj.getSize()

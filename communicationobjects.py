@@ -29,3 +29,12 @@ class SceneToObjectsMenu:
 		
 	def draw(self, obj):
 		self.__drawMethod(obj)
+		
+@Singleton
+class SceneToFilesManager:
+	def __init__(self, getSceneObjectsMethod):
+		self.__getSceneObjectsMethod = getSceneObjectsMethod
+		
+	def getSceneObjects(self):
+		return self.__getSceneObjectsMethod()
+		

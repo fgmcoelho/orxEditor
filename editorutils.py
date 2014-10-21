@@ -78,6 +78,11 @@ def vector2Multiply(v, x):
 	else:
 		return [v[0] * x, v[1] * x]
 
+def boolToStr(b):
+	if (b == True):
+		return 'true'
+	else:
+		return 'false'
 
 def copyTexture(sizeToUse, imageToUse):
 	newTexture = Texture.create(size = sizeToUse)
