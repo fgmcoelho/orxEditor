@@ -280,7 +280,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 				transformedPoints = []
 				for point in newPoints:
 					transformedPoints.append(self.__display.getImage().to_local(*point))
-				
+
 				self.__originalPart.setPoints(transformedPoints)
 
 	def __copyPartAndTransform(self, part):
@@ -290,11 +290,11 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 			transformedPoints = []
 			for point in points:
 				transformedPoints.append(self.__display.getImage().to_parent(point[0], point[1]))
-			
+
 			newPart.setPoints(transformedPoints)
-				
+
 		return newPart
-				
+
 	def render(self, part, obj):
 		self._scrollView.clear_widgets()
 		self.__display = CollisionPartDisplay(obj, 2.0)
@@ -374,12 +374,12 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 				self.__pointsList.insert(indexToInsert + 1, newPoint)
 				self.__display.add_widget(newPoint)
 				self.__updatePoints(newPoint)
-			
+
 			return
 
 		if (touch.is_mouse_scrolling == True):
 			self.specialScroll(touch)
-			return 
+			return
 
 		self.__defaultTouchDown(touch)
 

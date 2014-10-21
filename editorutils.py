@@ -50,6 +50,12 @@ class CancelableButton (Button):
 			self.__default_on_touch_down = self.on_touch_down
 			self.on_touch_down = self.__startButtonSelection
 
+def convertKivyCoordToOrxCoord(v, maxY):
+	assert len(v) == 2 or len(v) == 3
+	if (len(v) == 2):
+		return (v[0], maxY - v[1])
+	else:
+		return (v[0], maxY - v[1], v[2])
 
 def strToDoubleFloatTuple(s):
 	assert(type(s) is str)
