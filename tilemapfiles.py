@@ -1,7 +1,7 @@
 from singleton import Singleton
 
 from scene import SceneAttributes
-from editorutils import vector2ToVector3String, strToDoubleFloatTuple, boolToStr, convertKivyCoordToOrxCoord
+from editorutils import vector2ToVector3String, strToDoubleFloatTuple, boolToStr, convertKivyCoordToOrxCoord, distance, isClockWise
 from communicationobjects import SceneToFilesManager
 from ConfigParser import ConfigParser
 from collisioninfo import CollisionGuardian, CollisionInformation
@@ -127,6 +127,7 @@ class FilesManager:
 
 		parser.add_section(objectListName)
 		parser.set(objectListName, 'ObjectNames', objectsInScene)
+		sceneMaxY = SceneAttributes.Instance().getValue('TilesMaxY') * SceneAttributes.Instance().getValue('TilesSize')
 
 		for obj in renderedObjectsList:
 			# Needed data
@@ -141,7 +142,7 @@ class FilesManager:
 			scale = (obj.getScale(), obj.getScale())
 			layer = obj.getLayer() * 0.01
 			parser.set(newSectionName, 'Graphic', graphicSectionName)
-			parser.set(newSectionName, 'Position', vector2ToVector3String(obj.getPos(), layer))
+			parser.set(newSectionName, 'Position', vector2ToVector3String(convertKivyCoordToOrxCoord(obj.getPos(), sceneMaxY), layer))
 			if(obj.getFlipX() == True and obj.getFlipY() == True):
 				parser.set(newSectionName, 'Flip', 'both')
 			elif (obj.getFlipX() == True):
@@ -210,6 +211,31 @@ class FilesManager:
 							bottomRightVector = convertKivyCoordToOrxCoord((topX, bottomY), obj.getBaseSize()[1])
 							parser.set(partSectionName, 'TopLeft', vector2ToVector3String(topLeftVector, 1))
 							parser.set(partSectionName, 'BottomRight', vector2ToVector3String(bottomRightVector, 1))
+						elif (form == 'sphere'):
+							center = convertKivyCoordToOrxCoord(points[0], obj.getBaseSize()[1])
+							radius = distance(points[0], points[1])
+							parser.set(partSectionName, 'Center', vector2ToVector3String(center, 1))
+							parser.set(partSectionName, 'Radius', radius)
+					
+					if (form == 'mesh'):
+						if (points is None):
+							sx, sy = obj.getBaseSize()
+							points = [(0, 0), (sx, 0), (sx, sy), (0, sy)]
+						
+						convertedPointsList = []
+						for point in points:
+							convertedPoint = convertKivyCoordToOrxCoord(point, obj.getBaseSize()[1])
+							convertedPointsList.append(convertedPoint)
+
+						if (isClockWise(convertedPointsList) == False):
+							convertedPointsList.reverse()
+
+						strConvertedPointsList = []
+						for convertedPoint in convertedPointsList:
+							strConvertedPointsList.append(vector2ToVector3String(convertedPoint, 1))
+						
+						parser.set(partSectionName, 'VertexList', '#'.join(strConvertedPointsList))
+
 
 		f = open(filename, 'w')
 		parser.write(f)

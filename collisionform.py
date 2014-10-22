@@ -366,7 +366,13 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 
 		if (touch.is_double_tap == True and self._isCtrlPressed == True):
 			form = self.__workingPart.getFormType()
-			if (form == 'mesh'):
+			points = self.__workingPart.getPoints()
+			if (points is None):
+				numberOfPoints = 4
+			else:
+				numberOfPoints = len(points)
+
+			if (form == 'mesh' and numberOfPoints < 8):
 				displaySize = self.__display.getSize()
 				newPoint = CollisionFormEditorPoints(self.__updatePoints, displaySize)
 				newPoint.setPos(self.__display.to_widget(*touch.pos))

@@ -90,6 +90,23 @@ def boolToStr(b):
 	else:
 		return 'false'
 
+def isClockWise(points):
+	assert type(points) is list or type(points) is tuple, 'Type is not supported.'
+	assert len(points) > 2, 'At least three points are needed.'
+	numberOfPoints = len(points)
+	total = 0
+	for i in range(numberOfPoints):
+		if (i == (numberOfPoints - 1)):
+			total += ((points[0][0] - points[i][0]) * (points[0][1] + points[i][1]))
+		else:
+			total += ((points[i+1][0] - points[i][0]) * (points[i+1][1] + points[i][1]))
+
+	if (total < 0):
+		return True
+	else:
+		return False
+
+
 def copyTexture(sizeToUse, imageToUse):
 	newTexture = Texture.create(size = sizeToUse)
 	pixels = imageToUse.texture.pixels[:]
