@@ -26,7 +26,7 @@ class CollisionPartDisplay(RelativeLayout):
 		self.__image = Scatter(do_rotation = False, do_translation = False, do_scale = False)
 		im = Image(texture = self.__texture.getTexture(), size = obj.getBaseSize(), allow_strech = True)
 		self.__image.add_widget(im)
-		self.__image.size =  obj.getBaseSize()
+		self.__image.size = obj.getBaseSize()
 		self.__operation = None
 		self.add_widget(self.__image)
 		self.__expandLevel = expandLevel

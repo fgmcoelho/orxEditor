@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 from kivy import require
 require('1.7.2')
 

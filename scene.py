@@ -203,10 +203,24 @@ class Scene:
 		return self.__layout
 
 	def addObject(self, obj, relativeX, relaviveY):
+		sx, sy = obj.getSize()
+		if (sx > self.__maxX or sy > self.__maxY):
+			#TODO: Add warning here!
+			return
+
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
 
-		newRenderedObject = self.__renderGuardian.createNewObject(self.__id, obj, pos, self.__tileSize, self.__maxX,
-				self.__maxY)
+		if (pos[0] + sx > self.__maxX):
+			finalX = self.__maxX - sx
+		else:
+			finalX = pos[0]
+		if (pos[1] + sy > self.__maxY):
+			finalY = self.__maxY - sy
+		else:
+			finalY = pos[1]
+
+		newRenderedObject = self.__renderGuardian.createNewObject(self.__id, obj, (finalX, finalY),
+				self.__tileSize, self.__maxX, self.__maxY)
 
 		self.__layout.add_widget(newRenderedObject)
 		self.__objectDict[self.__id] = newRenderedObject
@@ -389,7 +403,7 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 			allObjectsList.extend(singleScene.getAllValidObjects())
 
 		return allObjectsList
-		
+
 	def getCurrentSceneObjects(self):
 		return self.__sceneList[self.__currentIndex].getAllValidObjects()
 

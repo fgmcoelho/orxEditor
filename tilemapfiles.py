@@ -110,6 +110,12 @@ class FilesManager:
 
 			self.scene.addObjectFullInfo(path, size, pos, scale, layer, flipX, flipY, newCollisionInfo)
 
+	def __convertObjectPosition(self, obj, sceneMaxY):
+		x, y = obj.getPos()
+		sx, sy = obj.getBaseSize()
+		return convertKivyCoordToOrxCoord((x, y + sy), sceneMaxY)
+
+
 	def exportScene(self, filename):
 		parser = ConfigParser()
 		parser.optionxform = str
@@ -142,7 +148,7 @@ class FilesManager:
 			scale = (obj.getScale(), obj.getScale())
 			layer = obj.getLayer() * 0.01
 			parser.set(newSectionName, 'Graphic', graphicSectionName)
-			parser.set(newSectionName, 'Position', vector2ToVector3String(convertKivyCoordToOrxCoord(obj.getPos(), sceneMaxY), layer))
+			parser.set(newSectionName, 'Position', vector2ToVector3String(self.__convertObjectPosition(obj, sceneMaxY), layer))
 			if(obj.getFlipX() == True and obj.getFlipY() == True):
 				parser.set(newSectionName, 'Flip', 'both')
 			elif (obj.getFlipX() == True):
@@ -165,10 +171,8 @@ class FilesManager:
 			if (spriteInfo is not None):
 				coords = spriteInfo.getSpriteCoords()
 				size = obj.getBaseSize()
-				pivot = (size[0]/2, size[1]/2)
 				corner = (coords[0] * size[0], coords[1] * size[1])
 				parser.set(graphicSectionName, 'TextureSize', vector2ToVector3String(size))
-				parser.set(graphicSectionName, 'Pivot', vector2ToVector3String(pivot))
 				parser.set(graphicSectionName, 'TextureCorner',  vector2ToVector3String(corner))
 
 			# Body Part
@@ -216,12 +220,12 @@ class FilesManager:
 							radius = distance(points[0], points[1])
 							parser.set(partSectionName, 'Center', vector2ToVector3String(center, 1))
 							parser.set(partSectionName, 'Radius', radius)
-					
+
 					if (form == 'mesh'):
 						if (points is None):
 							sx, sy = obj.getBaseSize()
 							points = [(0, 0), (sx, 0), (sx, sy), (0, sy)]
-						
+
 						convertedPointsList = []
 						for point in points:
 							convertedPoint = convertKivyCoordToOrxCoord(point, obj.getBaseSize()[1])
@@ -233,7 +237,7 @@ class FilesManager:
 						strConvertedPointsList = []
 						for convertedPoint in convertedPointsList:
 							strConvertedPointsList.append(vector2ToVector3String(convertedPoint, 1))
-						
+
 						parser.set(partSectionName, 'VertexList', '#'.join(strConvertedPointsList))
 
 

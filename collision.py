@@ -190,7 +190,7 @@ class CollisionFlagsEditor:
 
 		self.__inputBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		self.__flagNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0),
-			on_text_validate = self.__processAddFlag, focus = True)
+			on_text_validate = self.__processAddFlag, focus = False)
 		self.__flagAddButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__processAddFlag)
 
 		self.__inputBar.add_widget(self.__flagNameInput)
