@@ -53,7 +53,7 @@ class LeftMenu:
 	def __reset(self, *args):
 		if (self.__displayReference.getState() != DisplayStates.showingNoImage):
 			self.__displayReference.showSingleBaseImage()
-	
+
 	def __export(self, *args):
 		colorToAlpha = None
 		if (self.__colorToAlphaCheckbox.active == True):
@@ -62,8 +62,8 @@ class LeftMenu:
 		self.__exportPopup.dismiss()
 		self.__dialog.dismiss()
 
-		
-		if(self.__displayReference.saveSelectedImages(join(self.__exportFileChooser.path, self.__finalName), 
+
+		if(self.__displayReference.saveSelectedImages(join(self.__exportFileChooser.path, self.__finalName),
 				colorToAlpha, self.__divs) == False):
 			self.__alert.setText('Error creating the message')
 			self.__alert.open()
@@ -72,7 +72,7 @@ class LeftMenu:
 		self.__displayReference.clearImage()
 
 	def __validateExportOptions(self, *args):
-		
+
 		self.__finalName = ''
 		self.__divs = None
 
@@ -90,7 +90,7 @@ class LeftMenu:
 			self.__alert.setText('Invalid number of divsions.')
 			self.__alert.open()
 			return
-		
+
 		if ((xdivs != 0 and ydivs == 0) or (ydivs != 0 and xdivs == 0)):
 			self.__alert.setText(
 				'Invalid custom division, either both\n'\
@@ -114,7 +114,7 @@ class LeftMenu:
 		self.__divs = None
 		if (xdivs != 0 and ydivs != 0):
 			self.__divs = (xdivs, ydivs)
-		
+
 		if (baseName[-4:] in ['.png', '.opf']):
 			baseName = baseName[:-4]
 
@@ -129,13 +129,13 @@ class LeftMenu:
 				dialogText += baseName + '.opf\n'
 
 			dialogText += 'Continue?'
-			
+
 			self.__dialog.setText(dialogText)
 			self.__dialog.open()
 
 		else:
 			self.__export()
-			
+
 
 	def __openExportOptions(self, *args):
 		if self.__colorToAlphaCheckbox.active == True:
@@ -147,7 +147,7 @@ class LeftMenu:
 				self.__exportBlankLabel.size_hint = (1.0, 0.1)
 				self.__exportRightPartBox.add_widget(self.__exportBlankLabel)
 				self.__exportRightPartBox.add_widget(self.__exportButtonsBottomBar)
-	
+
 		else:
 			self.__exportRightPartBox.remove_widget(self.__exportBlankLabel)
 			self.__exportRightPartBox.remove_widget(self.__exportButtonsBottomBar)
@@ -162,17 +162,17 @@ class LeftMenu:
 
 	def __setAplhaColor(self, value):
 		newColor = []
-		
+
 		self.__hexColor[0] = value[0]
 		self.__hexColor[1] = value[1]
 		self.__hexColor[2] = value[2]
 		self.__hexColor[3] = value[3]
-		
+
 		for c in value:
 			newColor.append(float(ord(c))/255.0)
-		
+
 		self.__whiteImage.color = newColor
-	
+
 	def __cancelExport(self, *args):
 		if (self.__lastDisplayUsed == 'Absolute'):
 			self.__showSplitLayout()
@@ -184,14 +184,14 @@ class LeftMenu:
 	def __showExportLayoutIfPossible(self, *args):
 		if (self.__displayReference.getState() == DisplayStates.showingSplitResult):
 			self.__showExportLayout()
-	
+
 	def __setFileInput(self, entry, *args):
 		sepIndex = entry[0].rfind(pathSeparator)
 		if (sepIndex != -1):
 			self.__exportBaseNameInput.text = entry[0][sepIndex+1:]
 		else:
 			self.__exportBaseNameInput.text = entry[0]
-	
+
 	def __doOpenNewImage(self, *args):
 		src = join(self.__newImageChooser.getFileChooser().path, self.__newImageChooser.getTextInput().text)
 		self.__displayReference.setBaseImage(src)
@@ -208,7 +208,7 @@ class LeftMenu:
 		elif (exists(join(filepath, filename)) == False):
 			self.__newImageAlert.setText("File doesn't exist.")
 			self.__newImageAlert.open()
-		
+
 		elif(self.__displayReference.getState() != DisplayStates.showingNoImage):
 			self.__newImageDialog.setText(
 				'All the progress will be lost.\n'\
@@ -218,7 +218,7 @@ class LeftMenu:
 
 		else:
 			self.__doOpenNewImage()
-	
+
 	def __createSelectNewImagePopup(self):
 		self.__newImageChooser = FileSelectionPopup('New File', ['*.png'], 'Cancel', (0.8, 0.8))
 		fullBox = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
@@ -241,15 +241,15 @@ class LeftMenu:
 
 	def __createExportPopup(self):
 		self.__exportPopup = Popup(title = 'Export options', auto_dismiss = False, size = (0.8, 0.8))
-		
+
 		exportBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 1.0))
 		leftPartBox = BoxLayout(orientation = 'vertical', size_hint = (0.7, 1.0))
 		self.__exportRightPartBox = BoxLayout(orientation = 'vertical', size_hint = (0.3, 1.0))
-		
+
 		self.__exportFileChooser = FileChooserIconView(size_hint = (1.0, 0.9), path = getcwd(), filters = ['*.png', '*.opf'])
 		self.__exportFileChooser.on_submit = self.__setFileInput
 		leftPartBox.add_widget(self.__exportFileChooser)
-		
+
 		self.__exportRightPartBox.add_widget(Label(text = 'Filename: ', size_hint = (1.0, 0.1)))
 		self.__exportBaseNameInput = TextInput(multiline = False, size_hint = (1.0, 0.1))
 		self.__exportRightPartBox.add_widget(self.__exportBaseNameInput)
@@ -259,12 +259,12 @@ class LeftMenu:
 		self.__exportRightPartBox.add_widget(Label(text = 'Y divisions: ', size_hint = (1.0, 0.1)))
 		self.__exportYdivisions = TextInput(multiline = False, text = '0', size_hint = (1.0, 0.1))
 		self.__exportRightPartBox.add_widget(self.__exportYdivisions)
-		
+
 		self.__exportColorToAlphaBox = BoxLayout(orientation = 'vertical', size_hint = (1.0, 0.2))
 		self.__exportColorToAlphaImage = self.__createWhiteImage()
 		self.__exportColorToAlphaBox.add_widget(Label(text = 'Color to alpha:', size_hint = (1.0, 0.5)))
 		self.__exportColorToAlphaBox.add_widget(self.__exportColorToAlphaImage)
-		
+
 		self.__exportBlankLabel = Label(text = '', size_hint = (1.0, 0.1))
 
 		self.__exportRightPartBox.add_widget(self.__exportColorToAlphaBox)
@@ -292,9 +292,9 @@ class LeftMenu:
 			i += 1
 
 		newTexture.blit_buffer(buf, colorfmt='rgba', bufferfmt='ubyte')
-		
+
 		return Image(size = (64, 64), texture = newTexture)
-	
+
 	def __createRelativeSplitLayout(self):
 		self.__relativeSplitLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__relativeSplitLayout.add_widget(Label(text = 'Partitions on x:', size_hint = (1.0, 0.05)))
@@ -303,7 +303,7 @@ class LeftMenu:
 		self.__relativeSplitLayout.add_widget(Label(text = 'Partitions on y:', size_hint = (1.0, 0.05)))
 		self.__partitionOnYInput = TextInput(text = '0', multiline = False, size_hint = (1.0, 0.05))
 		self.__relativeSplitLayout.add_widget(self.__partitionOnYInput)
-	
+
 		self.__relativeSplitLayout.add_widget(Label(text='', size_hint = (1.0, 0.55)))
 
 		self.__relativeSplitLayout.add_widget(
@@ -324,7 +324,7 @@ class LeftMenu:
 
 	def __createSplitLayout(self):
 		self.__splitLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		
+
 		self.__splitLayout.add_widget(Label(text = 'Width:', size_hint = (1.0, 0.05)))
 		self.__widthInput = TextInput(text = '0', multiline = False, size_hint = (1.0, 0.05))
 		self.__splitLayout.add_widget(self.__widthInput)
@@ -394,7 +394,7 @@ class LeftMenu:
 	def __init__(self, base, display):
 		self.__displayReference = display
 		self.__baseReference = base
-		
+
 		self.__createSelectNewImagePopup()
 		self.__createRelativeSplitLayout()
 		self.__createSplitLayout()
@@ -411,14 +411,14 @@ class DisplayStates:
 	showingSplitList = 3
 
 class Display:
-	
+
 	def __handleTouchOnSplittedImage(self, img, touch):
 		if (self.__changeAlphaColorMethodReference is not None and img.collide_point(*touch.pos) == True):
 			point = img.to_local(touch.pos[0], touch.pos[1], True)
 			adjY = img.texture_size[1] - int(point[1]) - 1
 			pixelAddress = ((adjY * img.texture_size[0]) + int(point[0]) - 1) * 4
 			self.__changeAlphaColorMethodReference(
-				[img.texture.pixels[pixelAddress], img.texture.pixels[pixelAddress + 1], 
+				[img.texture.pixels[pixelAddress], img.texture.pixels[pixelAddress + 1],
 				img.texture.pixels[pixelAddress + 2], img.texture.pixels[pixelAddress + 3]]
 			)
 
@@ -430,12 +430,12 @@ class Display:
 		self.__maxHeightProportion = maxHeightProportion
 		self.__maxWidthToShow = 400
 		self.__maxHeightToShow = 400
-		
+
 		self.__changeAlphaColorMethodReference = None
-		
+
 		self.__grid = GridLayout(cols = 1, rows = 1, size_hint = (None, None))
 
-		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), 
+		self.__scrollView = ScrollView(size_hint = (1.0, 1.0),
 			effect_cls = EmptyScrollEffect)
 		self.__scrollView.add_widget(self.__grid)
 		base.add_widget(self.__scrollView)
@@ -509,7 +509,7 @@ class Display:
 
 				imgLayout = BoxLayout(orientation = 'vertical', size = (x, y))
 				self.__changeAlphaColorMethodReference = changeAlphaColorByTouchReference
-				
+
 				checkbox = CheckBox(active = True, size_hint = (None, None), size = (x, y))
 				imgLayout.add_widget(img)
 				self.__checkBoxList.append(checkbox)
@@ -517,7 +517,7 @@ class Display:
 				self.__grid.add_widget(imgLayout)
 				gridHeight += y
 
-			
+
 			self.__grid.size = (Window.size[0] * self.__maxWidthProportion, gridHeight)
 
 	def updateDisplayRelative(self, partitionOnX, partitionOnY):
@@ -544,7 +544,7 @@ class Display:
 			for x in xList:
 				if (x + width > self.__baseImage.texture_size[0] or y + height > self.__baseImage.texture_size[1]):
 					continue
-				
+
 				newTexture = self.__baseImage.texture.get_region(x, y, width, height)
 				formerColor = []
 				isValid = False
@@ -563,12 +563,12 @@ class Display:
 						Image(texture = newTexture, on_touch_up = self.__handleTouchOnSplittedImage,
 						size = (width, height), size_hint = (None, None))
 					)
-				
+
 
 		self.showSplittedImages(width, height)
 
 	def __setBufferRegion(self, buf, x, y, width, height, image, alphaToReplace):
-		
+
 		index = (y * width) + x
 		i = 0
 		j = 0
@@ -586,7 +586,7 @@ class Display:
 				index = ((y+j) * width) + x
 
 			rgbaList.append(p)
-			
+
 	def countSelectedImages(self):
 		i = 0
 		for check in self.__checkBoxList:
@@ -635,18 +635,18 @@ class Display:
 				else:
 					imagesToUse.append(None)
 				k += 1
-			
+
 			for line in range(imagesSelected[0].texture_size[1]):
 				for img in imagesToUse:
-					newBuffer += self.__readLineFromImage(img, line, imagesSelected[0].texture_size[0], colorToAlpha) 
-					
+					newBuffer += self.__readLineFromImage(img, line, imagesSelected[0].texture_size[0], colorToAlpha)
+
 
 		newTexture.blit_buffer(newBuffer, colorfmt='rgba', bufferfmt='ubyte')
 		newTexture.flip_vertical()
 		newCoreImage = CoreImage(newTexture)
 		newCoreImage.save(filename + '.png')
-		
-		
+
+
 		try:
 			exporter = SplittedImageMap(filename + '.png', len(imagesSelected), divs, newSize)
 			exporter.exportToOpf(filename + '.opf')
@@ -656,7 +656,7 @@ class Display:
 
 
 		return True
-	
+
 	def __readLineFromImage(self, img, line, xSize, colorToAlpha):
 		buf = ''
 		if (img is None):
@@ -664,7 +664,7 @@ class Display:
 			while i < xSize * 4:
 				buf += chr(0xFF)
 				i += 1
-					
+
 		else:
 			address = line * xSize * 4
 			i = 0
@@ -673,9 +673,9 @@ class Display:
 			while i < xSize * 4:
 				rgba.append(pixels[address + i])
 				i += 1
-	
+
 				if (len(rgba) == 4):
-					if (colorToAlpha is not None and rgba[0] == colorToAlpha[0] and rgba[1] == colorToAlpha[1] and 
+					if (colorToAlpha is not None and rgba[0] == colorToAlpha[0] and rgba[1] == colorToAlpha[1] and
 							rgba[2] == colorToAlpha[2]):
 						rgba[3] = chr(0x00);
 					buf += chr(ord(rgba[0]))
@@ -683,18 +683,18 @@ class Display:
 					buf += chr(ord(rgba[2]))
 					buf += chr(ord(rgba[3]))
 					rgba = []
-			
-		
+
+
 		return buf
 
 	def updateLayoutSizes(self):
 		wx, wy = Window.size
-		
+
 		xSize = wx * self.__maxWidthProportion
 		ySize = wy * self.__maxHeightProportion
-		
+
 		self.__scrollView.size = (xSize, ySize)
-	
+
 	def getState(self):
 		return self.__state
 
@@ -706,7 +706,7 @@ class CacheImage:
 		return self.__pixels
 
 class TileSplitter(App):
-	
+
 	def build_config(self, c):
 		Config.set('graphics', 'width', 800)
 		Config.set('graphics', 'height', 600)
@@ -719,15 +719,15 @@ class TileSplitter(App):
 		self.root = BoxLayout(orientation='horizontal', padding = 0, spacing = 0, size_hint = (1.0, 1.0))
 
 		self.leftMenuBase = BoxLayout(
-			orientation='vertical', 
-			padding = 0, 
+			orientation='vertical',
+			padding = 0,
 			spacing = 0,
 			size_hint = (0.25, 1.0)
 		)
 
 		self.rightScreen = BoxLayout(
 			orientation = 'vertical',
-			padding = 0, 
+			padding = 0,
 			spacing = 0,
 			size_hint = (0.75, 1.0),
 		)

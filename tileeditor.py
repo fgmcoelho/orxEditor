@@ -14,6 +14,7 @@ from objectsmenu import ObjectsMenu
 from tilemapfiles import FilesManager
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
 from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
+from communicationobjects import CollisionToCollisionForm
 
 class TileEditor(App):
 
@@ -74,6 +75,7 @@ class TileEditor(App):
 		CollisionToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection, self.__sceneHandler.getAllObjects)
 		SceneToObjectsMenu.Instance(self.__sceneHandler.draw)
 		SceneToFilesManager.Instance(self.__sceneHandler.getCurrentSceneObjects)
+		CollisionToCollisionForm.Instance(CollisionInformationPopup.Instance().callPreview)
 
 		# Periodic functions:
 		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)

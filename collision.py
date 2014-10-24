@@ -425,6 +425,7 @@ class CollisionInformationPopup:
 		newPart = self.__extraPartsDict[currentId].pop(0)
 		self.__copiesDict[currentId].addPart(newPart)
 		self.__render()
+		self.callPreview()
 
 	def __doDeleteCurrentPart(self, *args):
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
@@ -540,14 +541,13 @@ class CollisionInformationPopup:
 		else:
 			self.__lowerBox.add_widget(self.__deleteCurrentButton)
 
-		self.__lowerBox.add_widget(self.__previewButton)
 		if (len (self.__objectsList) > 1):
 			self.__lowerBox.add_widget(self.__applyToAllButton)
-			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.2, 1.0)))
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.3, 1.0)))
 			self.__lowerBox.add_widget(self.__previousObjectButton)
 			self.__lowerBox.add_widget(self.__nextObjectButton)
 		else:
-			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.5, 1.0)))
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.6, 1.0)))
 
 		self.__lowerBox.add_widget(self.__okButton)
 		self.__lowerBox.add_widget(self.__cancelButton)
@@ -584,17 +584,17 @@ class CollisionInformationPopup:
 			limits = self.__objectsList[self.__objectsListIndex].getBaseSize()
 			if form == 'box' or form == 'mesh':
 				for point in points:
-					if ((floor(point[0]) < 0 or floor(point[1]) < 0) or 
+					if ((floor(point[0]) < 0 or floor(point[1]) < 0) or
 							(ceil(point[0]) > limits[0] or ceil(point[1]) > limits[1])):
 						overSizeNeeded = True
 						break
 			else:
 				center = points[0]
 				radius = distance(points[0], points[1])
-				if ((floor(center[0] - radius) < 0 or floor(center[1] - radius) < 0) or 
+				if ((floor(center[0] - radius) < 0 or floor(center[1] - radius) < 0) or
 						(ceil(center[0] + radius) > limits[0] or ceil(center[1] + radius) > limits[1])):
 					overSizeNeeded = True
-		
+
 		return overSizeNeeded
 
 
@@ -662,7 +662,6 @@ class CollisionInformationPopup:
 
 		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.dismissPopUp)
-		self.__previewButton = CancelableButton (text = 'Preview', size_hint = (0.1, 1.0), on_release = self.callPreview)
 		self.__addButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__addPart)
 		self.__applyToAllButton = CancelableButton(text = 'Apply to all', size_hint = (0.1, 1.0),
 				on_release = self.__applyChangesToAll)
@@ -688,7 +687,11 @@ class CollisionInformationPopup:
 		self.__keyboardHandler = CollisionInformationPopupKeyboardHandler()
 
 	def callPreview(self, *args):
-		i = int(self.__partsPanel.current_tab.id.split('#')[1])
+		if (len(args) > 0 and isinstance(args[0], TabbedPanelHeader)):
+			i = int(args[0].id.split('#')[1])
+		else:
+			i = int(self.__partsPanel.current_tab.id.split('#')[1])
+
 		part = self.__partsLayoutList[i].getPart()
 		needOversize = self.__needToOversizePreview(part)
 		if (needOversize == True):
@@ -713,7 +716,7 @@ class CollisionInformationPopup:
 		self.__partDisplay.drawPart(partToRender)
 
 
-	
+
 	def updateLayout(self):
 		self.__render()
 
@@ -736,6 +739,7 @@ class CollisionInformationPopup:
 			self.__objectsListIndex = 0
 			self.__createTemporatyCopies()
 			self.__render()
+			self.callPreview()
 			self.__collisionPopUp.open()
 
 	def dismissPopUp(self, *args):

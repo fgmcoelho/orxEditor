@@ -2,6 +2,7 @@ from singleton import Singleton
 
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.graphics.vertex_instructions import Line
+from kivy.graphics.fbo import Fbo
 from kivy.graphics import Color
 
 from operator import itemgetter
@@ -35,6 +36,7 @@ class Scene:
 		self.__layout = RelativeLayout(size_hint = (None, None), on_resize = self.redraw)
 		self.__renderGuardian = RenderObjectGuardian()
 		self.loadValues()
+		self.__fbo = Fbo(size = self.__layout.size)
 
 	def showGrid(self):
 		with self.__layout.canvas:
@@ -71,6 +73,15 @@ class Scene:
 					self.__maxX, i], width = 2
 				)
 				i += self.__tileSize
+
+	def getTexture(self):
+		self.__fbo.clear_color = (0, 0, 0, 0)
+		self.__fbo.clear_buffer()
+		self.__fbo.bind()
+		self.redraw()
+		self.__fbo.release()
+
+		return self.__fbo.texture
 
 	def toggleGrid(self):
 		if (self.__showGrid == True):

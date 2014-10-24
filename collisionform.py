@@ -15,6 +15,7 @@ from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, di
 from editorheritage import SpecialScrollControl, SpaceLimitedObject
 from collisioninfo import CollisionPartInformation
 from keyboard import KeyboardAccess, KeyboardGuardian
+from communicationobjects import CollisionToCollisionForm
 
 class CollisionPartDisplay(RelativeLayout):
 	def __init__(self, obj, expandLevel = 1.0):
@@ -405,6 +406,7 @@ class CollisionFlagFormEditorPopup:
 
 	def __saveAndClose(self, *args):
 		self.__mainScreen.savePoints()
+		CollisionToCollisionForm.Instance().preview()
 		self.dismissPopUp()
 
 	def __init__(self):

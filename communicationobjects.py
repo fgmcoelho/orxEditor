@@ -11,7 +11,7 @@ class CollisionToSceneCommunication:
 		return self.__getSelectionMethod()
 
 	def getAllObjects(self):
-		return self.__getAllObjectsMethod() 
+		return self.__getAllObjectsMethod()
 
 @Singleton
 class CollisionToMainLayoutCommunication:
@@ -26,15 +26,22 @@ class CollisionToMainLayoutCommunication:
 class SceneToObjectsMenu:
 	def __init__(self, drawMethod):
 		self.__drawMethod = drawMethod
-		
+
 	def draw(self, obj):
 		self.__drawMethod(obj)
-		
+
 @Singleton
 class SceneToFilesManager:
 	def __init__(self, getSceneObjectsMethod):
 		self.__getSceneObjectsMethod = getSceneObjectsMethod
-		
+
 	def getSceneObjects(self):
 		return self.__getSceneObjectsMethod()
-		
+
+@Singleton
+class CollisionToCollisionForm:
+	def __init__(self, previewMethod):
+		self.__previewMethod = previewMethod
+
+	def preview(self):
+		self.__previewMethod()
