@@ -142,6 +142,15 @@ class CollisionInformation:
 
 		return newInfo
 
+	@staticmethod
+	def isOnStartState(info):
+		assert(isinstance(info, CollisionInformation))
+		if (info.getDynamic() == True or info.getHighSpeed() == True or info.getFixedRotation() == True
+					or info.getPartsList() != []):
+			return False
+		else:
+			return True
+
 	def __init__(self, dynamic = False, highSpeed = False, fixedRotation = False):
 		self.__dynamic = dynamic
 		self.__highSpeed = highSpeed

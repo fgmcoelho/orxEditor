@@ -469,7 +469,8 @@ class CollisionInformationPopup:
 		currentObj = self.__objectsList[self.__objectsListIndex]
 		for obj in self.__objectsList:
 			if (obj != currentObj):
-				if (obj.getCollisionInfo() is not None):
+				if (obj.getCollisionInfo() is not None or
+							CollisionInformation.isOnStartState(self.__copiesDict[obj.getIdentifier()]) == False):
 					willEraseInfo += 1
 
 		if (willEraseInfo != 0):
@@ -482,10 +483,12 @@ class CollisionInformationPopup:
 	def __selectNextObject(self, *args):
 		self.__objectsListIndex = (self.__objectsListIndex + 1) % len(self.__objectsList)
 		self.__render()
+		self.callPreview()
 
 	def __selectPreviousObject(self, *args):
 		self.__objectsListIndex = (self.__objectsListIndex - 1) % len(self.__objectsList)
 		self.__render()
+		self.callPreview()
 
 	def __reloadObjectsCollisionDisplay(self, expandLevel = 1.0):
 		self.__objectsCollisionDisplay.clear_widgets()
@@ -542,12 +545,16 @@ class CollisionInformationPopup:
 			self.__lowerBox.add_widget(self.__deleteCurrentButton)
 
 		if (len (self.__objectsList) > 1):
-			self.__lowerBox.add_widget(self.__applyToAllButton)
-			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.3, 1.0)))
+			if (selectedTab is None or selectedTab == 'Edit'):
+				self.__lowerBox.add_widget(Label(text = '', size_hint = (0.3, 1.0)))
+			else:
+				self.__lowerBox.add_widget(self.__applyToAllButton)
+				self.__lowerBox.add_widget(Label(text = '', size_hint = (0.1, 1.0)))
+
 			self.__lowerBox.add_widget(self.__previousObjectButton)
 			self.__lowerBox.add_widget(self.__nextObjectButton)
 		else:
-			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.6, 1.0)))
+			self.__lowerBox.add_widget(Label(text = '', size_hint = (0.4, 1.0)))
 
 		self.__lowerBox.add_widget(self.__okButton)
 		self.__lowerBox.add_widget(self.__cancelButton)
@@ -663,7 +670,7 @@ class CollisionInformationPopup:
 		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.dismissPopUp)
 		self.__addButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__addPart)
-		self.__applyToAllButton = CancelableButton(text = 'Apply to all', size_hint = (0.1, 1.0),
+		self.__applyToAllButton = CancelableButton(text = 'Copy info to all', size_hint = (0.2, 1.0),
 				on_release = self.__applyChangesToAll)
 		self.__deleteCurrentButton = CancelableButton(text = 'Delete', size_hint = (0.1, 1.0), on_release = self.__deleteCurrentPart)
 		self.__previousObjectButton = CancelableButton(text = 'Previous', size_hint = (0.1, 1.0),
@@ -732,6 +739,17 @@ class CollisionInformationPopup:
 			self.__errorPopUp.setText('No object(s) selected!\nYou need to select at least one object from the scene.')
 			self.__errorPopUp.open()
 		else:
+			firstSize = objList[0].getBaseSize()
+			for obj in objList:
+				sizeToCompare = obj.getBaseSize()
+				if (firstSize[0] != sizeToCompare[0] or firstSize[1] != sizeToCompare[1]):
+					self.__errorPopUp.setText(
+						'Collision editor can only work on multiple\n'\
+						'objects that have the same base size.'
+					)
+					self.__errorPopUp.open()
+					return
+
 			KeyboardGuardian.Instance().acquireKeyboard(self.__keyboardHandler)
 			self.__objectsList = objList
 			self.__copiesDict = {}
