@@ -11,10 +11,10 @@ from kivy.uix.switch import Switch
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelHeader
 from kivy.uix.togglebutton import ToggleButton
 
-
 from string import letters, digits
+from math import floor, ceil
 
-from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, CancelableButton
+from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, CancelableButton, distance
 from communicationobjects import CollisionToSceneCommunication
 from keyboard import KeyboardAccess, KeyboardGuardian
 from collisioninfo import CollisionGuardian, CollisionPartInformation, CollisionInformation
@@ -231,6 +231,7 @@ class CollisionPartLayout:
 
 	def __doUpdateFormType(self):
 		self.__part.setFormType(self.__formToSet)
+		CollisionInformationPopup.Instance().callPreview()
 
 	def __restoreFormCheckbox(self):
 		form = self.__part.getFormType()
@@ -485,27 +486,32 @@ class CollisionInformationPopup:
 		self.__objectsListIndex = (self.__objectsListIndex - 1) % len(self.__objectsList)
 		self.__render()
 
-	def __renderUpperPart(self, collisionInfo):
-
+	def __reloadObjectsCollisionDisplay(self, expandLevel = 1.0):
 		self.__objectsCollisionDisplay.clear_widgets()
-		self.__partDisplay = CollisionPartDisplay(self.__objectsList[self.__objectsListIndex])
-		self.__objectsCollisionDisplay.size = self.__objectsList[self.__objectsListIndex].getBaseSize()
+		self.__partDisplay = CollisionPartDisplay(self.__objectsList[self.__objectsListIndex], expandLevel)
+		self.__objectsCollisionDisplay.size = self.__partDisplay.getSize()
 		self.__objectsCollisionDisplay.add_widget(self.__partDisplay)
+
+	def __reloadUpperBoxes(self):
+		self.__flagsAndPreviewBox.clear_widgets()
+		self.__flagsAndPreviewBox.add_widget(self.__objectsCollisionDisplay)
+		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
+
+	def __renderUpperPart(self, collisionInfo):
+		self.__reloadObjectsCollisionDisplay()
 
 		self.__dynamicSwitch.active = collisionInfo.getDynamic()
 		self.__fixedRotationSwitch.active = collisionInfo.getFixedRotation()
 		self.__highSpeedSwitch.active = collisionInfo.getHighSpeed()
 
-		self.__flagsAndPreviewBox.clear_widgets()
-		self.__flagsAndPreviewBox.add_widget(self.__objectsCollisionDisplay)
-		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
+		self.__reloadUpperBoxes()
 
 	def __changeTabs(self, *args):
 		self.__partDisplay.clearDrawnForm()
 		self.__renderLowerPart(args[0].text)
 
 	def __createPannedHeader(self, text, content, index):
-		th = TabbedPanelHeader(text = text, on_press = self.__changeTabs, id = 'tab#' + str(index))
+		th = TabbedPanelHeader(text = text, on_press = self.__changeTabs, on_release = self.callPreview, id = 'tab#' + str(index))
 		th.content = content
 		return th
 
@@ -570,10 +576,27 @@ class CollisionInformationPopup:
 
 		self.dismissPopUp()
 
-	def __callPreview(self, *args):
-		i = int(self.__partsPanel.current_tab.id.split('#')[1])
-		part = self.__partsLayoutList[i].getPart()
-		self.__partDisplay.drawPart(part)
+	def __needToOversizePreview(self, part):
+		overSizeNeeded = False
+		points = part.getPoints()
+		if (points != None):
+			form = part.getFormType()
+			limits = self.__objectsList[self.__objectsListIndex].getBaseSize()
+			if form == 'box' or form == 'mesh':
+				for point in points:
+					if ((floor(point[0]) < 0 or floor(point[1]) < 0) or 
+							(ceil(point[0]) > limits[0] or ceil(point[1]) > limits[1])):
+						overSizeNeeded = True
+						break
+			else:
+				center = points[0]
+				radius = distance(points[0], points[1])
+				if ((floor(center[0] - radius) < 0 or floor(center[1] - radius) < 0) or 
+						(ceil(center[0] + radius) > limits[0] or ceil(center[1] + radius) > limits[1])):
+					overSizeNeeded = True
+		
+		return overSizeNeeded
+
 
 	def __updateDynamicFlag(self, instance, value):
 		idToUse = self.__objectsList[self.__objectsListIndex].getIdentifier()
@@ -639,7 +662,7 @@ class CollisionInformationPopup:
 
 		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.dismissPopUp)
-		self.__previewButton = CancelableButton (text = 'Preview', size_hint = (0.1, 1.0), on_release = self.__callPreview)
+		self.__previewButton = CancelableButton (text = 'Preview', size_hint = (0.1, 1.0), on_release = self.callPreview)
 		self.__addButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__addPart)
 		self.__applyToAllButton = CancelableButton(text = 'Apply to all', size_hint = (0.1, 1.0),
 				on_release = self.__applyChangesToAll)
@@ -664,6 +687,33 @@ class CollisionInformationPopup:
 		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
 		self.__keyboardHandler = CollisionInformationPopupKeyboardHandler()
 
+	def callPreview(self, *args):
+		i = int(self.__partsPanel.current_tab.id.split('#')[1])
+		part = self.__partsLayoutList[i].getPart()
+		needOversize = self.__needToOversizePreview(part)
+		if (needOversize == True):
+			expandLevel = 2
+		else:
+			expandLevel = 1
+
+		self.__reloadObjectsCollisionDisplay(expandLevel)
+		self.__reloadUpperBoxes()
+
+		if (needOversize == True):
+			transformedPoints = []
+			partCopy = CollisionPartInformation.copy(part)
+			for point in partCopy.getPoints():
+				transformedPoints.append(self.__partDisplay.getImage().to_parent(point[0], point[1]))
+
+			partCopy.setPoints(transformedPoints)
+			partToRender = partCopy
+		else:
+			partToRender = part
+
+		self.__partDisplay.drawPart(partToRender)
+
+
+	
 	def updateLayout(self):
 		self.__render()
 

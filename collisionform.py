@@ -279,7 +279,8 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 			if (anyChanges == True):
 				transformedPoints = []
 				for point in newPoints:
-					transformedPoints.append(self.__display.getImage().to_local(*point))
+					transformedPoint = self.__display.getImage().to_local(*point)
+					transformedPoints.append((int(transformedPoint[0]), int(transformedPoint[1])))
 
 				self.__originalPart.setPoints(transformedPoints)
 

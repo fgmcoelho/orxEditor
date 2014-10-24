@@ -8,6 +8,7 @@ from operator import itemgetter
 
 from editorheritage import SpecialScrollControl
 from editorobjects import RenderObjectGuardian
+from editorutils import AlertPopUp
 from keyboard import KeyboardAccess
 from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 
@@ -205,7 +206,8 @@ class Scene:
 	def addObject(self, obj, relativeX, relaviveY):
 		sx, sy = obj.getSize()
 		if (sx > self.__maxX or sy > self.__maxY):
-			#TODO: Add warning here!
+			errorAlert = AlertPopUp('Error', 'Object could not be rendered because\nit is bigger than the scene space.', 'Ok')
+			errorAlert.open()
 			return
 
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
