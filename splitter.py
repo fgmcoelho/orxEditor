@@ -136,7 +136,6 @@ class LeftMenu:
 		else:
 			self.__export()
 
-
 	def __openExportOptions(self, *args):
 		if self.__colorToAlphaCheckbox.active == True:
 			self.__exportColorToAlphaImage.color = self.__whiteImage.color
@@ -720,15 +719,11 @@ class TileSplitter(App):
 
 		self.leftMenuBase = BoxLayout(
 			orientation='vertical',
-			padding = 0,
-			spacing = 0,
 			size_hint = (0.25, 1.0)
 		)
 
 		self.rightScreen = BoxLayout(
 			orientation = 'vertical',
-			padding = 0,
-			spacing = 0,
 			size_hint = (0.75, 1.0),
 		)
 
