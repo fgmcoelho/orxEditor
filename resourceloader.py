@@ -17,7 +17,6 @@ class ResourceLoaderDisplay:
 	def __init__(self, **kwargs):
 		self.__layout = RelativeLayout(size_hint = (None, None), size = (100, 100))
 		self.__currentImage = None
-		self.__operations = []
 		self.__suggestions = []
 
 	def loadSuggestions(self, axis):
@@ -36,7 +35,7 @@ class ResourceLoaderDisplay:
 	def loadImage(self, path):
 		if (self.__currentImage is not None):
 			self.__layout.remove_widget(self.__currentImage)
-	
+
 		im = Image(source = path)
 		self.__texture = AutoReloadTexture(im.texture.size, im)
 		self.__currentImage = Image(size = im.texture.size, texture = self.__texture.getTexture())
@@ -44,36 +43,35 @@ class ResourceLoaderDisplay:
 		self.__layout.add_widget(self.__currentImage)
 
 	def __doDrawGrid(self, xInc, yInc, xSkip = 0, ySkip = 0):
-		for op in self.__operations:
-			self.__layout.canvas.remove(op)
+
+		self.__layout.clear_widgets()
+		self.__layout.canvas.clear()
+		self.__layout.add_widget(self.__currentImage)
 
 		with self.__layout.canvas:
 			Color(0., 1., 0., 0.3)
-			i = xSkip
-			while i < self.__layout.size[0]:
-				self.__operations.append(
+
+			j = self.__layout.size[1] - ySkip
+			while j - yInc >= 0:
+				i = xSkip
+				while i + xInc <= self.__layout.size[0]:
 					Line(points = [
-						i, 0,
-						i, self.__layout.size[1]]
+							i, j,
+							i, j - yInc - 1,
+							i - xInc + 1, j - yInc - 1,
+							i - xInc + 1, j
+						], close = True
 					)
-				)
-				i += xInc
-			
-			i = self.__layout.size[1] - ySkip
-			while i > 0:
-				self.__operations.append(
-					Line(points = [
-						0, i,
-						self.__layout.size[0], i]
-					)
-				)
-				i -= yInc
+					i += xInc
+				j -= yInc
+			print j
+
 
 	def drawGridByDivisions(self, xDivisions, yDivisions):
 		xInc = int(self.__layout.size[0] / xDivisions)
 		yInc = int(self.__layout.size[1] / yDivisions)
 		self.__doDrawGrid(xInc, yInc)
-	
+
 	def drawGridBySize(self, xSize, ySize, xSkip, ySkip):
 		self.__doDrawGrid(xSize, ySize, xSkip, ySkip)
 
@@ -98,7 +96,7 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 
 		elif (keycode[1] == 'ctrl'):
 			self.setIsCtrlPressed(True)
-		
+
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self._scrollView.collide_point(*touch.pos) == False):
 			return
@@ -124,13 +122,16 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 				ySize = int(self.__ySizeInput.text)
 			except:
 				return
+
 			try:
-				xSkip = int(self.__ySkipInput.text)
-				ySkip = int(self.__ySkipInput.text)
+				xSkip = int(self.__xSkipInput.text)
 			except:
 				xSkip = 0
-				ySize = 0
-			
+			try:
+				ySkip = int(self.__ySkipInput.text)
+			except:
+				ySkip = 0
+
 			self.__display.drawGridBySize(xSize, ySize, xSkip, ySkip)
 
 	def __changeMethod(self, *args):
@@ -181,7 +182,7 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 	def __init__(self):
 		self.__popup = Popup(title = 'Resource Loader')
 		self.__method = 'divisions'
-		
+
 		super(ResourceLoaderPopup, self).__init__(size_hint = (1.0, 1.0))
 		self._scrollView.on_touch_move = self._ignoreMoves
 		self.__defaultTouchDown = self._scrollView.on_touch_down
@@ -201,7 +202,7 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 
 		self.__layout.add_widget(self.__leftMenu)
 		self.__layout.add_widget(self.__rightMenu)
-		
+
 		self.__popup.content = self.__layout
 
 	def open(self, *args):
@@ -209,7 +210,7 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 		self.__display.loadImage('tiles/wateranimate2.png')
 		#self.__display.loadImage('tiles/grounds.png')
 		self.__popup.open()
-		
+
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__popup.dismiss()
