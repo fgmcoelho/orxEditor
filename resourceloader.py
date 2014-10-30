@@ -11,26 +11,96 @@ from editorheritage import SpecialScrollControl
 from editorutils import CancelableButton, AutoReloadTexture
 from keyboard import KeyboardAccess, KeyboardGuardian
 
+class GridCell:
+	def __init__(self, canvas, x, y, xSize, ySize):
+		self.__x = x
+		self.__y = y
+		self.__xSize = xSize
+		self.__ySize = ySize
+		self.__canvasRef = canvas
+		self.__operation = None
+		self.__color = None
+		self.__marked = False
+		self.draw((0., 1., 0., 1.))
+	
+	def draw(self, colorToUse):
+		if (self.__operation is not None):
+			self.__canvasRef.remove(self.__operation)
+			self.__canvasRef.remove(self.__color)
+			self.__canvasRef.ask_update()
+
+		self.__color = Color(*colorToUse)
+		self.__operation = Line(points = [
+			self.__x, self.__y,
+			self.__x, self.__y - self.__ySize,
+			self.__x + self.__xSize, self.__y - self.__ySize,
+			self.__x + self.__xSize, self.__y], 
+			close = True, width = 1
+		)
+		self.__canvasRef.add(self.__color)
+		self.__canvasRef.add(self.__operation)
+		self.__canvasRef.ask_update()
+
+	def select(self):
+		self.__marked = True
+		self.draw((1., 0., 0., 1.))
+
+	def unselect(self):
+		if (self.__marked):
+			self.draw((0., 1., 0., 1.))
+
+
+
 class ResourceLoaderDisplay:
 
+	def __clearGraphicGrid(self):
+		for line in self.__gridGraphics:
+			for cell in line:
+				cell.unselect()
 
+	def __posToGridCoords(self, x, y):
+		i, j = int((x + self.__xSkip) / self.__xSize), int((y - self.__ySkip) / self.__ySize)
+		return (self.__rows - j - 1, i)
+
+	def updateSelection(self, touch):
+		#print touch.pos
+		pass
+
+	def startSelection(self, touch):
+		if (self.__currentImage is not None and self.__gridGraphics != [] and self.__selectionStarted == False):
+			self.__clearGraphicGrid()
+			self.__selectionStarted = True
+			self.__selectionStartPos = self.__currentImage.to_widget(*touch.pos)
+			sj, si = self.__posToGridCoords(*self.__selectionStartPos)
+			self.__gridGraphics[sj][si].select()
+
+	def finishSelection(self, touch):
+		if (self.__currentImage is not None and self.__gridGraphics != [] and self.__selectionStarted == True):
+			pos = self.__currentImage.to_widget(*touch.pos)
+			fj, fi = self.__posToGridCoords(*pos)
+			sj, si = self.__posToGridCoords(*self.__selectionStartPos)
+			loopStartIndexI = min(si, fi)
+			loopStartIndexJ = min(sj, fj)
+			loopFinalIndexI = max(si, fi)
+			loopFinalIndexJ = max(sj, fj)
+
+			tempI = loopStartIndexI
+			while (tempI <= loopFinalIndexI):
+				tempJ = loopStartIndexJ
+				while(tempJ <= loopFinalIndexJ):
+					self.__gridGraphics[tempJ][tempI].select()
+					tempJ += 1
+				tempI += 1
+
+			self.__selectionStarted = False
+	
 	def __init__(self, **kwargs):
+		self.__selectionStarted = False
+		self.__selectionStartPos = None
 		self.__layout = RelativeLayout(size_hint = (None, None), size = (100, 100))
 		self.__currentImage = None
 		self.__suggestions = []
-
-	def loadSuggestions(self, axis):
-		assert axis in ('x', 'y')
-		if (axis == 'x'):
-			coord = 0
-		else:
-			coord = 1
-		self.__suggestions = []
-		size = self.__layout.size[coord]
-		for i in range(8, size/2):
-			if (size % i == 0):
-				self.__suggestions.append(i)
-
+		self.__gridGraphics = []
 
 	def loadImage(self, path):
 		if (self.__currentImage is not None):
@@ -47,25 +117,25 @@ class ResourceLoaderDisplay:
 		self.__layout.clear_widgets()
 		self.__layout.canvas.clear()
 		self.__layout.add_widget(self.__currentImage)
+		self.__gridGraphics = []
+		self.__xSize = xInc
+		self.__ySize = xInc
+		self.__xSkip = xSkip
+		self.__ySkip = ySkip
 
-		with self.__layout.canvas:
-			Color(0., 1., 0., 0.3)
-
-			j = self.__layout.size[1] - ySkip
-			while j - yInc >= 0:
-				i = xSkip
-				while i + xInc <= self.__layout.size[0]:
-					Line(points = [
-							i, j,
-							i, j - yInc - 1,
-							i - xInc + 1, j - yInc - 1,
-							i - xInc + 1, j
-						], close = True
-					)
-					i += xInc
-				j -= yInc
-			print j
-
+		j = self.__layout.size[1] - ySkip
+		while j - yInc >= 0:
+			i = xSkip
+			line = []
+			while i + xInc <= self.__layout.size[0]:
+				line.append(GridCell(self.__layout.canvas, i + xSkip, j - ySkip, xInc, yInc))
+				i += xInc
+			j -= yInc
+			self.__gridGraphics.append(line)
+		
+		if (self.__gridGraphics != []):
+			self.__lines = len(self.__gridGraphics[0])
+			self.__rows = len(self.__gridGraphics)
 
 	def drawGridByDivisions(self, xDivisions, yDivisions):
 		xInc = int(self.__layout.size[0] / xDivisions)
@@ -97,6 +167,12 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 		elif (keycode[1] == 'ctrl'):
 			self.setIsCtrlPressed(True)
 
+	def __handleTouchMove(self, touch):
+		if (self._scrollView.collide_point(*touch.pos) == False):
+			return
+		
+		self.__display.updateSelection(touch)
+
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self._scrollView.collide_point(*touch.pos) == False):
 			return
@@ -104,8 +180,13 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 		if (touch.is_mouse_scrolling == True):
 			return self.specialScroll(touch)
 
+		self.__display.startSelection(touch)
+
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		pass
+		if (self._scrollView.collide_point(*touch.pos) == False):
+			return
+
+		self.__display.finishSelection(touch)
 
 	def __splitImage(self, *args):
 		if (self.__method == 'divisions'):
@@ -145,8 +226,8 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 	def __createLeftMenuUi(self):
 		self.__xDivisionsInput = TextInput(multiline = False, size_hint = (1.0, 0.05))
 		self.__yDivisionsInput = TextInput(multiline = False, size_hint = (1.0, 0.05))
-		self.__xSizeInput = TextInput(multiline = False, size_hint = (1.0, 0.05))
-		self.__ySizeInput = TextInput(multiline = False, size_hint = (1.0, 0.05))
+		self.__xSizeInput = TextInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
+		self.__ySizeInput = TextInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
 		self.__xSkipInput = TextInput(multiline = False, size_hint = (1.0, 0.05))
 		self.__ySkipInput = TextInput(multiline = False, size_hint = (1.0, 0.05))
 		self.__closeButton = CancelableButton(on_release = self.close, text = 'Close', size_hint = (1.0, 0.05))
@@ -181,10 +262,10 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 
 	def __init__(self):
 		self.__popup = Popup(title = 'Resource Loader')
-		self.__method = 'divisions'
+		self.__method = 'size'
 
 		super(ResourceLoaderPopup, self).__init__(size_hint = (1.0, 1.0))
-		self._scrollView.on_touch_move = self._ignoreMoves
+		self._scrollView.on_touch_move = self.__handleTouchMove
 		self.__defaultTouchDown = self._scrollView.on_touch_down
 		self.__defaultTouchUp = self._scrollView.on_touch_up
 		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
@@ -193,7 +274,7 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 		self.__layout = BoxLayout(orientation = 'horizontal')
 		self.__leftMenu = BoxLayout(orientation = 'vertical', size_hint = (0.25, 1.0))
 		self.__createLeftMenuUi()
-		self.__loadDivisionLeftMenu()
+		self.__loadSizeLeftMenu()
 		self.__rightMenu = BoxLayout(orientation = 'vertical', size_hint = (0.75, 1.0))
 		self.__display = ResourceLoaderDisplay()
 
