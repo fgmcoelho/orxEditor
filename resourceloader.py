@@ -4,12 +4,20 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.image import Image
 from kivy.uix.label import Label
+from kivy.uix.treeview import TreeView, TreeViewLabel
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
 from editorheritage import SpecialScrollControl
 from editorutils import CancelableButton, AutoReloadTexture
 from keyboard import KeyboardAccess, KeyboardGuardian
+
+class SpriteSelection:
+	def __init__(self, x, y, xSize, ySize):
+		self.__x = x
+		self.__y = y
+		self.__xSize = xSize
+		self.__ySize = ySize
 
 class GridCell:
 	def __init__(self, canvas, x, y, xSize, ySize):
@@ -22,7 +30,7 @@ class GridCell:
 		self.__color = None
 		self.__marked = False
 		self.draw((0., 1., 0., 1.))
-	
+
 	def draw(self, colorToUse):
 		if (self.__operation is not None):
 			self.__canvasRef.remove(self.__operation)
@@ -34,7 +42,7 @@ class GridCell:
 			self.__x, self.__y,
 			self.__x, self.__y - self.__ySize,
 			self.__x + self.__xSize, self.__y - self.__ySize,
-			self.__x + self.__xSize, self.__y], 
+			self.__x + self.__xSize, self.__y],
 			close = True, width = 1
 		)
 		self.__canvasRef.add(self.__color)
@@ -49,8 +57,6 @@ class GridCell:
 		if (self.__marked):
 			self.draw((0., 1., 0., 1.))
 
-
-
 class ResourceLoaderDisplay:
 
 	def __clearGraphicGrid(self):
@@ -63,13 +69,13 @@ class ResourceLoaderDisplay:
 		return (self.__rows - j - 1, i)
 
 	def updateSelection(self, touch):
-		#print touch.pos
 		pass
 
 	def startSelection(self, touch):
 		if (self.__currentImage is not None and self.__gridGraphics != [] and self.__selectionStarted == False):
 			self.__clearGraphicGrid()
 			self.__selectionStarted = True
+			self.__currentSelectionLimits = None
 			self.__selectionStartPos = self.__currentImage.to_widget(*touch.pos)
 			sj, si = self.__posToGridCoords(*self.__selectionStartPos)
 			self.__gridGraphics[sj][si].select()
@@ -93,7 +99,8 @@ class ResourceLoaderDisplay:
 				tempI += 1
 
 			self.__selectionStarted = False
-	
+			self.__currentSelectionLimits = ((loopStartIndexI, loopStartIndexJ), (loopFinalIndexI, loopFinalIndexJ))
+
 	def __init__(self, **kwargs):
 		self.__selectionStarted = False
 		self.__selectionStartPos = None
@@ -101,6 +108,7 @@ class ResourceLoaderDisplay:
 		self.__currentImage = None
 		self.__suggestions = []
 		self.__gridGraphics = []
+		self.__currentSelectionLimits = None
 
 	def loadImage(self, path):
 		if (self.__currentImage is not None):
@@ -132,7 +140,7 @@ class ResourceLoaderDisplay:
 				i += xInc
 			j -= yInc
 			self.__gridGraphics.append(line)
-		
+
 		if (self.__gridGraphics != []):
 			self.__lines = len(self.__gridGraphics[0])
 			self.__rows = len(self.__gridGraphics)
@@ -147,6 +155,9 @@ class ResourceLoaderDisplay:
 
 	def getLayout(self):
 		return self.__layout
+
+	def getCurrentSelection(self):
+		return self.__currentSelectionLimits
 
 class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 	# Overloaded method
@@ -170,7 +181,7 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 	def __handleTouchMove(self, touch):
 		if (self._scrollView.collide_point(*touch.pos) == False):
 			return
-		
+
 		self.__display.updateSelection(touch)
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
@@ -255,10 +266,27 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 		self.__leftMenu.add_widget(self.__xSkipInput)
 		self.__leftMenu.add_widget(Label(text = 'Skip on y', size_hint = (1.0, 0.05)))
 		self.__leftMenu.add_widget(self.__ySkipInput)
-		self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.55)))
+		self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.45)))
 		self.__leftMenu.add_widget(self.__switchButton)
 		self.__leftMenu.add_widget(self.__splitButton)
 		self.__leftMenu.add_widget(self.__closeButton)
+
+	def __processAddSelection(self, *args):
+		self.__selectionTree.add_node(TreeViewLabel(text='Selection'))
+
+	def __createRightMenuUi(self):
+		self.__selectionTree = TreeView(root_options=dict(text='Resources'), size_hint = (1.0, 0.8))
+		self.__addFullSelection = CancelableButton(text = 'Add as one', size_hint = (1.0, 0.05),
+			on_release = self.__processAddSelection)
+		self.__addPartSelection = CancelableButton(text = 'Add parts', size_hint = (1.0, 0.05))
+		self.__removeCurrent = CancelableButton(text = 'Remove', size_hint = (1.0, 0.05))
+		self.__clearSelection = CancelableButton(text = 'Clear', size_hint = (1.0, 0.05))
+
+		self.__rightMenu.add_widget(self.__selectionTree)
+		self.__rightMenu.add_widget(self.__addFullSelection)
+		self.__rightMenu.add_widget(self.__addPartSelection)
+		self.__rightMenu.add_widget(self.__removeCurrent)
+		self.__rightMenu.add_widget(self.__clearSelection)
 
 	def __init__(self):
 		self.__popup = Popup(title = 'Resource Loader')
@@ -270,18 +298,22 @@ class ResourceLoaderPopup(SpecialScrollControl, KeyboardAccess):
 		self.__defaultTouchUp = self._scrollView.on_touch_up
 		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 		self._scrollView.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
-
 		self.__layout = BoxLayout(orientation = 'horizontal')
-		self.__leftMenu = BoxLayout(orientation = 'vertical', size_hint = (0.25, 1.0))
+
+		self.__leftMenu = BoxLayout(orientation = 'vertical', size_hint = (0.15, 1.0))
 		self.__createLeftMenuUi()
 		self.__loadSizeLeftMenu()
-		self.__rightMenu = BoxLayout(orientation = 'vertical', size_hint = (0.75, 1.0))
-		self.__display = ResourceLoaderDisplay()
 
+		self.__middleMenu = BoxLayout(orientation = 'vertical', size_hint = (0.7, 1.0))
+		self.__display = ResourceLoaderDisplay()
 		self._scrollView.add_widget(self.__display.getLayout())
-		self.__rightMenu.add_widget(self._scrollView)
+		self.__middleMenu.add_widget(self._scrollView)
+
+		self.__rightMenu = BoxLayout(orientation = 'vertical', size_hint = (0.15, 1.0))
+		self.__createRightMenuUi()
 
 		self.__layout.add_widget(self.__leftMenu)
+		self.__layout.add_widget(self.__middleMenu)
 		self.__layout.add_widget(self.__rightMenu)
 
 		self.__popup.content = self.__layout
