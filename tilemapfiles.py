@@ -1,7 +1,8 @@
 from singleton import Singleton
 
 from scene import SceneAttributes
-from editorutils import vector2ToVector3String, strToDoubleFloatTuple, boolToStr, convertKivyCoordToOrxCoord, distance, isClockWise
+from editorutils import vector2ToVector3String, strToDoubleFloatTuple, boolToStr, convertKivyCoordToOrxCoord, distance
+from editorutils import isClockWise
 from communicationobjects import SceneToFilesManager
 from ConfigParser import ConfigParser
 from collisioninfo import CollisionGuardian, CollisionInformation
@@ -148,7 +149,8 @@ class FilesManager:
 			scale = (obj.getScale(), obj.getScale())
 			layer = obj.getLayer() * 0.01
 			parser.set(newSectionName, 'Graphic', graphicSectionName)
-			parser.set(newSectionName, 'Position', vector2ToVector3String(self.__convertObjectPosition(obj, sceneMaxY), layer))
+			parser.set(newSectionName, 'Position', vector2ToVector3String(self.__convertObjectPosition(obj, sceneMaxY),
+				layer))
 			if(obj.getFlipX() == True and obj.getFlipY() == True):
 				parser.set(newSectionName, 'Flip', 'both')
 			elif (obj.getFlipX() == True):

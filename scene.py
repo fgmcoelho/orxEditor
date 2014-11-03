@@ -186,7 +186,8 @@ class Scene:
 		self.__renderGuardian.alignSelectionToGrid()
 
 	def copyObject(self, direction):
-		newObjects = self.__renderGuardian.copySelection(direction, self.__id, self.__tileSize, self.__maxX, self.__maxY)
+		newObjects = self.__renderGuardian.copySelection(direction, self.__id, self.__tileSize, self.__maxX,
+			self.__maxY)
 		for renderedObject in newObjects:
 			self.__layout.add_widget(renderedObject)
 			self.__objectDict[self.__id] = renderedObject
@@ -217,7 +218,8 @@ class Scene:
 	def addObject(self, obj, relativeX, relaviveY):
 		sx, sy = obj.getSize()
 		if (sx > self.__maxX or sy > self.__maxY):
-			errorAlert = AlertPopUp('Error', 'Object could not be rendered because\nit is bigger than the scene space.', 'Ok')
+			errorAlert = AlertPopUp('Error', 'Object could not be rendered because\nit is bigger than the scene space.',
+				'Ok')
 			errorAlert.open()
 			return
 
@@ -347,7 +349,9 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 			ObjectDescriptor.Instance().setObject(objectToSelect)
 			self.__sceneList[self.__currentIndex].getRenderGuardian().setSingleSelectionObject(objectToSelect)
 		else:
-			selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().addObjectToSelection(objectToSelect)
+			selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().addObjectToSelection(
+				objectToSelect
+			)
 			numberOfSelectedObjects = len(selectedObjectsList)
 			if (numberOfSelectedObjects == 1):
 				ObjectDescriptor.Instance().setObject(selectedObjectsList[0])

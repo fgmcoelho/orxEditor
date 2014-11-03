@@ -16,7 +16,7 @@ from communicationobjects import SceneToObjectsMenu
 class ObjectMenuItem:
 
 	def __handle(self, image, touch):
-		if (touch.is_mouse_scrolling == False and self.getDisplayImage().collide_point(*touch.pos) == True and 
+		if (touch.is_mouse_scrolling == False and self.getDisplayImage().collide_point(*touch.pos) == True and
 				touch.is_double_tap == True):
 			if (ObjectDescriptor.Instance().getCurrentObject() == self.getBaseObject()):
 				SceneToObjectsMenu.Instance().draw(self.getBaseObject())
@@ -31,18 +31,18 @@ class ObjectMenuItem:
 
 	def getBaseObject(self):
 		return self.__baseObject
-	
+
 	def getDisplayImage(self):
 		return self.__displayImage
 
 @Singleton
 class ObjectsMenu:
-	
+
 	def __loadPng(self, item, pngsToIgnoreList):
 		fullPath = join(getcwd(), 'tiles', item)
 		if (fullPath in pngsToIgnoreList):
 			return
-		
+
 		img = Image(source = fullPath)
 		obj = BaseObject(img, self.__numberOfItems)
 		self.__menuObjectsList.append(ObjectMenuItem(obj, (64, 64)))
@@ -72,9 +72,10 @@ class ObjectsMenu:
 		for item in l:
 			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
 				self.__loadPng(item, pngsToIgnoreList)
-		
+
 		if (self.__objectListLayout is None):
-			self.__objectListLayout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None), spacing = (0, 3))
+			self.__objectListLayout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None),
+				spacing = (0, 3))
 		else:
 			self.__objectListLayout.rows = self.__numberOfItems
 
@@ -83,7 +84,7 @@ class ObjectsMenu:
 			self.__objectListLayout.add_widget(img)
 
 		self.__objectListLayout.size[1] = (self.__numberOfItems * 67)
-		
+
 	def __init__(self):
 		self.__objectListLayout = None
 

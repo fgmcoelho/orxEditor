@@ -12,6 +12,16 @@ from editorheritage import SpecialScrollControl
 from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog
 from keyboard import KeyboardAccess, KeyboardGuardian
 
+class NumberInput(TextInput):
+
+	def insert_text(self, substring, from_undo = False):
+		if (substring in "0123456789"):
+			super(NumberInput, self).insert_text(substring, from_undo = from_undo)
+
+	def __init__(self, **kwargs):
+		super(NumberInput, self).__init__(**kwargs)
+
+
 class SpriteSelection:
 	def __init__(self, x, y, xSize, ySize, xParts = 1, yParts = 1):
 		self.__x = x
@@ -30,7 +40,7 @@ class SpriteSelection:
 
 	def getX(self):
 		return self.__x
-	
+
 	def getY(self):
 		return self.__y
 
@@ -98,14 +108,14 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			i = 0
 		elif (i >= self.__columns):
 			i = self.__columns - 1
-		
+
 		j = self.__rows - j - 1
 		if (j < 0):
 			j = 0
 		elif (j >= self.__rows):
 			j = self.__rows - 1
 		return (j, i)
-	
+
 	def __handleTouchMove(self, touch):
 		if (self._scrollView.collide_point(*touch.pos) == False):
 			return
@@ -251,7 +261,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.__currentImage.canvas.add(self.__selectionPreview)
 
 class ResourceLoaderList(SpecialScrollControl):
-	
+
 	def __ignoreMoves(self, touch):
 		pass
 
@@ -263,7 +273,7 @@ class ResourceLoaderList(SpecialScrollControl):
 			return self.specialScroll(touch)
 
 		self.__defaultTouchDown(touch)
-	
+
 	def __doClearAllItems(self, *args):
 		for node in self.__tree.children:
 			self.__tree.remove_node(node)
@@ -272,7 +282,8 @@ class ResourceLoaderList(SpecialScrollControl):
 
 	def __doAddItem(self, selection):
 		node = TreeViewLabel(text='Pos: (' + str(selection.getX()) + ', ' + str(selection.getY()) + ') | Size: (' + \
-				str(selection.getSizeX()) + ', ' + str(selection.getSizeY()) + ')', id = 'selection#' + str(self.__selectionId))
+				str(selection.getSizeX()) + ', ' + str(selection.getSizeY()) + ')', id = 'selection#' + \
+				str(self.__selectionId))
 
 		self.__selectionDict[self.__selectionId] = selection
 		self.__selectionId += 1
@@ -289,14 +300,14 @@ class ResourceLoaderList(SpecialScrollControl):
 		if (len(self.__selectionDict) == 0):
 			return
 		elif (len(self.__selectionDict) == 1):
-			dialog = Dialog(self.__doClearAllItems, 
+			dialog = Dialog(self.__doClearAllItems,
 				'Confirmation', 'This will remove 1 selection.\nThis operation can\'t be reverted.',
 				'Ok', 'Cancel')
 		else:
-			dialog = Dialog(self.__doClearAllItems, 'Confirmation', 
-				'This will remove ' + str(len(self.__selectionDict)) + ' selection.\nThis operation can\'t be reverted.',
+			dialog = Dialog(self.__doClearAllItems, 'Confirmation', 'This will remove ' + \
+					str(len(self.__selectionDict)) + ' selections.\nThis operation can\'t be reverted.',
 				'Ok', 'Cancel')
-		
+
 		dialog.open()
 
 	def removeItem(self):
@@ -305,6 +316,7 @@ class ResourceLoaderList(SpecialScrollControl):
 			if (itemName != 'root'):
 				self.__tree.remove_node(self.__tree.selected_node)
 				del self.__selectionDict[int(itemId)]
+				self.__tree.select_node(self.__tree.root)
 
 	def addItemList(self, selectionList):
 		count = 0
@@ -317,14 +329,16 @@ class ResourceLoaderList(SpecialScrollControl):
 			if (count == 1):
 				warn = AlertPopUp('Error', '1 selection could not be added because it\nhas already been added.', 'Ok')
 			else:
-				warn = AlertPopUp('Error', str(count) + ' selections could not be added because they\nhave already been added.', 'Ok')
+				warn = AlertPopUp('Error',
+					str(count) + ' selections could not be added because they\nhave already been added.', 'Ok'
+				)
 
 			warn.open()
 			return
-		
+
 		for selection in selectionList:
 			self.__doAddItem(selection)
-		
+
 
 	def addItem(self, selection):
 		for savedSelection in self.__selectionDict.values():
@@ -342,7 +356,8 @@ class ResourceLoaderList(SpecialScrollControl):
 		self._scrollView.on_touch_move = self.__ignoreMoves
 		self.__defaultTouchDown = self._scrollView.on_touch_down
 		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
-		self.__tree = TreeView(root_options=dict(text='Resources', id='root#0'), size_hint = (1.0, 1.0), expand_root = False)
+		self.__tree = TreeView(root_options = dict(text='Resources', id='root#0'), size_hint = (1.0, 1.0),
+			expand_root = False)
 		self.__layout = RelativeLayout(size = (300, 100), size_hint = (None, None))
 		self.__layout.add_widget(self.__tree)
 		self._scrollView.add_widget(self.__layout)
@@ -370,6 +385,9 @@ class ResourceLoaderPopup(KeyboardAccess):
 		elif (keycode[1] == 'ctrl'):
 			self.__display.setIsCtrlPressed(True)
 			self.__selectionTree.setIsCtrlPressed(True)
+
+		elif (keycode[1] == 'escape'):
+			KeyboardGuardian.Instance().dropKeyboard(self)
 
 	def __splitImage(self, *args):
 		if (self.__method == 'divisions'):
@@ -407,15 +425,16 @@ class ResourceLoaderPopup(KeyboardAccess):
 			self.__loadDivisionLeftMenu()
 
 	def __createLeftMenuUi(self):
-		self.__xDivisionsInput = TextInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
-		self.__yDivisionsInput = TextInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
-		self.__xSizeInput = TextInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
-		self.__ySizeInput = TextInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
-		self.__xSkipInput = TextInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
-		self.__ySkipInput = TextInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
+		self.__xDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
+		self.__yDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
+		self.__xSizeInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
+		self.__ySizeInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
+		self.__xSkipInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
+		self.__ySkipInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
 		self.__closeButton = CancelableButton(on_release = self.close, text = 'Close', size_hint = (1.0, 0.05))
 		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', size_hint = (1.0, 0.05))
-		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method', size_hint = (1.0, 0.05))
+		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
+				size_hint = (1.0, 0.05))
 
 	def __loadDivisionLeftMenu(self):
 		self.__leftMenu.clear_widgets()
@@ -467,7 +486,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 					l.append(selectionToAdd)
 
 			self.__selectionTree.addItemList(l)
-	
+
 	def __showSelection(self, *args):
 		selection = self.__selectionTree.getSelection()
 		if (selection is not None):
