@@ -110,7 +110,8 @@ class RenderedObjectDescriptor:
 	def setActive(self):
 		self.__accordionItemReference.collapse = False
 
-	def setValues(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '', collisionInfo = None):
+	def setValues(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '',
+			collisionInfo = None):
 		self.__setValues(path, size, scale, layer, name, flipX, flipY, collisionInfo)
 		self.setActive()
 
@@ -148,7 +149,8 @@ class ObjectDescriptor:
 		self.__currentObject = None
 
 		self.__baseObjectDescriptor = BaseObjectDescriptor.Instance(baseObjectAccordion)
-		self.__renderedObjectDescriptor = RenderedObjectDescriptor.Instance(renderedObjectAccordion, self.openCollisionPopUp)
+		self.__renderedObjectDescriptor = RenderedObjectDescriptor.Instance(renderedObjectAccordion,
+			self.openCollisionPopUp)
 
 		self.__baseObjectDescriptor.setActive()
 
@@ -166,8 +168,8 @@ class ObjectDescriptor:
 			path = path[len(cwd):]
 
 		if (obj.getType() == ObjectTypes.renderedObject):
-			self.__renderedObjectDescriptor.setValues(path, size, obj.getScale(), obj.getLayer(), obj.getName(), obj.getFlipX(),
-				obj.getFlipY(), obj.getCollisionInfo())
+			self.__renderedObjectDescriptor.setValues(path, size, obj.getScale(), obj.getLayer(), obj.getName(),
+				obj.getFlipX(), obj.getFlipY(), obj.getCollisionInfo())
 
 		else:
 			self.__baseObjectDescriptor.setValues(path, size)

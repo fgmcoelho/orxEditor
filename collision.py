@@ -41,16 +41,16 @@ class CollisionFlagsEditor:
 		for flag in flagsList:
 			flagLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 			flagLine.add_widget(Label(text = flag.getName(), size_hint = (0.9, 1.0)))
-			flagLine.add_widget(CancelableButton(text = 'Delete', size_hint = (0.1, 1.0), id = 'Delete#' + flag.getName(),
-				on_release = self.__processRemoveFlag))
+			flagLine.add_widget(CancelableButton(text = 'Delete', size_hint = (0.1, 1.0), id = 'Delete#' + \
+				flag.getName(),	on_release = self.__processRemoveFlag))
 			self.__layout.add_widget(flagLine)
 
 
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, 1.0 - ((len(flagsList) + 3) * self.__baseHeight))))
 
 		if (len(flagsList) == self.__maxCollisionFlags):
-			self.__layout.add_widget(Label(text = 'Maximum number of flags (%u) reached.' % (self.__maxCollisionFlags, ),
-				size_hint = (1.0, self.__baseHeight)))
+			self.__layout.add_widget(Label(text = 'Maximum number of flags (%u) reached.' %
+				(self.__maxCollisionFlags, ), size_hint = (1.0, self.__baseHeight)))
 		else:
 			self.__reaplyFocus()
 			self.__layout.add_widget(self.__inputBar)
@@ -164,7 +164,8 @@ class CollisionFlagsEditor:
 				invalidSet.append(char)
 
 		if (invalidSet != []):
-			error = AlertPopUp('Error', 'Found invalid characters in the name:\n ' + ''.join(invalidSet), 'Ok', self.__reaplyFocus)
+			error = AlertPopUp('Error', 'Found invalid characters in the name:\n ' + ''.join(invalidSet), 'Ok',
+				self.__reaplyFocus)
 			error.open()
 			return
 
@@ -191,7 +192,8 @@ class CollisionFlagsEditor:
 		self.__inputBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 		self.__flagNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0),
 			on_text_validate = self.__processAddFlag, focus = False)
-		self.__flagAddButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__processAddFlag)
+		self.__flagAddButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0),
+			on_release = self.__processAddFlag)
 
 		self.__inputBar.add_widget(self.__flagNameInput)
 		self.__inputBar.add_widget(self.__flagAddButton)
@@ -304,8 +306,8 @@ class CollisionPartLayout:
 					self.__checkMaskGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'down',
 						on_release = self.__togglePartFlag, id = 'togglebutton#checkmask#' + name))
 				else:
-					self.__checkMaskGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25), state = 'normal',
-						on_release = self.__togglePartFlag, id = 'togglebutton#checkmask#' + name))
+					self.__checkMaskGrid.add_widget(ToggleButton(text = name, size_hint = (0.25, 0.25),
+						state = 'normal', on_release = self.__togglePartFlag, id = 'togglebutton#checkmask#' + name))
 			else:
 				self.__checkMaskGrid.add_widget(Label(text = '', size_hint = (0.25, 0.25)))
 
@@ -515,7 +517,8 @@ class CollisionInformationPopup:
 		self.__renderLowerPart(args[0].text)
 
 	def __createPannedHeader(self, text, content, index):
-		th = TabbedPanelHeader(text = text, on_press = self.__changeTabs, on_release = self.callPreview, id = 'tab#' + str(index))
+		th = TabbedPanelHeader(text = text, on_press = self.__changeTabs, on_release = self.callPreview,
+			id = 'tab#' + str(index))
 		th.content = content
 		return th
 
@@ -667,17 +670,20 @@ class CollisionInformationPopup:
 
 		self.__lowerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 
-		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release=self.__createOrEditCollisionInfo)
+		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0),
+			on_release=self.__createOrEditCollisionInfo)
 		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.dismissPopUp)
 		self.__addButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__addPart)
 		self.__applyToAllButton = CancelableButton(text = 'Copy info to all', size_hint = (0.2, 1.0),
-				on_release = self.__applyChangesToAll)
-		self.__deleteCurrentButton = CancelableButton(text = 'Delete', size_hint = (0.1, 1.0), on_release = self.__deleteCurrentPart)
+			on_release = self.__applyChangesToAll)
+		self.__deleteCurrentButton = CancelableButton(text = 'Delete', size_hint = (0.1, 1.0),
+			on_release = self.__deleteCurrentPart)
 		self.__previousObjectButton = CancelableButton(text = 'Previous', size_hint = (0.1, 1.0),
-				on_release = self.__selectPreviousObject)
-		self.__nextObjectButton = CancelableButton(text = 'Next', size_hint = (0.1, 1.0), on_release = self.__selectNextObject)
+			on_release = self.__selectPreviousObject)
+		self.__nextObjectButton = CancelableButton(text = 'Next', size_hint = (0.1, 1.0),
+			on_release = self.__selectNextObject)
 		self.__editFlagsButton = CancelableButton(text = 'Edit Flags', size_hint = (0.1, 1.0),
-				on_release = CollisionFlagsEditor.Instance().showPopUp)
+			on_release = CollisionFlagsEditor.Instance().showPopUp)
 
 		self.__mainLayout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
 		self.__mainLayout.add_widget(self.__lowerBox)
@@ -686,11 +692,12 @@ class CollisionInformationPopup:
 		self.__editingObject = None
 
 
-		self.__warnDelete = Dialog(self.__doDeleteCurrentPart, 'Confirmation', 'Are you sure you want to\ndelete this part?',
-				'Yes', 'No')
-		self.__warnApplyAll = Dialog(self.__doApplyChanges, 'Confirmation', 'This will replace information of other objects.',
-				'Yes', 'No')
-		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.', 'Ok')
+		self.__warnDelete = Dialog(self.__doDeleteCurrentPart, 'Confirmation',
+			'Are you sure you want to\ndelete this part?', 'Yes', 'No')
+		self.__warnApplyAll = Dialog(self.__doApplyChanges, 'Confirmation',
+			'This will replace information of other objects.', 'Yes', 'No')
+		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.',
+			'Ok')
 		self.__keyboardHandler = CollisionInformationPopupKeyboardHandler()
 
 	def callPreview(self, *args):

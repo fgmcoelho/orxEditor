@@ -3,22 +3,22 @@ from editorutils import strToDoubleIntTuple
 from kivy.uix.image import Image
 
 class SplittedImageMap:
-	
+
 	def __init__(self, baseImagePath = '', numberOfImages = 0, divisions = (0, 0), size = (0, 0)):
 		self.__baseImagePath = baseImagePath
 		self.__numberOfImages = numberOfImages
 		self.__divisions = divisions
 		self.__size = size
 		self.__imagesList = []
-		self.__coordsList = []	
+		self.__coordsList = []
 
 	def __basicAssertions(self):
 		assert (self.__baseImagePath != '' and self.__numberOfImages != 0 and len(self.__divisions) == 2 and
 			self.__divisions[0] != 0 and self.__divisions[1] != 0 and len(self.__size) == 2 and self.__size[0] != 0
 			and self.__size[1] != 0)
-	
+
 	def __loadImages(self):
-		
+
 		if (self.__imagesList != []):
 			return
 
@@ -26,17 +26,17 @@ class SplittedImageMap:
 			self.__basicAssertions()
 
 		i = 0
-		
+
 		width = self.__size[0] / self.__divisions[0]
 		height = self.__size[1] / self.__divisions[1]
 
 		xList = range(0, self.__size[0], width)
 		yList = range(0, self.__size[1], height)
 		yList.reverse()
-			
+
 		self.__baseImage = Image(source = self.__baseImagePath)
 		coordI = 0
-		
+
 		for y in yList:
 			coordJ = 0
 			for x in xList:
@@ -56,7 +56,7 @@ class SplittedImageMap:
 
 
 	def exportToOpf(self, filename):
-		
+
 		self.__basicAssertions()
 
 		parser = ConfigParser()
@@ -66,7 +66,7 @@ class SplittedImageMap:
 		parser.set(sectionName, 'numberofimages', self.__numberOfImages)
 		parser.set(sectionName, 'divisions', str(self.__divisions))
 		parser.set(sectionName, 'size', str(self.__size))
-		
+
 		f = open(filename, 'w')
 		parser.write(f)
 
@@ -79,7 +79,7 @@ class SplittedImageMap:
 		self.__numberOfImages = int(parser.get(sectionName, 'numberofimages'))
 		self.__divisions = strToDoubleIntTuple(parser.get(sectionName, 'divisions'))
 		self.__size = strToDoubleIntTuple(parser.get(sectionName, 'size'))
-		
+
 		self.__basicAssertions()
 
 	def getImagesList(self):

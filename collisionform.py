@@ -437,7 +437,8 @@ class CollisionFlagFormEditorPopup:
 	def showPopUp(self, part, obj):
 		KeyboardGuardian.Instance().acquireKeyboard(self.__mainScreen)
 		if (part.getFormType() == 'mesh'):
-			self.__tooltipLabel.text = 'Ctrl + Double click to Add a point.\nPress delete to remove the last used point.'
+			self.__tooltipLabel.text = 'Ctrl + Double click to Add a point.\n'\
+				'Press delete to remove the last used point.'
 		else:
 			self.__tooltipLabel.text = ''
 
