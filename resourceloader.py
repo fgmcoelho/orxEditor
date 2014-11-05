@@ -21,7 +21,6 @@ class NumberInput(TextInput):
 	def __init__(self, **kwargs):
 		super(NumberInput, self).__init__(**kwargs)
 
-
 class SpriteSelection:
 	def __init__(self, x, y, xSize, ySize, xParts = 1, yParts = 1):
 		self.__x = x
@@ -114,6 +113,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			j = 0
 		elif (j >= self.__rows):
 			j = self.__rows - 1
+
 		return (j, i)
 
 	def __handleTouchMove(self, touch):
@@ -129,7 +129,6 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		if (touch.is_mouse_scrolling == True):
 			return self.specialScroll(touch)
 
-
 		imgCoords = self.__currentImage.to_widget(touch.pos[0], touch.pos[1])
 		if (self.__currentImage is not None and self.__currentImage.collide_point(*imgCoords) == True):
 			self.startSelection(touch)
@@ -137,6 +136,18 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			self.__clearGraphicGrid()
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
+		if (self.__currentImage is not None):
+			imgCoords = self.__currentImage.to_widget(touch.pos[0], touch.pos[1])
+			if(self.__currentImage.collide_point(*imgCoords)):
+				adjY = self.__currentImage.texture_size[1] - int(imgCoords[1]) - 1
+				pixelAddress = ((adjY * self.__currentImage.texture_size[0]) + int(imgCoords[0]) - 1) * 4
+				self.__lastClickedColor = (
+					ord(self.__currentImage.texture.pixels[pixelAddress]), 
+					ord(self.__currentImage.texture.pixels[pixelAddress + 1]),
+					ord(self.__currentImage.texture.pixels[pixelAddress + 2]), 
+					ord(self.__currentImage.texture.pixels[pixelAddress + 3])
+				)
+				
 		self.finishSelection(touch)
 
 	def __clearSelectionGrid(self):
@@ -180,6 +191,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.__layout = RelativeLayout(size_hint = (None, None), size = (100, 100))
 		self.__currentImage = None
 		self.__selectionPreview = None
+		self.__lastClickedColor = None
 		self.__suggestions = []
 		self.__gridGraphics = []
 		self.__currentSelection = None
@@ -270,6 +282,9 @@ class ResourceLoaderList(SpecialScrollControl):
 			return
 
 		if (touch.is_mouse_scrolling == True):
+			if (self.__layout.height != self.__tree.minimum_height):
+				self.__layout.height = self.__tree.minimum_height
+
 			return self.specialScroll(touch)
 
 		self.__defaultTouchDown(touch)
@@ -279,6 +294,7 @@ class ResourceLoaderList(SpecialScrollControl):
 			self.__tree.remove_node(node)
 
 		self.__selectionDict = {}
+		self.__layout.height = self.__tree.minimum_height
 
 	def __doAddItem(self, selection):
 		node = TreeViewLabel(text='Pos: (' + str(selection.getX()) + ', ' + str(selection.getY()) + ') | Size: (' + \
@@ -317,13 +333,19 @@ class ResourceLoaderList(SpecialScrollControl):
 				self.__tree.remove_node(self.__tree.selected_node)
 				del self.__selectionDict[int(itemId)]
 				self.__tree.select_node(self.__tree.root)
+				self.__layout.height = self.__tree.minimum_height
 
 	def addItemList(self, selectionList):
 		count = 0
 		for selection in selectionList:
+			doAdd = True
 			for savedSelection in self.__selectionDict.values():
 				if (savedSelection.compare(selection) == True):
 					count += 1
+					doAdd = False
+					break
+			if (doAdd == True):
+				self.__doAddItem(selection)
 
 		if (count != 0):
 			if (count == 1):
@@ -335,9 +357,6 @@ class ResourceLoaderList(SpecialScrollControl):
 
 			warn.open()
 			return
-
-		for selection in selectionList:
-			self.__doAddItem(selection)
 
 
 	def addItem(self, selection):
@@ -394,6 +413,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 			try:
 				xDivisions = int(self.__xDivisionsInput.text)
 				yDivisions = int(self.__yDivisionsInput.text)
+				assert xDivisions > 0 and yDivisions > 0
 			except:
 				return
 
@@ -402,6 +422,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 			try:
 				xSize = int(self.__xSizeInput.text)
 				ySize = int(self.__ySizeInput.text)
+				assert xSize > 0 and ySize > 0
 			except:
 				return
 
@@ -424,6 +445,9 @@ class ResourceLoaderPopup(KeyboardAccess):
 			self.__method = 'divisions'
 			self.__loadDivisionLeftMenu()
 
+	def __save(self, *args):
+		pass
+
 	def __createLeftMenuUi(self):
 		self.__xDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
 		self.__yDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
@@ -431,10 +455,11 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__ySizeInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
 		self.__xSkipInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
 		self.__ySkipInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
-		self.__closeButton = CancelableButton(on_release = self.close, text = 'Close', size_hint = (1.0, 0.05))
+		self.__cancelButton = CancelableButton(on_release = self.close, text = 'Cancel', size_hint = (1.0, 0.05))
+		self.__doneButton = CancelableButton(on_release = self.__save, text = 'Done', size_hint = (1.0, 0.05))
 		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', size_hint = (1.0, 0.05))
 		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
-				size_hint = (1.0, 0.05))
+			size_hint = (1.0, 0.05))
 
 	def __loadDivisionLeftMenu(self):
 		self.__leftMenu.clear_widgets()
@@ -442,10 +467,11 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__leftMenu.add_widget(self.__xDivisionsInput)
 		self.__leftMenu.add_widget(Label(text = 'Divisions on y', size_hint = (1.0, 0.05)))
 		self.__leftMenu.add_widget(self.__yDivisionsInput)
-		self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.65)))
+		self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.6)))
 		self.__leftMenu.add_widget(self.__switchButton)
 		self.__leftMenu.add_widget(self.__splitButton)
-		self.__leftMenu.add_widget(self.__closeButton)
+		self.__leftMenu.add_widget(self.__cancelButton)
+		self.__leftMenu.add_widget(self.__doneButton)
 
 	def __loadSizeLeftMenu(self):
 		self.__leftMenu.clear_widgets()
@@ -457,10 +483,11 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__leftMenu.add_widget(self.__xSkipInput)
 		self.__leftMenu.add_widget(Label(text = 'Skip on y', size_hint = (1.0, 0.05)))
 		self.__leftMenu.add_widget(self.__ySkipInput)
-		self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.45)))
+		self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.4)))
 		self.__leftMenu.add_widget(self.__switchButton)
 		self.__leftMenu.add_widget(self.__splitButton)
-		self.__leftMenu.add_widget(self.__closeButton)
+		self.__leftMenu.add_widget(self.__cancelButton)
+		self.__leftMenu.add_widget(self.__doneButton)
 
 	def __processAddSelection(self, *args):
 		selection = self.__display.getCurrentSelection()
@@ -546,7 +573,6 @@ class ResourceLoaderPopup(KeyboardAccess):
 	def open(self, *args):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.__display.loadImage('tiles/wateranimate2.png')
-		#self.__display.loadImage('tiles/grounds.png')
 		self.__popup.open()
 
 	def close(self, *args):
