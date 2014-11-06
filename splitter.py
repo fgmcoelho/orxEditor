@@ -161,7 +161,6 @@ class LeftMenu:
 
 	def __setAplhaColor(self, value):
 		newColor = []
-
 		self.__hexColor[0] = value[0]
 		self.__hexColor[1] = value[1]
 		self.__hexColor[2] = value[2]

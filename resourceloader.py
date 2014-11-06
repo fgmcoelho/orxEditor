@@ -5,15 +5,36 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.treeview import TreeView, TreeViewLabel
+from kivy.uix.checkbox import CheckBox
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
+from kivy.graphics.texture import Texture
 
 from editorheritage import SpecialScrollControl
 from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog
 from keyboard import KeyboardAccess, KeyboardGuardian
 
-class NumberInput(TextInput):
+class WhiteImage:
+	def __init__(self):
+		newTexture = Texture.create(size = (64, 64))
+		size = 64 * 64 * 4
+		i = 0
+		buf = ''
+		while i < size:
+			buf += chr(0xFF)
+			i += 1
 
+		newTexture.blit_buffer(buf, colorfmt='rgba', bufferfmt='ubyte')
+
+		self.__image = Image(size = (64, 64), texture = newTexture)
+
+	def setColor(self, color):
+		self.__image.color = color
+
+	def getImage(self):
+		return self.__image
+
+class NumberInput(TextInput):
 	def insert_text(self, substring, from_undo = False):
 		if (substring in "0123456789"):
 			super(NumberInput, self).insert_text(substring, from_undo = from_undo)
@@ -141,13 +162,14 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			if(self.__currentImage.collide_point(*imgCoords)):
 				adjY = self.__currentImage.texture_size[1] - int(imgCoords[1]) - 1
 				pixelAddress = ((adjY * self.__currentImage.texture_size[0]) + int(imgCoords[0]) - 1) * 4
-				self.__lastClickedColor = (
-					ord(self.__currentImage.texture.pixels[pixelAddress]), 
+				clickedColor = (
+					ord(self.__currentImage.texture.pixels[pixelAddress]),
 					ord(self.__currentImage.texture.pixels[pixelAddress + 1]),
-					ord(self.__currentImage.texture.pixels[pixelAddress + 2]), 
+					ord(self.__currentImage.texture.pixels[pixelAddress + 2]),
 					ord(self.__currentImage.texture.pixels[pixelAddress + 3])
 				)
-				
+				self.__updateColorMethod(clickedColor)
+
 		self.finishSelection(touch)
 
 	def __clearSelectionGrid(self):
@@ -191,7 +213,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.__layout = RelativeLayout(size_hint = (None, None), size = (100, 100))
 		self.__currentImage = None
 		self.__selectionPreview = None
-		self.__lastClickedColor = None
+		self.__updateColorMethod = kwargs['colorMethod']
 		self.__suggestions = []
 		self.__gridGraphics = []
 		self.__currentSelection = None
@@ -358,7 +380,6 @@ class ResourceLoaderList(SpecialScrollControl):
 			warn.open()
 			return
 
-
 	def addItem(self, selection):
 		for savedSelection in self.__selectionDict.values():
 			if (savedSelection.compare(selection) == True):
@@ -409,7 +430,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 			KeyboardGuardian.Instance().dropKeyboard(self)
 
 	def __splitImage(self, *args):
-		if (self.__method == 'divisions'):
+		if (self.__state == 'divisions'):
 			try:
 				xDivisions = int(self.__xDivisionsInput.text)
 				yDivisions = int(self.__yDivisionsInput.text)
@@ -437,26 +458,81 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 			self.__display.drawGridBySize(xSize, ySize, xSkip, ySkip)
 
-	def __changeMethod(self, *args):
-		if (self.__method == 'divisions'):
-			self.__method = 'size'
-			self.__loadSizeLeftMenu()
-		else:
-			self.__method = 'divisions'
-			self.__loadDivisionLeftMenu()
-
-	def __save(self, *args):
+	def __save(self):
 		pass
 
+	def __changeMethod(self, *args):
+		if (self.__state == 'divisions'):
+			self.__state = 'size'
+			self.__loadSizeLeftMenu()
+		else:
+			self.__state = 'divisions'
+			self.__loadDivisionLeftMenu()
+
+	def __processCancel(self, *args):
+		if (self.__state == 'saving'):
+			self.__state = self.__previousState
+			if (self.__state == 'divisions'):
+				self.__loadDivisionLeftMenu()
+			else:
+				self.__loadSizeLeftMenu()
+		else:
+			self.close()
+
+	def __processDone(self, *args):
+		if (self.__state == 'saving'):
+			self.__save()
+			self.close()
+		else:
+			self.__previousState = self.__state
+			self.__state = 'saving'
+			self.__loadSaveMenu()
+
+	def __setColorOnWhiteImage(self, newColor):
+		colorToUse = (
+			float(newColor[0])/255.0,
+			float(newColor[1])/255.0,
+			float(newColor[2])/255.0,
+			float(newColor[3])/255.0,
+		)
+		self.__whiteImage.setColor(colorToUse)
+
+	def __loadSaveMenu(self):
+		self.__leftMenu.clear_widgets()
+		self.__leftMenu.add_widget(self.__exportColorToAlphaLine)
+		self.__leftMenu.add_widget(self.__whiteImage.getImage())
+		self.__leftMenu.add_widget(self.__keepOriginalLine)
+		self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.5)))
+		self.__leftMenu.add_widget(self.__doneButton)
+		self.__leftMenu.add_widget(self.__cancelButton)
+
 	def __createLeftMenuUi(self):
+		# x divisions
 		self.__xDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
 		self.__yDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
+
+		# size divisions
 		self.__xSizeInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
 		self.__ySizeInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
 		self.__xSkipInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
 		self.__ySkipInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
-		self.__cancelButton = CancelableButton(on_release = self.close, text = 'Cancel', size_hint = (1.0, 0.05))
-		self.__doneButton = CancelableButton(on_release = self.__save, text = 'Done', size_hint = (1.0, 0.05))
+
+		# save menu
+		self.__keepOriginalLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		self.__keepOriginalCheckbox = CheckBox(size_hint = (0.2, 1.0))
+		self.__keepOriginalLine.add_widget(self.__keepOriginalCheckbox)
+		self.__keepOriginalLine.add_widget(Label(text = 'Keep\nimage\non list.', size_hint = (0.8, 1.0)))
+		self.__exportColorToAlphaLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		self.__exportColorToAlphaCheckbox = CheckBox(size_hint = (0.2, 1.0))
+		self.__exportColorToAlphaLine.add_widget(self.__exportColorToAlphaCheckbox)
+		self.__exportColorToAlphaLine.add_widget(Label(text = 'Export\ncolor to\nalpha.', size_hint = (0.8, 1.0)))
+		self.__whiteImage = WhiteImage()
+		self.__whiteImage.getImage().size_hint = (1.0, 0.2)
+
+		# buttons, mostly shared
+		self.__cancelButton = CancelableButton(on_release = self.__processCancel, text = 'Cancel',
+				size_hint = (1.0, 0.05))
+		self.__doneButton = CancelableButton(on_release = self.__processDone, text = 'Done', size_hint = (1.0, 0.05))
 		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', size_hint = (1.0, 0.05))
 		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
 			size_hint = (1.0, 0.05))
@@ -470,8 +546,8 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.6)))
 		self.__leftMenu.add_widget(self.__switchButton)
 		self.__leftMenu.add_widget(self.__splitButton)
-		self.__leftMenu.add_widget(self.__cancelButton)
 		self.__leftMenu.add_widget(self.__doneButton)
+		self.__leftMenu.add_widget(self.__cancelButton)
 
 	def __loadSizeLeftMenu(self):
 		self.__leftMenu.clear_widgets()
@@ -486,8 +562,8 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.4)))
 		self.__leftMenu.add_widget(self.__switchButton)
 		self.__leftMenu.add_widget(self.__splitButton)
-		self.__leftMenu.add_widget(self.__cancelButton)
 		self.__leftMenu.add_widget(self.__doneButton)
+		self.__leftMenu.add_widget(self.__cancelButton)
 
 	def __processAddSelection(self, *args):
 		selection = self.__display.getCurrentSelection()
@@ -549,7 +625,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 		super(ResourceLoaderPopup, self).__init__()
 
 		self.__popup = Popup(title = 'Resource Loader')
-		self.__method = 'size'
+		self.__state = 'size'
 
 		self.__layout = BoxLayout(orientation = 'horizontal')
 
@@ -558,7 +634,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__loadSizeLeftMenu()
 
 		self.__middleMenu = BoxLayout(orientation = 'vertical', size_hint = (0.7, 1.0))
-		self.__display = ResourceLoaderDisplay()
+		self.__display = ResourceLoaderDisplay(colorMethod = self.__setColorOnWhiteImage)
 		self.__middleMenu.add_widget(self.__display.getLayout())
 
 		self.__rightMenu = BoxLayout(orientation = 'vertical', size_hint = (0.15, 1.0))
