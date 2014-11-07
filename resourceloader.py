@@ -178,6 +178,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.__layout.add_widget(self.__currentImage)
 		self.__gridGraphics = []
 		self.__selectionPreview = None
+		self.__currentSelection = None
 
 	def __doDrawGrid(self, xInc, yInc, xSkip = 0, ySkip = 0):
 		self.__clearSelectionGrid()
@@ -282,17 +283,18 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 
 	def previewSelection(self, selection):
 		self.__clearSelectionGrid()
-		x, y = self.__currentImage.to_parent(selection.getX(), selection.getY())
+		x = selection.getX()
+		y = selection.getY()
 		xSize = selection.getSizeX()
 		ySize = selection.getSizeY()
-		self.__selectionPreview = Line(points = [
-			x, y,
-			x, y - ySize,
-			x + xSize, y - ySize,
-			x + xSize, y],
-			close = True, width = 1
-		)
-		self.__currentImage.canvas.add(self.__selectionPreview)
+		with self.__layout.canvas:
+			self.__selectionPreview = Line(points = [
+				x, self.__layout.size[1] - y,
+				x, self.__layout.size[1] - y - ySize,
+				x + xSize, self.__layout.size[1] - y - ySize,
+				x + xSize, self.__layout.size[1] - y],
+				close = True, width = 1
+			)
 
 class ResourceLoaderList(SpecialScrollControl):
 
