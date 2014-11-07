@@ -13,6 +13,7 @@ from kivy.graphics.texture import Texture
 from editorheritage import SpecialScrollControl
 from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog
 from keyboard import KeyboardAccess, KeyboardGuardian
+from splittedimagemap import ResourceInformation, SpriteSelection
 
 class WhiteImage:
 	def __init__(self):
@@ -41,40 +42,6 @@ class NumberInput(TextInput):
 
 	def __init__(self, **kwargs):
 		super(NumberInput, self).__init__(**kwargs)
-
-class SpriteSelection:
-	def __init__(self, x, y, xSize, ySize, xParts = 1, yParts = 1):
-		self.__x = x
-		self.__y = y
-		self.__xSize = xSize
-		self.__ySize = ySize
-		self.__xParts = xParts
-		self.__yParts = yParts
-
-	def compare(self, otherSelection):
-		if (self.__x == otherSelection.getX() and self.__xSize == otherSelection.getSizeX() and
-				self.__y == otherSelection.getY() and self.__ySize == otherSelection.getSizeY()):
-			return True
-		else:
-			return False
-
-	def getX(self):
-		return self.__x
-
-	def getY(self):
-		return self.__y
-
-	def getSizeX(self):
-		return self.__xSize
-
-	def getSizeY(self):
-		return self.__ySize
-
-	def getPartsX(self):
-		return self.__xParts
-
-	def getPartsY(self):
-		return self.__yParts
 
 class GridCell:
 	def __init__(self, canvas, x, y, xSize, ySize):
@@ -317,7 +284,7 @@ class ResourceLoaderList(SpecialScrollControl):
 		for node in self.__tree.children:
 			self.__tree.remove_node(node)
 
-		self.__selectionDict = {}
+		self.__resourceInfo.clear()
 		self.__layout.height = self.__tree.minimum_height
 
 	def __doAddItem(self, selection):
@@ -325,8 +292,7 @@ class ResourceLoaderList(SpecialScrollControl):
 				str(selection.getSizeX()) + ', ' + str(selection.getSizeY()) + ')', id = 'selection#' + \
 				str(self.__selectionId))
 
-		self.__selectionDict[self.__selectionId] = selection
-		self.__selectionId += 1
+		self.__resourceInfo.addSelection(selection)
 		self.__tree.add_node(node)
 		self.__layout.height = self.__tree.minimum_height
 
@@ -334,18 +300,19 @@ class ResourceLoaderList(SpecialScrollControl):
 		if (self.__tree.selected_node is not None):
 			itemName, itemId = self.__tree.selected_node.id.split('#')
 			if (itemName != 'root'):
-				return self.__selectionDict[int(itemId)]
+				return self.__resourceInfo.getSelectionById(int(itemId))
 
 	def clearAllItems(self):
-		if (len(self.__selectionDict) == 0):
+		numberOfSelections = self.__resourceInfo.getNumberOfSelections()
+		if (numberOfSelections == 0):
 			return
-		elif (len(self.__selectionDict) == 1):
+		elif (numberOfSelections == 1):
 			dialog = Dialog(self.__doClearAllItems,
 				'Confirmation', 'This will remove 1 selection.\nThis operation can\'t be reverted.',
 				'Ok', 'Cancel')
 		else:
 			dialog = Dialog(self.__doClearAllItems, 'Confirmation', 'This will remove ' + \
-					str(len(self.__selectionDict)) + ' selections.\nThis operation can\'t be reverted.',
+					str(numberOfSelections) + ' selections.\nThis operation can\'t be reverted.',
 				'Ok', 'Cancel')
 
 		dialog.open()
@@ -355,21 +322,18 @@ class ResourceLoaderList(SpecialScrollControl):
 			itemName, itemId = self.__tree.selected_node.id.split('#')
 			if (itemName != 'root'):
 				self.__tree.remove_node(self.__tree.selected_node)
-				del self.__selectionDict[int(itemId)]
+				self.__resourceInfo.removeSelectionById(itemId)
 				self.__tree.select_node(self.__tree.root)
 				self.__layout.height = self.__tree.minimum_height
 
 	def addItemList(self, selectionList):
 		count = 0
 		for selection in selectionList:
-			doAdd = True
-			for savedSelection in self.__selectionDict.values():
-				if (savedSelection.compare(selection) == True):
-					count += 1
-					doAdd = False
-					break
+			doAdd = self.__resourceInfo.hasSame(selection)
 			if (doAdd == True):
 				self.__doAddItem(selection)
+			else:
+				count += 1
 
 		if (count != 0):
 			if (count == 1):
@@ -383,17 +347,19 @@ class ResourceLoaderList(SpecialScrollControl):
 			return
 
 	def addItem(self, selection):
-		for savedSelection in self.__selectionDict.values():
-			if (savedSelection.compare(selection) == True):
-				warn = AlertPopUp('Error', 'This selection has already been added.', 'Ok')
-				warn.open()
-				return
+		if (self.__resourceInfo.hasSame(selection) == True):
+			warn = AlertPopUp('Error', 'This selection has already been added.', 'Ok')
+			warn.open()
+			return
 
 		self.__doAddItem(selection)
 
+	def loadImage(self, imageToUse):
+		self.__resourceInfo = ResourceInformation(imageToUse)
+
 	def __init__(self, **kwargs):
 		super(ResourceLoaderList, self).__init__(**kwargs)
-		self.__selectionDict = {}
+		self.__resourceInfo = None
 		self.__selectionId = 0
 		self._scrollView.on_touch_move = self.__ignoreMoves
 		self.__defaultTouchDown = self._scrollView.on_touch_down
@@ -403,7 +369,6 @@ class ResourceLoaderList(SpecialScrollControl):
 		self.__layout = RelativeLayout(size = (300, 100), size_hint = (None, None))
 		self.__layout.add_widget(self.__tree)
 		self._scrollView.add_widget(self.__layout)
-
 
 class ResourceLoaderPopup(KeyboardAccess):
 	# Overloaded method
