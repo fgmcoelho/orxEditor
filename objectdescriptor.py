@@ -7,18 +7,39 @@ from kivy.uix.boxlayout import BoxLayout
 from os import getcwd
 from editorobjects import ObjectTypes
 from collision import CollisionInformationPopup
+from editorutils import CancelableButton, AlertPopUp
+from communicationobjects import ObjectDescriptorToResourceLoarder
 
 @Singleton
 class BaseObjectDescriptor:
 
+	def __setValues(self, path, size, obj):
+		self.__pathLabel.text = 'Path: ' + str(path)
+		self.__sizeLabel.text = 'Size: ' + str(size)
+		self.__objRef = obj
+
+	def __openResourceLoader(self, *args):
+		if (self.__objRef is None or self.__objRef.getType() != ObjectTypes.baseObject):
+			errorWarn = AlertPopUp('Error', 'No compatible object selected.', 'Ok')
+			errorWarn.open()
+		else:
+			ObjectDescriptorToResourceLoarder.Instance().openPopUp(self.__objRef.getPath())
+
 	def __init__(self, accordionItem):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.5))
-		self.__sizeLabel = Label(text = 'Size: ', size_hint = (1.0, 0.5))
+		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.2))
+		self.__sizeLabel = Label(text = 'Size: ', size_hint = (1.0, 0.2))
 		self.__layout.add_widget(self.__pathLabel)
 		self.__layout.add_widget(self.__sizeLabel)
+		self.__layout.add_widget(Label(text = '', size_hint = (1.0, 0.4)))
 		self.__accordionItemReference = accordionItem
 		self.__accordionItemReference.add_widget(self.__layout)
+		self.__objRef = None
+		loaderLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		loaderLine.add_widget(Label(text = 'Resource loader:', size_hint = (0.8, 1.0)))
+		loaderLine.add_widget(CancelableButton(text = 'Load', on_release = self.__openResourceLoader,
+			size_hint = (0.2, 1.0)))
+		self.__layout.add_widget(loaderLine)
 
 	def getLayout(self):
 		return self.__layout
@@ -26,12 +47,8 @@ class BaseObjectDescriptor:
 	def setActive(self):
 		self.__accordionItemReference.collapse = False
 
-	def __setValues(self, path, size):
-		self.__pathLabel.text = 'Path: ' + str(path)
-		self.__sizeLabel.text = 'Size: ' + str(size)
-
-	def setValues(self, path = '', size=''):
-		self.__setValues(path, size)
+	def setValues(self, path = '', size='', obj = None):
+		self.__setValues(path, size, obj)
 		self.setActive()
 
 	def setValuesNoActive(self, path = '', size = ''):
@@ -172,7 +189,7 @@ class ObjectDescriptor:
 				obj.getFlipX(), obj.getFlipY(), obj.getCollisionInfo())
 
 		else:
-			self.__baseObjectDescriptor.setValues(path, size)
+			self.__baseObjectDescriptor.setValues(path, size, obj)
 
 		self.__currentObject = obj
 

@@ -13,7 +13,7 @@ from kivy.graphics.texture import Texture
 from editorheritage import SpecialScrollControl
 from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog
 from keyboard import KeyboardAccess, KeyboardGuardian
-from splittedimagemap import ResourceInformation, SpriteSelection
+from splittedimagemap import ResourceInformation, SpriteSelection, SplittedImageExporter, SplittedImageImporter
 
 class WhiteImage:
 	def __init__(self):
@@ -124,7 +124,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			self.__clearGraphicGrid()
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		if (self.__currentImage is not None):
+		if (self.__currentImage is not None and self.__colorPicking == True):
 			imgCoords = self.__currentImage.to_widget(touch.pos[0], touch.pos[1])
 			if(self.__currentImage.collide_point(*imgCoords)):
 				adjY = self.__currentImage.texture_size[1] - int(imgCoords[1]) - 1
@@ -168,6 +168,12 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			self.__columns = len(self.__gridGraphics[0])
 			self.__rows = len(self.__gridGraphics)
 
+	def __setStartState(self):
+		self.__selectionStarted = False
+		self.__selectionStartPos = None
+		self.__currentSelection = None
+		self.__colorPicking = False
+
 	def __init__(self, **kwargs):
 		super(ResourceLoaderDisplay, self).__init__(size_hint = (1.0, 1.0))
 		self._scrollView.on_touch_move = self.__handleTouchMove
@@ -175,16 +181,14 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.__defaultTouchUp = self._scrollView.on_touch_up
 		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 		self._scrollView.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
-
-		self.__selectionStarted = False
-		self.__selectionStartPos = None
+		
+		self.__setStartState()
+		self.__selectionPreview = None
 		self.__layout = RelativeLayout(size_hint = (None, None), size = (100, 100))
 		self.__currentImage = None
-		self.__selectionPreview = None
 		self.__updateColorMethod = kwargs['colorMethod']
 		self.__suggestions = []
 		self.__gridGraphics = []
-		self.__currentSelection = None
 		self._scrollView.add_widget(self.__layout)
 
 	def updateSelection(self, touch):
@@ -227,6 +231,8 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			)
 
 	def loadImage(self, path):
+		self.clearPreview()
+		self.__setStartState()
 		if (self.__currentImage is not None):
 			self.__layout.canvas.clear()
 			self.__layout.remove_widget(self.__currentImage)
@@ -263,6 +269,14 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 				close = True, width = 1
 			)
 
+	def clearPreview(self):
+		if (self.__selectionPreview is not None):
+			self.__layout.canvas.remove(self.__selectionPreview)
+			self.__selectionPreview = None
+
+	def setColorPicking(self, value):
+		self.__colorPicking = value
+
 class ResourceLoaderList(SpecialScrollControl):
 
 	def __ignoreMoves(self, touch):
@@ -280,19 +294,11 @@ class ResourceLoaderList(SpecialScrollControl):
 
 		self.__defaultTouchDown(touch)
 
-	def __doClearAllItems(self, *args):
-		for node in self.__tree.children:
-			self.__tree.remove_node(node)
-
-		self.__resourceInfo.clear()
-		self.__layout.height = self.__tree.minimum_height
-
 	def __doAddItem(self, selection):
+		identifier = self.__resourceInfo.addSelection(selection)
 		node = TreeViewLabel(text='Pos: (' + str(selection.getX()) + ', ' + str(selection.getY()) + ') | Size: (' + \
 				str(selection.getSizeX()) + ', ' + str(selection.getSizeY()) + ')', id = 'selection#' + \
-				str(self.__selectionId))
-
-		self.__resourceInfo.addSelection(selection)
+				str(identifier))
 		self.__tree.add_node(node)
 		self.__layout.height = self.__tree.minimum_height
 
@@ -301,21 +307,19 @@ class ResourceLoaderList(SpecialScrollControl):
 			itemName, itemId = self.__tree.selected_node.id.split('#')
 			if (itemName != 'root'):
 				return self.__resourceInfo.getSelectionById(int(itemId))
+		return None
+
+	def getNumberOfSelections(self):
+		if (self.__resourceInfo is not None):
+			return self.__resourceInfo.getNumberOfSelections()
+		return 0
 
 	def clearAllItems(self):
-		numberOfSelections = self.__resourceInfo.getNumberOfSelections()
-		if (numberOfSelections == 0):
-			return
-		elif (numberOfSelections == 1):
-			dialog = Dialog(self.__doClearAllItems,
-				'Confirmation', 'This will remove 1 selection.\nThis operation can\'t be reverted.',
-				'Ok', 'Cancel')
-		else:
-			dialog = Dialog(self.__doClearAllItems, 'Confirmation', 'This will remove ' + \
-					str(numberOfSelections) + ' selections.\nThis operation can\'t be reverted.',
-				'Ok', 'Cancel')
+		for node in self.__tree.children:
+			self.__tree.remove_node(node)
 
-		dialog.open()
+		self.__resourceInfo.clear()
+		self.__layout.height = self.__tree.minimum_height
 
 	def removeItem(self):
 		if (self.__tree.selected_node is not None):
@@ -329,8 +333,7 @@ class ResourceLoaderList(SpecialScrollControl):
 	def addItemList(self, selectionList):
 		count = 0
 		for selection in selectionList:
-			doAdd = self.__resourceInfo.hasSame(selection)
-			if (doAdd == True):
+			if (self.__resourceInfo.hasSame(selection) == False):
 				self.__doAddItem(selection)
 			else:
 				count += 1
@@ -360,7 +363,6 @@ class ResourceLoaderList(SpecialScrollControl):
 	def __init__(self, **kwargs):
 		super(ResourceLoaderList, self).__init__(**kwargs)
 		self.__resourceInfo = None
-		self.__selectionId = 0
 		self._scrollView.on_touch_move = self.__ignoreMoves
 		self.__defaultTouchDown = self._scrollView.on_touch_down
 		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
@@ -438,6 +440,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 	def __processCancel(self, *args):
 		if (self.__state == 'saving'):
+			self.__display.setColorPicking(False)
 			self.__state = self.__previousState
 			if (self.__state == 'divisions'):
 				self.__loadDivisionLeftMenu()
@@ -453,6 +456,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 		else:
 			self.__previousState = self.__state
 			self.__state = 'saving'
+			self.__display.setColorPicking(True)
 			self.__loadSaveMenu()
 
 	def __setColorOnWhiteImage(self, newColor):
@@ -564,9 +568,26 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 	def __processRemoveFromSelection(self, *args):
 		self.__selectionTree.removeItem()
+		self.__display.clearPreview()
+	
+	def __doClearAllItems(self, *args):
+		self.__selectionTree.clearAllItems()
+		self.__display.clearPreview()
 
 	def __processClearSelection(self, *args):
-		self.__selectionTree.clearAllItems()
+		numberOfSelections = self.__selectionTree.getNumberOfSelections()
+		if (numberOfSelections == 0):
+			return
+		elif (numberOfSelections == 1):
+			dialog = Dialog(self.__doClearAllItems,
+				'Confirmation', 'This will remove 1 selection.\nThis operation can\'t be reverted.',
+				'Ok', 'Cancel')
+		else:
+			dialog = Dialog(self.__doClearAllItems, 'Confirmation', 'This will remove ' + \
+					str(numberOfSelections) + ' selections.\nThis operation can\'t be reverted.',
+				'Ok', 'Cancel')
+
+		dialog.open()
 
 	def __createRightMenuUi(self):
 		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 0.75))
@@ -613,9 +634,11 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 		self.__popup.content = self.__layout
 
-	def open(self, *args):
+	def open(self, path):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
-		self.__display.loadImage('tiles/wateranimate2.png')
+			
+		self.__display.loadImage(path)
+		self.__selectionTree.loadImage(path)
 		self.__popup.open()
 
 	def close(self, *args):

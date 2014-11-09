@@ -7,7 +7,6 @@ from kivy.uix.image import Image
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 
-from splittedimagemap import SplittedImageMap
 from editorobjects import BaseObject
 from objectdescriptor import ObjectDescriptor
 from editorutils import EmptyScrollEffect

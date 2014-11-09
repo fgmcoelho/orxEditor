@@ -45,3 +45,12 @@ class CollisionToCollisionForm:
 
 	def preview(self):
 		self.__previewMethod()
+
+@Singleton
+class ObjectDescriptorToResourceLoarder:
+	def __init__(self, openPopUpMethod):
+		self.__openPopupMethod = openPopUpMethod
+
+	def openPopUp(self, path):
+		self.__openPopupMethod(path)
+		
