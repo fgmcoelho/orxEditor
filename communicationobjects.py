@@ -53,4 +53,11 @@ class ObjectDescriptorToResourceLoarder:
 
 	def openPopUp(self, path):
 		self.__openPopupMethod(path)
-		
+	
+@Singleton
+class ResourceLoaderToObjectDescriptor:
+	def __init__(self, reloadResource):
+		self.__reloadResourceMethod = reloadResource
+
+	def reloadResource(self, which):
+		self.__reloadResourceMethod(which)

@@ -41,10 +41,6 @@ class SpriteSelection:
 
 class ResourceInformation:
 
-	@staticmethod
-	def copy(resource):
-		pass
-
 	def __init__(self, path):
 		self.__path = path
 		self.__selectionDict = {}
@@ -84,6 +80,9 @@ class ResourceInformation:
 	def getSelectionList(self):
 		return self.__selectionDict.values()
 
+	def getSelectionItems(self):
+		return self.__selectionDict.items()
+
 class SplittedImageExporter:
 	@staticmethod
 	def save(resourceInfo):
@@ -91,12 +90,15 @@ class SplittedImageExporter:
 		parser = ConfigParser()
 		parser.optionxform = str
 
+		parser.add_section('General')
 		parser.set('General', 'Amount', str(resourceInfo.getNumberOfSelections()))
 		#parser.set('General', 'KeepOriginal', '')
+		parser.set('General', 'Path', resourceInfo.getPath())
 
 		i = 0
 		for selection in resourceInfo.getSelectionList():
 			sectionName = 'SelectionInfo' + str(i)
+			parser.add_section(sectionName)
 			parser.set(sectionName, 'Position', str((selection.getX(), selection.getY())))
 			parser.set(sectionName, 'Size', str((selection.getSizeX(), selection.getSizeY())))
 			i += 1
@@ -112,13 +114,16 @@ class SplittedImageImporter:
 	def load(path):
 		if (path[-4:] != '.opf'):
 			filename = path[:-4] + '.opf'
+			if (isfile(filename) == False):
+				return ResourceInformation(path)
 		else:
 			filename = path
+			assert(isfile(filename))
 
-		resourceInfo = ResourceInformation()
 		parser = ConfigParser()
 		parser.read(filename)
 		numberOfImages = int(parser.get('General', 'Amount'))
+		resourceInfo = ResourceInformation(parser.get('General', 'Path'))
 		for i in range(numberOfImages):
 			sectionName = 'SelectionInfo' + str(i)
 			x, y = strToDoubleIntTuple(parser.get(sectionName, 'Position'))

@@ -11,7 +11,7 @@ from kivy.graphics import Color
 from kivy.graphics.texture import Texture
 
 from editorheritage import SpecialScrollControl
-from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog
+from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog, convertKivyCoordToOrxCoord
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import ResourceInformation, SpriteSelection, SplittedImageExporter, SplittedImageImporter
 
@@ -223,7 +223,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			self.__selectionStarted = False
 			self.__currentSelection = SpriteSelection(
 				(loopStartIndexI * self.__xSize) + self.__xSkip,
-				(loopStartIndexJ * self.__ySize) + self.__ySkip,
+				self.__layout.size[1] - ((loopFinalIndexJ + 1) * self.__ySize) + self.__ySkip,
 				(loopFinalIndexI - loopStartIndexI + 1) * self.__xSize,
 				(loopFinalIndexJ - loopStartIndexJ + 1) * self.__ySize,
 				(loopFinalIndexI - loopStartIndexI + 1),
@@ -262,10 +262,10 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		ySize = selection.getSizeY()
 		with self.__layout.canvas:
 			self.__selectionPreview = Line(points = [
-				x, self.__layout.size[1] - y,
-				x, self.__layout.size[1] - y - ySize,
-				x + xSize, self.__layout.size[1] - y - ySize,
-				x + xSize, self.__layout.size[1] - y],
+				x, y,
+				x, y + ySize,
+				x + xSize, y + ySize,
+				x + xSize, y],
 				close = True, width = 1
 			)
 
@@ -276,6 +276,9 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 
 	def setColorPicking(self, value):
 		self.__colorPicking = value
+
+	def getSize(self):
+		return self.__layout.size
 
 class ResourceLoaderList(SpecialScrollControl):
 
@@ -294,13 +297,27 @@ class ResourceLoaderList(SpecialScrollControl):
 
 		self.__defaultTouchDown(touch)
 
-	def __doAddItem(self, selection):
-		identifier = self.__resourceInfo.addSelection(selection)
-		node = TreeViewLabel(text='Pos: (' + str(selection.getX()) + ', ' + str(selection.getY()) + ') | Size: (' + \
+	def __doAddItemRender(self, selection, identifier):
+		pos = convertKivyCoordToOrxCoord((selection.getX(), selection.getY() + selection.getSizeY()), self.__maxY)
+		node = TreeViewLabel(text='Pos: (' + str(pos[0]) + ', ' + str(pos[1]) + ') | Size: (' + \
 				str(selection.getSizeX()) + ', ' + str(selection.getSizeY()) + ')', id = 'selection#' + \
 				str(identifier))
 		self.__tree.add_node(node)
 		self.__layout.height = self.__tree.minimum_height
+
+	def __renderLoadedList(self, selectionItems):
+		for item in selectionItems:
+			self.__doAddItemRender(item[1], item[0])
+
+	def __doAddItem(self, selection):
+		identifier = self.__resourceInfo.addSelection(selection)
+		self.__doAddItemRender(selection, identifier)
+
+	def __clearUi(self):
+		for node in self.__tree.children:
+			self.__tree.remove_node(node)
+
+		self.__layout.height = self.__tree.minimum_height	
 
 	def getSelection(self):
 		if (self.__tree.selected_node is not None):
@@ -315,11 +332,8 @@ class ResourceLoaderList(SpecialScrollControl):
 		return 0
 
 	def clearAllItems(self):
-		for node in self.__tree.children:
-			self.__tree.remove_node(node)
-
+		self.__clearUi()
 		self.__resourceInfo.clear()
-		self.__layout.height = self.__tree.minimum_height
 
 	def removeItem(self):
 		if (self.__tree.selected_node is not None):
@@ -357,8 +371,11 @@ class ResourceLoaderList(SpecialScrollControl):
 
 		self.__doAddItem(selection)
 
-	def loadImage(self, imageToUse):
-		self.__resourceInfo = ResourceInformation(imageToUse)
+	def loadImage(self, imageToUse, maxY):
+		self.__clearUi()
+		self.__maxY = maxY
+		self.__resourceInfo = SplittedImageImporter().load(imageToUse)
+		self.__renderLoadedList(self.__resourceInfo.getSelectionItems())
 
 	def __init__(self, **kwargs):
 		super(ResourceLoaderList, self).__init__(**kwargs)
@@ -371,6 +388,10 @@ class ResourceLoaderList(SpecialScrollControl):
 		self.__layout = RelativeLayout(size = (300, 100), size_hint = (None, None))
 		self.__layout.add_widget(self.__tree)
 		self._scrollView.add_widget(self.__layout)
+
+	def save(self):
+		if (self.__resourceInfo is not None and self.__resourceInfo.getNumberOfSelections() != 0):
+			SplittedImageExporter.save(self.__resourceInfo)
 
 class ResourceLoaderPopup(KeyboardAccess):
 	# Overloaded method
@@ -428,7 +449,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 			self.__display.drawGridBySize(xSize, ySize, xSkip, ySkip)
 
 	def __save(self):
-		pass
+		self.__selectionTree.save()
 
 	def __changeMethod(self, *args):
 		if (self.__state == 'divisions'):
@@ -609,17 +630,20 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__rightMenu.add_widget(self.__removeCurrent)
 		self.__rightMenu.add_widget(self.__clearSelection)
 
+	def __setStartState(self):
+		self.__state = 'size'
+		self.__loadSizeLeftMenu()
+
 	def __init__(self):
 		super(ResourceLoaderPopup, self).__init__()
 
 		self.__popup = Popup(title = 'Resource Loader')
-		self.__state = 'size'
 
 		self.__layout = BoxLayout(orientation = 'horizontal')
 
 		self.__leftMenu = BoxLayout(orientation = 'vertical', size_hint = (0.15, 1.0))
 		self.__createLeftMenuUi()
-		self.__loadSizeLeftMenu()
+		self.__setStartState()
 
 		self.__middleMenu = BoxLayout(orientation = 'vertical', size_hint = (0.7, 1.0))
 		self.__display = ResourceLoaderDisplay(colorMethod = self.__setColorOnWhiteImage)
@@ -636,9 +660,12 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 	def open(self, path):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
-			
+		
+		self.__setStartState()
 		self.__display.loadImage(path)
-		self.__selectionTree.loadImage(path)
+		sizeToUse = self.__display.getSize()
+		self.__selectionTree.loadImage(path, sizeToUse[1])
+
 		self.__popup.open()
 
 	def close(self, *args):

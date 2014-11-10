@@ -16,6 +16,7 @@ from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformat
 from resourceloader import ResourceLoaderPopup
 from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
 from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder
+from communicationobjects import ResourceLoaderToObjectDescriptor
 from editorutils import CancelableButton
 
 class TileEditor(App):
@@ -83,6 +84,7 @@ class TileEditor(App):
 		SceneToFilesManager.Instance(self.__sceneHandler.getCurrentSceneObjects)
 		CollisionToCollisionForm.Instance(CollisionInformationPopup.Instance().callPreview)
 		ObjectDescriptorToResourceLoarder.Instance(self.__resourcePopup.open)
+		ResourceLoaderToObjectDescriptor.Instance(ObjectsMenu.Instance().reloadResource)
 
 		# Periodic functions:
 		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)

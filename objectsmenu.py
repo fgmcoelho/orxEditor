@@ -11,6 +11,7 @@ from editorobjects import BaseObject
 from objectdescriptor import ObjectDescriptor
 from editorutils import EmptyScrollEffect
 from communicationobjects import SceneToObjectsMenu
+from splittedimagemap import SplittedImageImporter
 
 class ObjectMenuItem:
 
@@ -21,7 +22,6 @@ class ObjectMenuItem:
 				SceneToObjectsMenu.Instance().draw(self.getBaseObject())
 			else:
 				ObjectDescriptor.Instance().setObject(self.getBaseObject())
-
 
 	def __init__(self, baseObject, size):
 		self.__baseObject = baseObject
@@ -43,19 +43,25 @@ class ObjectsMenu:
 			return
 
 		img = Image(source = fullPath)
-		obj = BaseObject(img, self.__numberOfItems)
+		obj = BaseObject(img, self.__baseObjectId)
 		self.__menuObjectsList.append(ObjectMenuItem(obj, (64, 64)))
 		self.__numberOfItems += 1
+		self.__baseObjectId += 1
 
 	def __loadOpf(self, item, pngsToIgnoreList):
-		opfLoader = SplittedImageMap()
-		opfLoader.importFromOpf(join(getcwd(), 'tiles',item))
-		imagesList = opfLoader.getImagesList()
-		coodsList = opfLoader.getCoordsList()
-		for i in range(len(imagesList)):
-			obj = BaseObject(imagesList[i], self.__numberOfItems, opfLoader.getBaseImagePath(), coodsList[i])
+		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles',item))
+		mainImage = Image (source = resourceInfo.getPath())
+		for selection in resourceInfo.getSelectionList():
+			x = selection.getX()
+			y = selection.getY()
+			width = selection.getSizeX()
+			height = selection.getSizeY()
+			newTexture = mainImage.texture.get_region(x, y, width, height)
+			image = Image(texture = newTexture, size = (width, height), size_hint = (None, None))
+			obj = BaseObject(image, self.__baseObjectId, resourceInfo.getPath(), (x, y))
 			self.__menuObjectsList.append(ObjectMenuItem(obj, (64, 64)))
 			self.__numberOfItems += 1
+			self.__baseObjectId += 1
 
 		pngsToIgnoreList.append(obj.getPath())
 
@@ -63,10 +69,12 @@ class ObjectsMenu:
 		l = listdir(join(getcwd(), 'tiles'))
 		self.__menuObjectsList = []
 		self.__numberOfItems = 0
+		self.__baseObjectId = 0
 		pngsToIgnoreList = []
 		for item in l:
 			if (item[-4:] == '.opf'):
 				self.__loadOpf(item, pngsToIgnoreList)
+				
 
 		for item in l:
 			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
@@ -92,6 +100,9 @@ class ObjectsMenu:
 		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
 		self.__scrollView.add_widget(self.__objectListLayout)
 		self.__scrollView.do_scroll_x = False
+
+	def reloadResource(self, resourceInfo):
+		pass
 
 	def getLayout(self):
 		return self.__scrollView
