@@ -37,6 +37,14 @@ class ObjectMenuItem:
 @Singleton
 class ObjectsMenu:
 
+	def __reloadMenuList(self):
+		self.__numberOfItems = len(self.__menuObjectsList)
+		self.__objectListLayout.clear_widgets()
+		self.__objectListLayout.rows = self.__numberOfItems
+		self.__objectListLayout.size[1] = (self.__numberOfItems * 67)
+		for menuObjectItem in self.__menuObjectsList:
+			self.__objectListLayout.add_widget(menuObjectItem.getDisplayImage())
+
 	def __loadPng(self, item, pngsToIgnoreList):
 		fullPath = join(getcwd(), 'tiles', item)
 		if (fullPath in pngsToIgnoreList):
@@ -48,8 +56,8 @@ class ObjectsMenu:
 		self.__numberOfItems += 1
 		self.__baseObjectId += 1
 
-	def __loadOpf(self, item, pngsToIgnoreList):
-		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles',item))
+	def __loadResourceInfoList(self, resourceInfo):
+		l = []
 		mainImage = Image (source = resourceInfo.getPath())
 		for selection in resourceInfo.getSelectionList():
 			x = selection.getX()
@@ -59,11 +67,20 @@ class ObjectsMenu:
 			newTexture = mainImage.texture.get_region(x, y, width, height)
 			image = Image(texture = newTexture, size = (width, height), size_hint = (None, None))
 			obj = BaseObject(image, self.__baseObjectId, resourceInfo.getPath(), (x, y))
-			self.__menuObjectsList.append(ObjectMenuItem(obj, (64, 64)))
-			self.__numberOfItems += 1
+			l.append(obj)
 			self.__baseObjectId += 1
 
-		pngsToIgnoreList.append(obj.getPath())
+		return l
+
+	def __loadOpf(self, item, pngsToIgnoreList):
+		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles',item))
+
+		baseObjectList = self.__loadResourceInfoList(resourceInfo)
+		if baseObjectList != []:
+			for baseObject in baseObjectList:
+				self.__menuObjectsList.append(ObjectMenuItem(baseObject, (64, 64)))
+				self.__numberOfItems += 1
+			pngsToIgnoreList.append(baseObject.getPath())
 
 	def __loadItems(self):
 		l = listdir(join(getcwd(), 'tiles'))
@@ -74,7 +91,6 @@ class ObjectsMenu:
 		for item in l:
 			if (item[-4:] == '.opf'):
 				self.__loadOpf(item, pngsToIgnoreList)
-				
 
 		for item in l:
 			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
@@ -96,14 +112,41 @@ class ObjectsMenu:
 		self.__objectListLayout = None
 
 		self.__loadItems()
-
 		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
 		self.__scrollView.add_widget(self.__objectListLayout)
 		self.__scrollView.do_scroll_x = False
 
 	def reloadResource(self, resourceInfo):
-		pass
+		pathToCheck = resourceInfo.getPath()
+		startIndex = None
+		finalIndex = None
+		i = 0
+		for menuObject in self.__menuObjectsList:
+			if (menuObject.getBaseObject().getPath() == pathToCheck):
+				if (startIndex is None):
+					startIndex = i
+			else:
+				if (startIndex is not None):
+					finalIndex = i
+					break
+			
+			i += 1
 
+		newObjectMenuItemList = []
+		for baseObject in self.__loadResourceInfoList(resourceInfo):
+			newObjectMenuItemList.append(ObjectMenuItem(baseObject, (64, 64)))
+			
+		if (startIndex is not None):
+			if (finalIndex is not None):
+				self.__menuObjectsList = self.__menuObjectsList[0:startIndex] + newObjectMenuItemList + \
+					self.__menuObjectsList[finalIndex:]
+			else:
+				self.__menuObjectsList = newObjectMenuItemList
+		else:
+			self.__menuObjectsList.extend(newObjectMenuItemList)
+
+		self.__reloadMenuList()
+		
 	def getLayout(self):
 		return self.__scrollView
 

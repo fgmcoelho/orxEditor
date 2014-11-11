@@ -14,6 +14,7 @@ from editorheritage import SpecialScrollControl
 from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog, convertKivyCoordToOrxCoord
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import ResourceInformation, SpriteSelection, SplittedImageExporter, SplittedImageImporter
+from communicationobjects import ResourceLoaderToObjectDescriptor
 
 class WhiteImage:
 	def __init__(self):
@@ -173,6 +174,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.__selectionStartPos = None
 		self.__currentSelection = None
 		self.__colorPicking = False
+		self.__gridGraphics = []
 
 	def __init__(self, **kwargs):
 		super(ResourceLoaderDisplay, self).__init__(size_hint = (1.0, 1.0))
@@ -187,8 +189,6 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.__layout = RelativeLayout(size_hint = (None, None), size = (100, 100))
 		self.__currentImage = None
 		self.__updateColorMethod = kwargs['colorMethod']
-		self.__suggestions = []
-		self.__gridGraphics = []
 		self._scrollView.add_widget(self.__layout)
 
 	def updateSelection(self, touch):
@@ -390,8 +390,9 @@ class ResourceLoaderList(SpecialScrollControl):
 		self._scrollView.add_widget(self.__layout)
 
 	def save(self):
-		if (self.__resourceInfo is not None and self.__resourceInfo.getNumberOfSelections() != 0):
+		if (self.__resourceInfo is not None):
 			SplittedImageExporter.save(self.__resourceInfo)
+			ResourceLoaderToObjectDescriptor.Instance().reloadResource(self.__resourceInfo)
 
 class ResourceLoaderPopup(KeyboardAccess):
 	# Overloaded method

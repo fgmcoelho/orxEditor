@@ -41,10 +41,15 @@ class SpriteSelection:
 
 class ResourceInformation:
 
-	def __init__(self, path):
+	def __init__(self, path, keepOriginal = True):
 		self.__path = path
 		self.__selectionDict = {}
 		self.__selectionId = 0
+		self.__keepOriginal = keepOriginal
+
+	def setKeekOriginal(self, value):
+		assert(type(value) is bool)
+		self.__keepOriginal = value
 
 	def addSelection(self, selection):
 		self.__selectionDict[self.__selectionId] = selection
@@ -82,6 +87,9 @@ class ResourceInformation:
 
 	def getSelectionItems(self):
 		return self.__selectionDict.items()
+
+	def getKeepOriginal(self):
+		return self.__keepOriginal
 
 class SplittedImageExporter:
 	@staticmethod
