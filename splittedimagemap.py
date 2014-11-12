@@ -1,5 +1,3 @@
-from kivy.uix.image import Image
-
 from editorutils import strToDoubleIntTuple
 
 from ConfigParser import ConfigParser

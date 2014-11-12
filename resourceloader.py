@@ -13,7 +13,7 @@ from kivy.graphics.texture import Texture
 from editorheritage import SpecialScrollControl
 from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog, convertKivyCoordToOrxCoord
 from keyboard import KeyboardAccess, KeyboardGuardian
-from splittedimagemap import ResourceInformation, SpriteSelection, SplittedImageExporter, SplittedImageImporter
+from splittedimagemap import SpriteSelection, SplittedImageExporter, SplittedImageImporter
 from communicationobjects import ResourceLoaderToObjectDescriptor
 
 class WhiteImage:
@@ -183,7 +183,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.__defaultTouchUp = self._scrollView.on_touch_up
 		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 		self._scrollView.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
-		
+
 		self.__setStartState()
 		self.__selectionPreview = None
 		self.__layout = RelativeLayout(size_hint = (None, None), size = (100, 100))
@@ -317,7 +317,7 @@ class ResourceLoaderList(SpecialScrollControl):
 		for node in self.__tree.children:
 			self.__tree.remove_node(node)
 
-		self.__layout.height = self.__tree.minimum_height	
+		self.__layout.height = self.__tree.minimum_height
 
 	def getSelection(self):
 		if (self.__tree.selected_node is not None):
@@ -591,7 +591,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 	def __processRemoveFromSelection(self, *args):
 		self.__selectionTree.removeItem()
 		self.__display.clearPreview()
-	
+
 	def __doClearAllItems(self, *args):
 		self.__selectionTree.clearAllItems()
 		self.__display.clearPreview()
@@ -661,7 +661,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 	def open(self, path):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
-		
+
 		self.__setStartState()
 		self.__display.loadImage(path)
 		sizeToUse = self.__display.getSize()
