@@ -33,9 +33,42 @@ class LayerGuardian:
 
 		self.__highestPriority = 0
 
+	def __getIndex(self, layerName):
+		for i in range(self.__highestPriority + 1):
+			if(self.__layersDict[i].getName() == layerName):
+				return i
+
+		raise Exception('Fatal error on layer manager.')
+
 	def addNewLayer(self, newLayer):
 		self.__highestPriority += 1
 		self.__layersDict[self.__highestPriority] = LayerRegister(newLayer, newLayer)
+
+	def decreasePriority(self, layerName):
+		i = self.__getIndex(layerName)
+		if (i == 0):
+			return
+		else:
+			swap = self.__layersDict[i-1]
+			self.__layersDict[i-1] = self.__layersDict[i]
+			self.__layersDict[i] = swap
+
+	def increasePriority(self, layerName):
+		i = self.__getIndex(layerName)
+		if (i == self.__highestPriority):
+			return
+		else:
+			swap = self.__layersDict[i+1]
+			self.__layersDict[i+1] = self.__layersDict[i]
+			self.__layersDict[i] = swap
+	
+	def deleteLayerByName(self, layerName):
+		i = self.__getIndex(layerName)
+		while (self.__layersDict[i] != None):
+			self.__layersDict[i] = self.__layersDict[i + 1]
+			i += 1
+
+		self.__highestPriority -= 1
 
 	def getLayerList(self):
 		l = []
@@ -64,7 +97,16 @@ class LayerEditorPopup(KeyboardAccess):
 		self.__popup.dismiss()
 
 	def __updateLayers(self, *args):
-		pass
+		button = args[0]
+		operation, layerName = button.id.split('#')
+		if (operation == 'inc'):
+			LayerGuardian.Instance().increasePriority(layerName)
+		elif (operation == 'dec'):
+			LayerGuardian.Instance().decreasePriority(layerName)
+		else:
+			LayerGuardian.Instance().deleteLayerByName(layerName)
+
+		self.__render()
 
 	def __processAddLayer(self, *args):
 		newLayer = self.__layerNameInput.text.strip()
@@ -140,9 +182,13 @@ class LayerEditorPopup(KeyboardAccess):
 	def __init__(self):
 		super(LayerEditorPopup, self).__init__()
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__closeButton = CancelableButton(text = 'close', on_release = self.__close, size_hint = (0.3, 1.0))
+		self.__closeButton = CancelableButton(text = 'close', on_release = self.__close, size_hint = (0.1, 1.0))
 		self.__closeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.05))
-		self.__closeLine.add_widget(Label(text = 'Hint:', size_hint = (0.7, 1.0)))
+		self.__closeLine.add_widget(Label(
+			text =  'Hint: Lower priority (closer to the top of the window) are drawn\n'\
+			'first, hence they will be drawn under the ones with higher priority.',
+			size_hint = (0.9, 1.0))
+		)
 		self.__closeLine.add_widget(self.__closeButton)
 	
 		self.__inputBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.05))
