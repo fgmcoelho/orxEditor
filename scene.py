@@ -12,6 +12,7 @@ from editorobjects import RenderObjectGuardian
 from editorutils import AlertPopUp
 from keyboard import KeyboardAccess
 from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
+from layerinfo import LayerGuardian
 
 @Singleton
 class SceneAttributes:
@@ -115,11 +116,18 @@ class Scene:
 
 	def redraw(self):
 		objectsList = []
+		nameToPriorityDict = LayerGuardian.Instance().getNameToPriorityDict()
 		for key in self.__objectDict.keys():
-			objectsList.append((self.__objectDict[key], self.__objectDict[key].getIdentifier()))
+			objectsList.append(
+				(
+					self.__objectDict[key], 
+					nameToPriorityDict[self.__objectDict[key].getLayer()],
+					self.__objectDict[key].getIdentifier()
+				)
+			)
 
 		self.__layout.clear_widgets()
-		objectsOrderedList = sorted(objectsList, key=itemgetter(1))
+		objectsOrderedList = sorted(objectsList, key=itemgetter(1, 2))
 		for obj in objectsOrderedList:
 			self.__layout.add_widget(obj[0])
 			if (self.__alignToGrid == True):
@@ -413,6 +421,9 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 		relativeX = self._scrollView.hbar[0]
 		relaviveY = self._scrollView.vbar[0]
 		self.__sceneList[self.__currentIndex].addObject(obj, relativeX, relaviveY)
+
+	def redraw(self):
+		self.__sceneList[self.__currentIndex].redraw()
 
 	def getAllObjects(self):
 		allObjectsList = []

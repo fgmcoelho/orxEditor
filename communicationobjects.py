@@ -61,3 +61,19 @@ class ResourceLoaderToObjectDescriptor:
 
 	def reloadResource(self, which):
 		self.__reloadResourceMethod(which)
+
+@Singleton
+class LayerToSceneCommunication:
+	def __init__(self, selectionMethod, allObjectsMethod, redrawMethod):
+		self.__getSelectionMethod = selectionMethod
+		self.__getAllObjectsMethod = allObjectsMethod
+		self.__redrawMethod = redrawMethod
+
+	def getSelectedObjects(self):
+		return self.__getSelectionMethod()
+
+	def getAllObjects(self):
+		return self.__getAllObjectsMethod()
+
+	def redraw(self):
+		return self.__redrawMethod()

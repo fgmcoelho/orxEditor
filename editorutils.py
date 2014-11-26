@@ -149,8 +149,8 @@ class Dialog (BaseWarnMethods):
 		if (self.__afterOkAction is not None):
 			self.__afterOkAction()
 
-	def __init__(self, okMethod = None, dialogTitle = '', dialogText = '', dialogOkButtonText = '', dialogCancelButtonText = '',
-			afterOkAction = None, afterCancelAction = None):
+	def __init__(self, okMethod = None, dialogTitle = '', dialogText = '', dialogOkButtonText = '', 
+			dialogCancelButtonText = '', afterOkAction = None, afterCancelAction = None):
 
 		self.mainPopUp = Popup(title = dialogTitle, auto_dismiss = False, size_hint = (0.7, 0.5))
 		self.mainPopUpText = Label(text = dialogText)

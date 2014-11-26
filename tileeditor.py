@@ -14,9 +14,9 @@ from objectsmenu import ObjectsMenu
 from tilemapfiles import FilesManager
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
 from resourceloader import ResourceLoaderPopup
-from layer import LayerEditorPopup
+from layer import LayerInformationPopup
 from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
-from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder
+from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder, LayerToSceneCommunication
 from communicationobjects import ResourceLoaderToObjectDescriptor
 from editorutils import CancelableButton
 
@@ -79,8 +79,7 @@ class TileEditor(App):
 		self.__resourcePopup = ResourceLoaderPopup()
 
 		# Layers
-		self.__layerPopup = LayerEditorPopup()
-		self.leftMenuBase.add_widget(CancelableButton(text = 'aaa', on_release = self.__layerPopup.open))
+		LayerInformationPopup.Instance()
 
 		# Communication Objects
 		CollisionToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
@@ -90,6 +89,8 @@ class TileEditor(App):
 		CollisionToCollisionForm.Instance(CollisionInformationPopup.Instance().callPreview)
 		ObjectDescriptorToResourceLoarder.Instance(self.__resourcePopup.open)
 		ResourceLoaderToObjectDescriptor.Instance(ObjectsMenu.Instance().reloadResource)
+		LayerToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
+			self.__sceneHandler.getAllObjects, self.__sceneHandler.redraw)
 
 		# Periodic functions:
 		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)

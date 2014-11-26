@@ -406,7 +406,6 @@ class CollisionInformationPopupKeyboardHandler(KeyboardAccess):
 
 @Singleton
 class CollisionInformationPopup:
-
 	def __createTemporatyCopies(self):
 		for obj in self.__objectsList:
 			if (obj.getCollisionInfo() is not None):
@@ -539,7 +538,6 @@ class CollisionInformationPopup:
 		self.__partsPanel.switch_to(self.__partsPanel.tab_list[0])
 
 	def __renderLowerPart(self, selectedTab = None):
-
 		self.__lowerBox.clear_widgets()
 		self.__lowerBox.add_widget(self.__editFlagsButton)
 		if(selectedTab is None or selectedTab == 'Edit'):
@@ -563,7 +561,6 @@ class CollisionInformationPopup:
 		self.__lowerBox.add_widget(self.__cancelButton)
 
 	def __render(self):
-
 		currentObj = self.__objectsList[self.__objectsListIndex]
 		currentId = currentObj.getIdentifier()
 		collisionInfo = self.__copiesDict[currentId]
@@ -606,7 +603,6 @@ class CollisionInformationPopup:
 					overSizeNeeded = True
 
 		return overSizeNeeded
-
 
 	def __updateDynamicFlag(self, instance, value):
 		idToUse = self.__objectsList[self.__objectsListIndex].getIdentifier()
@@ -729,8 +725,6 @@ class CollisionInformationPopup:
 
 		self.__partDisplay.drawPart(partToRender)
 
-
-
 	def updateLayout(self):
 		self.__render()
 
@@ -743,7 +737,7 @@ class CollisionInformationPopup:
 	def showPopUp(self):
 		objList = CollisionToSceneCommunication.Instance().getSelectedObjects()
 		if (objList == []):
-			self.__errorPopUp.setText('No object(s) selected!\nYou need to select at least one object from the scene.')
+			self.__errorPopUp.setText('No object is selected!\nYou need to select at least one object from the scene.')
 			self.__errorPopUp.open()
 		else:
 			firstSize = objList[0].getBaseSize()

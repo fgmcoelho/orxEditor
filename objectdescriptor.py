@@ -9,10 +9,10 @@ from editorobjects import ObjectTypes
 from collision import CollisionInformationPopup
 from editorutils import CancelableButton, AlertPopUp
 from communicationobjects import ObjectDescriptorToResourceLoarder
+from layer import LayerInformationPopup
 
 @Singleton
 class BaseObjectDescriptor:
-
 	def __setValues(self, path, size, obj):
 		self.__pathLabel.text = 'Path: ' + str(path)
 		self.__sizeLabel.text = 'Size: ' + str(size)
@@ -56,7 +56,6 @@ class BaseObjectDescriptor:
 
 @Singleton
 class MultipleSelectionDescriptor:
-
 	def __init__(self, accordionItem):
 		self.__layout = BoxLayout (orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__selectedLabel = Label(text = 'Selected: 0')
@@ -84,10 +83,10 @@ class MultipleSelectionDescriptor:
 
 @Singleton
 class RenderedObjectDescriptor:
-	def __init__(self, accordionItem, popUpMethod):
+	def __init__(self, accordionItem, collisionPopUpMethod, layerPopUpMethod):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.2))
-		self.__nameLabel = Label(text = 'Name: ', size_hint = (1.0, 0.2))
+		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.1))
+		self.__nameLabel = Label(text = 'Name: ', size_hint = (1.0, 0.1))
 
 		self.__flipBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__flipxLabel = Label(text = 'Flipped on X: ', size_hint = (0.5, 1.0))
@@ -95,19 +94,26 @@ class RenderedObjectDescriptor:
 		self.__flipBox.add_widget(self.__flipxLabel)
 		self.__flipBox.add_widget(self.__flipyLabel)
 
-		self.__sizeScaleLayerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
-		self.__sizeLabel = Label(text = 'Size: ', size_hint = (0.333, 1.0))
-		self.__scaleLabel = Label(text = 'Scale: ', size_hint = (0.333, 1.0))
-		self.__layerLabel = Label(text = 'Layer: ', size_hint = (0.3334, 1.0))
+		self.__sizeScaleBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		self.__sizeLabel = Label(text = 'Size: ', size_hint = (0.5, 1.0))
+		self.__scaleLabel = Label(text = 'Scale: ', size_hint = (0.5, 1.0))
 
-		self.__sizeScaleLayerBox.add_widget(self.__sizeLabel)
-		self.__sizeScaleLayerBox.add_widget(self.__scaleLabel)
-		self.__sizeScaleLayerBox.add_widget(self.__layerLabel)
+		self.__sizeScaleBox.add_widget(self.__sizeLabel)
+		self.__sizeScaleBox.add_widget(self.__scaleLabel)
+		
+		self.__layerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		self.__layerLabel = Label(text = 'Layer: ', size_hint = (0.7, 1.0))
+		self.__layerButton = CancelableButton(text = 'Edit Layer', size_hint = (0.3, 1.0), 
+			on_release = layerPopUpMethod)
+		
+		self.__layerBox.add_widget(self.__layerLabel)
+		self.__layerBox.add_widget(self.__layerButton)
+		
 
 		self.__collisionBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
-		self.__collisionInfoLabel = Label(text = 'Has collision info: ')
-		self.__collisionHandler = Button(text = 'Edit Collision', size_hint = (0.3, 1.0))
-		self.__collisionHandler.bind(on_release=popUpMethod)
+		self.__collisionInfoLabel = Label(text = 'Has collision info: ', size_hint = (0.7, 1.0))
+		self.__collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.3, 1.0), 
+			on_release = collisionPopUpMethod)
 
 		self.__collisionBox.add_widget(self.__collisionInfoLabel)
 		self.__collisionBox.add_widget(self.__collisionHandler)
@@ -115,7 +121,8 @@ class RenderedObjectDescriptor:
 		self.__layout.add_widget(self.__pathLabel)
 		self.__layout.add_widget(self.__nameLabel)
 		self.__layout.add_widget(self.__flipBox)
-		self.__layout.add_widget(self.__sizeScaleLayerBox)
+		self.__layout.add_widget(self.__sizeScaleBox)
+		self.__layout.add_widget(self.__layerBox)
 		self.__layout.add_widget(self.__collisionBox)
 
 		self.__accordionItemReference = accordionItem
@@ -155,29 +162,28 @@ class ObjectDescriptor:
 	def updateObjectDescriptors(self):
 		self.setObject(self.__currentObject)
 
-	def openCollisionPopUp(self, ignore):
-
+	def openCollisionPopUp(self, *args):
 		CollisionInformationPopup.Instance().showPopUp()
+		if (self.__currentObject is not None):
+			self.setObject(self.__currentObject)
+	
+	def openLayerPopUp(self, *args):
+		LayerInformationPopup.Instance().showPopUp()
 		if (self.__currentObject is not None):
 			self.setObject(self.__currentObject)
 
 	def __init__(self, baseObjectAccordion, renderedObjectAccordion):
-
 		self.__currentObject = None
-
 		self.__baseObjectDescriptor = BaseObjectDescriptor.Instance(baseObjectAccordion)
 		self.__renderedObjectDescriptor = RenderedObjectDescriptor.Instance(renderedObjectAccordion,
-			self.openCollisionPopUp)
-
+			self.openCollisionPopUp, self.openLayerPopUp)
 		self.__baseObjectDescriptor.setActive()
-
 
 	def resetAllWidgets(self):
 		self.__baseObjectDescriptor.setValues()
 		self.__renderedObjectDescriptor.setValuesNoActive()
 
 	def setObject(self, obj):
-
 		path = obj.getPath()
 		size = obj.getSize()
 		cwd = getcwd() + '/'

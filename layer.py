@@ -1,112 +1,79 @@
+from singleton import Singleton
+
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
-
-from string import letters, digits
-from singleton import Singleton
+from kivy.uix.togglebutton import ToggleButton
 
 from editorutils import CancelableButton, AlertPopUp, Dialog
 from keyboard import KeyboardAccess, KeyboardGuardian
+from communicationobjects import LayerToSceneCommunication
+from layerinfo import LayerRegister, LayerGuardian
 
-class LayerRegister:
-	def __init__(self, name, priority):
-		self.__name = name
-		self.__priority = priority
-
-	def setPriority(self, newPriority):
-		self.__priority = newPriority
-
-	def getPriority(self):
-		return self.__priority
-
-	def getName(self):
-		return self.__name
-
-@Singleton
-class LayerGuardian:
-	def __init__(self):
-		self.__defaultLayer = LayerRegister('default', 0)
-		self.__layersDict = { 0 : self.__defaultLayer }
-		for i in range(1, 16):
-			self.__layersDict[i] = None
-
-		self.__highestPriority = 0
-
-	def __getIndex(self, layerName):
-		for i in range(self.__highestPriority + 1):
-			if(self.__layersDict[i].getName() == layerName):
-				return i
-
-		raise Exception('Fatal error on layer manager.')
-
-	def addNewLayer(self, newLayer):
-		self.__highestPriority += 1
-		self.__layersDict[self.__highestPriority] = LayerRegister(newLayer, newLayer)
-
-	def decreasePriority(self, layerName):
-		i = self.__getIndex(layerName)
-		if (i == 0):
-			return
-		else:
-			swap = self.__layersDict[i-1]
-			self.__layersDict[i-1] = self.__layersDict[i]
-			self.__layersDict[i] = swap
-
-	def increasePriority(self, layerName):
-		i = self.__getIndex(layerName)
-		if (i == self.__highestPriority):
-			return
-		else:
-			swap = self.__layersDict[i+1]
-			self.__layersDict[i+1] = self.__layersDict[i]
-			self.__layersDict[i] = swap
-	
-	def deleteLayerByName(self, layerName):
-		i = self.__getIndex(layerName)
-		while (self.__layersDict[i] != None):
-			self.__layersDict[i] = self.__layersDict[i + 1]
-			i += 1
-
-		self.__highestPriority -= 1
-
-	def getLayerList(self):
-		l = []
-		formerKey = -1
-		for key in self.__layersDict.keys():
-			if (self.__layersDict[key] is not None):
-				l.append(self.__layersDict[key])
-				assert key == formerKey + 1
-				formerKey = key
-
-			else:
-				break
-
-		return l
+from string import letters, digits
 
 class LayerEditorPopup(KeyboardAccess):
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
-
 		if (keycode[1] == 'escape'):
 			KeyboardGuardian.Instance().dropKeyboard(self)
 
 	def __close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
+		LayerInformationPopup.Instance().update()
 		self.__popup.dismiss()
+
+	def __doDeleteLayer(self):
+		if (self.__layerToRemoveName is not None):
+			LayerGuardian.Instance().deleteLayerByName(self.__layerToRemoveName)
+			allObjList = LayerToSceneCommunication.Instance().getAllObjects()
+			for obj in allObjList:
+				if (obj.getLayer() == self.__layerToRemoveName):
+					obj.setLayer('default')
+			
+			self.__layerToRemoveName = None
+			self.__render()
+
 
 	def __updateLayers(self, *args):
 		button = args[0]
 		operation, layerName = button.id.split('#')
 		if (operation == 'inc'):
 			LayerGuardian.Instance().increasePriority(layerName)
+			self.__render()
 		elif (operation == 'dec'):
 			LayerGuardian.Instance().decreasePriority(layerName)
+			self.__render()
 		else:
-			LayerGuardian.Instance().deleteLayerByName(layerName)
+			allObjList = LayerToSceneCommunication.Instance().getAllObjects()
+			count = 0
+			self.__layerToRemoveName = layerName
+			for obj in allObjList:
+				if (obj.getLayer() == layerName):
+					count += 1
 
-		self.__render()
+			if (count != 0):
+				warn = Dialog(
+					self.__doDeleteLayer,
+					'Warning',
+					'Removing this group will set %d object%s to the\n\'default\' group.\n'\
+					'This operation can not be reverted.' % (count, 's' if count > 1 else ''),
+					'Ok',
+					'Cancel', None, None
+				)
+				warn.open()
+			else:
+				warn = Dialog(
+					self.__doDeleteLayer,
+					'Warning',
+					'If you continue, this group will be removed.\nThis operation can not be reverted.',
+					'Ok',
+					'Cancel', 
+				)
+				warn.open()
+
 
 	def __processAddLayer(self, *args):
 		newLayer = self.__layerNameInput.text.strip()
@@ -163,8 +130,6 @@ class LayerEditorPopup(KeyboardAccess):
 					size_hint = (0.05, 1.0)))
 			else:
 				line.add_widget(Label(text='', size_hint = (0.05, 1.0)))
-
-
 			self.__layout.add_widget(line)
 
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, 0.85 - (len(layerList) * 0.05))))
@@ -201,9 +166,113 @@ class LayerEditorPopup(KeyboardAccess):
 		self.__popup = Popup(title = 'Groups Editor', content = self.__layout)
 		self.__maxLayers = 16
 		self.__validCharacters = letters + digits
-		LayerGuardian.Instance()
+		self.__layerToRemoveName = None
 
 	def open(self, *args):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.__render()
 		self.__popup.open()
+
+class LayerKeyboardHandler(KeyboardAccess):
+	def _processKeyDown(self, keyboard, keycode, text, modifiers):
+		if (keycode[1] == 'escape'):
+			KeyboardGuardian.Instance().dropKeyboard(self)
+
+	def __init__(self):
+		pass
+
+@Singleton
+class LayerInformationPopup:
+
+	def __close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self.__keyboardHandler)
+		self.__popup.dismiss()
+
+	def __save(self, *args):
+		newLayer = None
+		for button in self.__buttonList:
+			if (button.state == 'down'):
+				assert(newLayer is None)
+				newLayer = button.text
+
+		if (newLayer is None):
+			errorAlert = AlertPopUp(
+				'Error', 
+				'No layer selected!\nYou must select a new layer.',
+				'Ok'
+			)
+			errorAlert.open()
+		else:
+			for obj in self.__objectsList:
+				obj.setLayer(newLayer)
+			LayerToSceneCommunication.Instance().redraw()
+			self.__close()
+
+	def __getLayerNameIfAllEqual(self):
+		firstLayer = self.__objectsList[0].getLayer()
+		for obj in self.__objectsList[1:]:
+			if (obj.getLayer() != firstLayer):
+				return None
+
+		return firstLayer
+
+	def __render(self):
+		self.__layout.clear_widgets()
+		if (len(self.__objectsList) == 1):
+			self.__layout.add_widget(Label(text = 'Select the new group for the object:', size_hint = (1.0, 0.05)))
+		else:
+			self.__layout.add_widget(Label(text = 'Select the new group for the objects:', size_hint = (1.0, 0.05)))
+
+		self.__buttonList = []
+		layerToMark = self.__getLayerNameIfAllEqual()
+		layerList = LayerGuardian.Instance().getLayerList()
+		for layer in layerList:
+			if (layerToMark is not None and layerToMark == layer.getName()):
+				state = 'down'
+			else:
+				state = 'normal'
+			layerButton = ToggleButton(text = layer.getName(), group = 'layers', state = state, 
+				size_hint = (1.0, 0.05))
+			self.__layout.add_widget(layerButton)
+			self.__buttonList.append(layerButton)
+		
+		self.__layout.add_widget(Label(text = '', size_hint = (1.0, 0.05 * (18 - len(layerList)))))
+		self.__layout.add_widget(self.__bottomLine)
+
+	def __init__(self):
+		LayerGuardian.Instance()
+		self.__editFlagsPopup = LayerEditorPopup()
+		self.__popup = Popup(title = 'Group Selector')
+		self.__layout = BoxLayout(orientation = 'vertical')
+		self.__objectsList = None
+
+		self.__bottomLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.05))
+		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.__close)
+		self.__doneButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release = self.__save)
+		self.__editLayersButton = CancelableButton(text = 'Edit groups', size_hint = (0.2, 1.0),
+			on_release = self.__editFlagsPopup.open)
+		self.__bottomLine.add_widget(self.__editLayersButton)
+		self.__bottomLine.add_widget(Label(text = '', size_hint = (0.6, 1.0)))
+		self.__bottomLine.add_widget(self.__cancelButton)
+		self.__bottomLine.add_widget(self.__doneButton)
+		self.__popup.content = self.__layout
+		self.__keyboardHandler = LayerKeyboardHandler()
+
+	def update(self):
+		self.__render()
+
+	def showPopUp(self, *args):
+		objList = LayerToSceneCommunication.Instance().getSelectedObjects()
+		if (objList == []):
+			errorAlert = AlertPopUp(
+				'Error', 
+				'No object is selected!\nYou need to select at least one object from the scene.',
+				'Ok'
+			)
+			errorAlert.open()
+		else:
+			self.__objectsList = objList
+			self.__render()
+			KeyboardGuardian.Instance().acquireKeyboard(self.__keyboardHandler)
+			self.__popup.open()
+

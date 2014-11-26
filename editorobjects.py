@@ -562,12 +562,6 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__flipHorizontal()
 		self._set_pos((x,y))
 
-	def increaseLayer(self):
-		self.__layer += 1
-
-	def decreaseLayer(self):
-		self.__layer -= 1
-
 	def flipOnY(self):
 		self.__flipY = not self.__flipY
 
@@ -633,7 +627,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			self.__sx = self.__baseSize[0]
 			self.__sy = self.__baseSize[1]
 			self.__scale = 1.0
-			self.__layer = 1
+			self.__layer = 'default'
 			self.__flipX = False
 			self.__flipY = False
 			self.__collisionInfo = None
@@ -722,6 +716,9 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 	def getLayer(self):
 		return self.__layer
+
+	def setLayer(self, newName):
+		self.__layer = newName
 
 	def getFlipX(self):
 		return self.__flipX
