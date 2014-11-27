@@ -27,6 +27,9 @@ class TileEditor(App):
 		Config.set('graphics', 'height', 600)
 		Config.set('graphics', 'fullscreen', 0)
 		Config.set('input', 'mouse', 'mouse,disable_multitouch')
+		Config.set('kivy', 'desktop', 1)
+		Config.set('kivy', 'log_enable', 0)
+		Config.set('kivy', 'exit_on_escape', 0)
 		Config.write()
 
 	def build(self):

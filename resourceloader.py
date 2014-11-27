@@ -37,12 +37,51 @@ class WhiteImage:
 		return self.__image
 
 class NumberInput(TextInput):
+	modulesDict = {}
+
+	@staticmethod
+	def selectInputByFocus(module, reverse = False):
+		i = 0
+		for numberInput in NumberInput.modulesDict[module]:
+			if (numberInput.focus == True):
+				if (reverse == True):
+					return numberInput.selectPreviousInput(module, i)
+				else:
+					return numberInput.selectNextInput(module, i)
+			i += 1
+
+		numberInput.selectInput(module, 0)
+
+	@staticmethod
+	def selectInput(module, index):
+		NumberInput.modulesDict[module][index].focus = True
+
+	@staticmethod
+	def selectNextInput(module, index):
+		nextIndex = (index + 1) % len(NumberInput.modulesDict[module])
+		NumberInput.selectInput(module, nextIndex)
+	
+	@staticmethod
+	def selectPreviousInput(module, index):
+		nextIndex = (index - 1) % len(NumberInput.modulesDict[module])
+		NumberInput.selectInput(module, nextIndex)
+
 	def insert_text(self, substring, from_undo = False):
 		if (substring in "0123456789"):
 			super(NumberInput, self).insert_text(substring, from_undo = from_undo)
+			if (self.text[0] == '0'):
+				self.text = self.text[1:]
 
 	def __init__(self, **kwargs):
 		super(NumberInput, self).__init__(**kwargs)
+		if ('module' in kwargs and kwargs['module']):
+			self.__module = kwargs['module']
+			if (self.__module not in NumberInput.modulesDict):
+				NumberInput.modulesDict[self.__module] = [self]
+			else:
+				NumberInput.modulesDict[self.__module].append(self)
+		else:
+			self.__module = None
 
 class GridCell:
 	def __init__(self, canvas, x, y, xSize, ySize):
@@ -395,10 +434,12 @@ class ResourceLoaderList(SpecialScrollControl):
 			ResourceLoaderToObjectDescriptor.Instance().reloadResource(self.__resourceInfo)
 
 class ResourceLoaderPopup(KeyboardAccess):
+	
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
 
 		if (keycode[1] == 'shift'):
+			self.__isShiftPressed = False
 			self.__display.setIsShiftPressed(False)
 			self.__selectionTree.setIsShiftPressed(False)
 
@@ -406,10 +447,18 @@ class ResourceLoaderPopup(KeyboardAccess):
 			self.__display.setIsCtrlPressed(False)
 			self.__selectionTree.setIsShiftPressed(False)
 
+		elif (keycode[1] == 'tab'):
+			if (self.__state in ['divisions', 'size']):
+				if (self.__isShiftPressed == False):
+					NumberInput.selectInputByFocus(self.__state)
+				else:
+					NumberInput.selectInputByFocus(self.__state, True)
+
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
 
 		if (keycode[1] == 'shift'):
+			self.__isShiftPressed = True
 			self.__display.setIsShiftPressed(True)
 			self.__selectionTree.setIsShiftPressed(True)
 
@@ -501,14 +550,16 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 	def __createLeftMenuUi(self):
 		# x divisions
-		self.__xDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
-		self.__yDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
+		self.__xDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0', 
+			module = 'divisions')
+		self.__yDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0',
+			module = 'divisions')
 
 		# size divisions
-		self.__xSizeInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
-		self.__ySizeInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '32')
-		self.__xSkipInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
-		self.__ySkipInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0')
+		self.__xSizeInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0', module = 'size')
+		self.__ySizeInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0', module = 'size')
+		self.__xSkipInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0', module = 'size')
+		self.__ySkipInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0', module = 'size')
 
 		# save menu
 		self.__keepOriginalLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
@@ -530,7 +581,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
 			size_hint = (1.0, 0.05))
 
-	def __loadDivisionLeftMenu(self):
+	def __loadDivisionLeftMenu(self, focusIndex = None):
 		self.__leftMenu.clear_widgets()
 		self.__leftMenu.add_widget(Label(text = 'Divisions on x', size_hint = (1.0, 0.05)))
 		self.__leftMenu.add_widget(self.__xDivisionsInput)
@@ -637,6 +688,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 	def __init__(self):
 		super(ResourceLoaderPopup, self).__init__()
+		self.__isShiftPressed = False
 
 		self.__popup = Popup(title = 'Resource Loader')
 
