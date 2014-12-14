@@ -2,7 +2,7 @@ from singleton import Singleton
 
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.graphics.vertex_instructions import Line
-from kivy.graphics.fbo import Fbo
+#from kivy.graphics.fbo import Fbo
 from kivy.graphics import Color
 
 from operator import itemgetter
@@ -14,7 +14,6 @@ from keyboard import KeyboardAccess
 from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 from layerinfo import LayerGuardian
 
-@Singleton
 class SceneAttributes:
 	def __init__(self, tileSize, numberOfTilesX, numberOfTilesY):
 		self.__valuesDict = {
@@ -23,11 +22,14 @@ class SceneAttributes:
 			'TilesSize'  : tileSize,
 		}
 
-	def getValue(self, value):
-		if (value in self.__valuesDict):
-			return self.__valuesDict[value]
+	def getValue(self, name):
+		if (name in self.__valuesDict):
+			return self.__valuesDict[name]
 		else:
 			return None
+
+	def setValues(self, name, value):
+		self.__valuesDict[name] = value
 
 class Scene:
 
@@ -37,7 +39,7 @@ class Scene:
 		self.__layout = RelativeLayout(size_hint = (None, None), on_resize = self.redraw)
 		self.__renderGuardian = RenderObjectGuardian()
 		self.loadValues()
-		self.__fbo = Fbo(size = self.__layout.size)
+		#self.__fbo = Fbo(size = self.__layout.size)
 
 	def showGrid(self):
 		with self.__layout.canvas:
@@ -75,14 +77,13 @@ class Scene:
 				)
 				i += self.__tileSize
 
-	def getTexture(self):
-		self.__fbo.clear_color = (0, 0, 0, 0)
-		self.__fbo.clear_buffer()
-		self.__fbo.bind()
-		self.redraw()
-		self.__fbo.release()
-
-		return self.__fbo.texture
+	#def getTexture(self):
+	#	self.__fbo.clear_color = (0, 0, 0, 0)
+	#	self.__fbo.clear_buffer()
+	#	self.__fbo.bind()
+	#	self.redraw()
+	#	self.__fbo.release()
+	#	return self.__fbo.texture
 
 	def toggleGrid(self):
 		if (self.__showGrid == True):
@@ -96,10 +97,10 @@ class Scene:
 
 	def loadValues(self):
 		self.__layout.canvas.clear()
-		sceneAttr = SceneAttributes.Instance()
-		self.__tileSize = sceneAttr.getValue('TilesSize')
-		sx = sceneAttr.getValue('TilesMaxX') * self.__tileSize
-		sy = sceneAttr.getValue('TilesMaxY') * self.__tileSize
+		self.__sceneAttr = SceneAttributes(40, 100, 100)
+		self.__tileSize = self.__sceneAttr.getValue('TilesSize')
+		sx = self.__sceneAttr.getValue('TilesMaxX') * self.__tileSize
+		sy = self.__sceneAttr.getValue('TilesMaxY') * self.__tileSize
 		self.__layout.size= (sx, sy)
 		self.__id = 0
 		self.__maxX = sx
@@ -270,7 +271,6 @@ class Scene:
 
 
 class SceneHandler (SpecialScrollControl, KeyboardAccess):
-
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
 

@@ -358,6 +358,11 @@ class ResourceLoaderList(SpecialScrollControl):
 
 		self.__layout.height = self.__tree.minimum_height
 
+	def getKeepOriginal(self):
+		if (self.__resourceInfo is not None):
+			return self.__resourceInfo.getKeepOriginal()
+		return True
+
 	def getSelection(self):
 		if (self.__tree.selected_node is not None):
 			itemName, itemId = self.__tree.selected_node.id.split('#')
@@ -428,8 +433,9 @@ class ResourceLoaderList(SpecialScrollControl):
 		self.__layout.add_widget(self.__tree)
 		self._scrollView.add_widget(self.__layout)
 
-	def save(self):
+	def save(self, keepOriginal):
 		if (self.__resourceInfo is not None):
+			self.__resourceInfo.setKeekOriginal(keepOriginal)
 			SplittedImageExporter.save(self.__resourceInfo)
 			ResourceLoaderToObjectDescriptor.Instance().reloadResource(self.__resourceInfo)
 
@@ -499,7 +505,11 @@ class ResourceLoaderPopup(KeyboardAccess):
 			self.__display.drawGridBySize(xSize, ySize, xSkip, ySkip)
 
 	def __save(self):
-		self.__selectionTree.save()
+		if (self.__selectionTree.getNumberOfSelections() == 0):
+			keepOriginal = True
+		else:
+			keepOriginal = self.__keepOriginalCheckbox.active
+		self.__selectionTree.save(keepOriginal)
 
 	def __changeMethod(self, *args):
 		if (self.__state == 'divisions'):
@@ -543,8 +553,12 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__leftMenu.clear_widgets()
 		self.__leftMenu.add_widget(self.__exportColorToAlphaLine)
 		self.__leftMenu.add_widget(self.__whiteImage.getImage())
-		self.__leftMenu.add_widget(self.__keepOriginalLine)
-		self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.5)))
+		if (self.__selectionTree.getNumberOfSelections() != 0):
+			self.__leftMenu.add_widget(self.__keepOriginalLine)
+			self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.5)))
+		else:
+			self.__leftMenu.add_widget(Label(text = '', size_hint = (1.0, 0.6)))
+
 		self.__leftMenu.add_widget(self.__doneButton)
 		self.__leftMenu.add_widget(self.__cancelButton)
 
@@ -718,7 +732,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__display.loadImage(path)
 		sizeToUse = self.__display.getSize()
 		self.__selectionTree.loadImage(path, sizeToUse[1])
-
+		self.__keepOriginalCheckbox.active = self.__selectionTree.getKeepOriginal()
 		self.__popup.open()
 
 	def close(self, *args):

@@ -60,7 +60,6 @@ class TileEditor(App):
 		FilesManager.Instance()
 
 		# Scene Editor handlers:
-		SceneAttributes.Instance(40, 20, 20)
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
 		KeyboardGuardian.Instance().acquireKeyboard(self.__sceneHandler)

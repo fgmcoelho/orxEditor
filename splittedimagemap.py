@@ -1,4 +1,4 @@
-from editorutils import strToDoubleIntTuple
+from editorutils import strToDoubleIntTuple, boolToStr, strToBool
 
 from ConfigParser import ConfigParser
 from os.path import isfile
@@ -98,7 +98,7 @@ class SplittedImageExporter:
 
 		parser.add_section('General')
 		parser.set('General', 'Amount', str(resourceInfo.getNumberOfSelections()))
-		#parser.set('General', 'KeepOriginal', '')
+		parser.set('General', 'KeepOriginal', boolToStr(resourceInfo.getKeepOriginal()))
 		parser.set('General', 'Path', resourceInfo.getPath())
 
 		i = 0
@@ -129,7 +129,8 @@ class SplittedImageImporter:
 		parser = ConfigParser()
 		parser.read(filename)
 		numberOfImages = int(parser.get('General', 'Amount'))
-		resourceInfo = ResourceInformation(parser.get('General', 'Path'))
+		keepOriginal = strToBool(parser.get('General', 'KeepOriginal'))
+		resourceInfo = ResourceInformation(parser.get('General', 'Path'), keepOriginal)
 		for i in range(numberOfImages):
 			sectionName = 'SelectionInfo' + str(i)
 			x, y = strToDoubleIntTuple(parser.get(sectionName, 'Position'))

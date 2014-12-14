@@ -28,14 +28,28 @@ class SpecialScrollControl (object):
 		else:
 			if (self._isShiftPressed == False):
 				if (touch.button == "scrollup" and self._scrollView.scroll_y > 0):
-					self._scrollView.scroll_y -= 0.05
+					if (self._scrollView.scroll_y - 0.05 < 0.0):
+						self._scrollView.scroll_y = 0.0
+					else:
+						self._scrollView.scroll_y -= 0.05
+
 				elif (touch.button == "scrolldown" and self._scrollView.scroll_y < 1.0):
-					self._scrollView.scroll_y += 0.05
+					if (self._scrollView.scroll_y + 0.05 > 1.0):
+						self._scrollView.scroll_y = 1.0
+					else:
+						self._scrollView.scroll_y += 0.05
 			else:
 				if (touch.button == "scrolldown" and self._scrollView.scroll_x > 0):
-					self._scrollView.scroll_x -= 0.05
+					if (self._scrollView.scroll_x - 0.05 < 0.0):
+						self._scrollView.scroll_x = 0.0
+					else:
+						self._scrollView.scroll_x -= 0.05
+
 				elif (touch.button == "scrollup" and self._scrollView.scroll_x < 1.0):
-					self._scrollView.scroll_x += 0.05
+					if (self._scrollView.scroll_x + 0.05 > 1.0):
+						self._scrollView.scroll_x = 1.0
+					else:
+						self._scrollView.scroll_x += 0.05
 	
 	def __init__(self, **kwargs):
 		self._isShiftPressed = False

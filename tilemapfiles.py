@@ -116,7 +116,6 @@ class FilesManager:
 		sx, sy = obj.getBaseSize()
 		return convertKivyCoordToOrxCoord((x, y + sy), sceneMaxY)
 
-
 	def exportScene(self, filename):
 		parser = ConfigParser()
 		parser.optionxform = str
@@ -147,10 +146,10 @@ class FilesManager:
 			parser.add_section(newSectionName)
 
 			scale = (obj.getScale(), obj.getScale())
-			layer = obj.getLayer() * 0.01
 			parser.set(newSectionName, 'Graphic', graphicSectionName)
 			parser.set(newSectionName, 'Position', vector2ToVector3String(self.__convertObjectPosition(obj, sceneMaxY),
-				layer))
+				1.0))
+			parser.set(newSectionName, 'Group', obj.getLayer())
 			if(obj.getFlipX() == True and obj.getFlipY() == True):
 				parser.set(newSectionName, 'Flip', 'both')
 			elif (obj.getFlipX() == True):

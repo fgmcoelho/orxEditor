@@ -90,6 +90,13 @@ def boolToStr(b):
 	else:
 		return 'false'
 
+def strToBool(s):
+	assert(s in ['true', 'false'])
+	if (s == 'true'):
+		return True
+	else:
+		return False
+
 def isClockWise(points):
 	assert type(points) is list or type(points) is tuple, 'Type is not supported.'
 	assert len(points) > 2, 'At least three points are needed.'

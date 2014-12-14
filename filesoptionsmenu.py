@@ -1,7 +1,6 @@
 from singleton import Singleton
 
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from editorutils import Dialog, AlertPopUp
@@ -9,6 +8,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
 from kivy.uix.filechooser import FileChooserIconView
 
+from editorutils import CancelableButton
 from tilemapfiles import FilesManager
 from os import getcwd
 from os.path import isfile, join, sep as pathSeparator
@@ -16,20 +16,20 @@ from os.path import isfile, join, sep as pathSeparator
 @Singleton
 class FilesOptionsMenu:
 	
-	def __newSceneFinish(self, notUsed = None):
-		self.__newSceneMethodReference(notUsed)
+	def __newSceneFinish(self, *args):
+		self.__newSceneMethodReference()
 		self.__newSceneDialog.dismiss()
 
-	def __newScene(self, notUsed = None):
+	def __newScene(self, *args):
 		self.__newSceneDialog.open()
 
-	def __saveSceneFinish(self, notUsed = None):
+	def __saveSceneFinish(self, *args):
 		self.__saveSceneMethodReference(join(self.__fileChooser.path, self.__fileChooserInput.text))
 		self.__fileChooserPopUp.dismiss()
 		self.__saveSceneDialog.dismiss()
 		self.__lastPath = self.__fileChooser.path
 
-	def __validateSelectedOsf(self, entry, notUsed = None):
+	def __validateSelectedOsf(self, entry, *args):
 		if (isfile(entry[0]) == True):
 			sepIndex = entry[0].rfind(pathSeparator)
 			if (sepIndex != -1):
@@ -40,7 +40,7 @@ class FilesOptionsMenu:
 			self.__errorPopUp.setText('Invalid file selected.')
 			self.__errorPopUp.open()
 
-	def __validateAndContinueToSave(self, notUsed = None):
+	def __validateAndContinueToSave(self, *args):
 		if (self.__fileChooserInput.text == ''):
 			self.__errorPopUp.setText('No file selected.')
 			self.__errorPopUp.open()
@@ -51,19 +51,19 @@ class FilesOptionsMenu:
 		else:
 			self.__saveSceneFinish()
 
-	def __saveScene(self, notUsed = None):
+	def __saveScene(self, *args):
 		self.__fileChooser.path = self.__lastPath
 		self.__fileChooser.filters = ['*.osf']
 		self.__fileChooser.on_submit = self.__validateSelectedOsf
 		self.__fileChooserOkButton.on_release = self.__validateAndContinueToSave
 		self.__fileChooserPopUp.open()
 
-	def __loadSceneFinish(self, notUsed = None):
+	def __loadSceneFinish(self, *args):
 		self.__loadSceneMethodReference(join(self.__fileChooser.path, self.__fileChooserInput.text))
 		self.__fileChooserPopUp.dismiss()
 		self.__lastPath = self.__fileChooser.path
 
-	def __validateAndContinueToLoad(self, notUsed = None):
+	def __validateAndContinueToLoad(self, *args):
 		if (self.__fileChooserInput.text == ''):
 			self.__errorPopUp.setText('No file selected.')
 			self.__errorPopUp.open()
@@ -75,14 +75,14 @@ class FilesOptionsMenu:
 			self.__errorPopUp.setText("Selected file doesn't exist.")
 			self.__errorPopUp.open()
 
-	def __loadScene(self, notUsed = None):
+	def __loadScene(self, *args):
 		self.__fileChooser.path = self.__lastPath
 		self.__fileChooser.filters = ['*.osf']
 		self.__fileChooser.on_submit = self.__validateSelectedOsf
 		self.__fileChooserOkButton.on_release = self.__validateAndContinueToLoad
 		self.__fileChooserPopUp.open()
 
-	def __exportScene(self, notUsed = None):
+	def __exportScene(self, *args):
 		#self.__fileChooser.path = self.__lastPath
 		#self.__fileChooser.filters = ['*.ini']
 		#self.__fileChooser.on_submit = self.__validateSelectedOsf
@@ -93,10 +93,13 @@ class FilesOptionsMenu:
 
 	def __startBasicButtonsLayout(self):
 		self.__layout = GridLayout(rows = 4, cols = 1, size_hint = (1.0, 1.0))
-		self.__newButton = Button(text = 'New Scene', size_hint = (1.0, 0.25), on_release = self.__newScene)
-		self.__loadButton = Button(text = 'Load Scene', size_hint = (1.0, 0.25), on_release = self.__loadScene)
-		self.__saveButton = Button(text = 'Save Scene', size_hint = (1.0, 0.25), on_release = self.__saveScene)
-		self.__exportButton = Button(text = 'Export Scene', size_hint = (1.0, 0.25), on_release = self.__exportScene)
+		self.__newButton = CancelableButton(text = 'New Scene', size_hint = (1.0, 0.25), on_release = self.__newScene)
+		self.__loadButton = CancelableButton(text = 'Load Scene', size_hint = (1.0, 0.25), 
+			on_release = self.__loadScene)
+		self.__saveButton = CancelableButton(text = 'Save Scene', size_hint = (1.0, 0.25), 
+			on_release = self.__saveScene)
+		self.__exportButton = CancelableButton(text = 'Export Scene', size_hint = (1.0, 0.25), 
+			on_release = self.__exportScene)
 		
 		self.__layout.add_widget(self.__newButton)
 		self.__layout.add_widget(self.__loadButton)
@@ -125,8 +128,9 @@ class FilesOptionsMenu:
 		self.__fileChooser = FileChooserIconView(size_hint = (1.0, 0.9))
 
 		self.__fileChooserYesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		self.__fileChooserOkButton = Button(text = 'Ok')
-		self.__fileChooserCancelButton = Button(text = 'Cancel', on_release = self.__fileChooserPopUp.dismiss)
+		self.__fileChooserOkButton = CancelableButton(text = 'Ok')
+		self.__fileChooserCancelButton = CancelableButton(text = 'Cancel', 
+			on_release = self.__fileChooserPopUp.dismiss)
 		self.__fileChooserYesNoLayout.add_widget(self.__fileChooserOkButton)
 		self.__fileChooserYesNoLayout.add_widget(self.__fileChooserCancelButton)
 
