@@ -33,12 +33,12 @@ class SceneAttributes:
 
 class Scene:
 
-	def __init__(self):
+	def __init__(self, attributes = None):
 		self.__alignToGrid = False
 		self.__objectDict = {}
 		self.__layout = RelativeLayout(size_hint = (None, None), on_resize = self.redraw)
 		self.__renderGuardian = RenderObjectGuardian()
-		self.loadValues()
+		self.loadValues(attributes)
 		#self.__fbo = Fbo(size = self.__layout.size)
 
 	def showGrid(self):
@@ -95,9 +95,13 @@ class Scene:
 
 		self.redraw()
 
-	def loadValues(self):
+	def loadValues(self, attributes = None):
 		self.__layout.canvas.clear()
-		self.__sceneAttr = SceneAttributes(40, 100, 100)
+		if (attributes is None):
+			self.__sceneAttr = SceneAttributes(40, 100, 100)
+		else:
+			self.__sceneAttr = attributes
+
 		self.__tileSize = self.__sceneAttr.getValue('TilesSize')
 		sx = self.__sceneAttr.getValue('TilesMaxX') * self.__tileSize
 		sy = self.__sceneAttr.getValue('TilesMaxY') * self.__tileSize
@@ -268,6 +272,9 @@ class Scene:
 
 	def getRenderGuardian(self):
 		return self.__renderGuardian
+
+	def getSceneAttributes(self):
+		return self.__sceneAttr
 
 
 class SceneHandler (SpecialScrollControl, KeyboardAccess):
@@ -441,4 +448,8 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 	def clearScenes(self, dt = None):
 		for singleScene in self.__sceneList:
 			singleScene.clear(dt)
+
+	# TODO: This method still considers a single scene condition.
+	def newScene(self, attributes):
+		self.__sceneList[self.__currentIndex] = Scene(attributes)
 

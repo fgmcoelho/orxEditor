@@ -1,17 +1,78 @@
 from singleton import Singleton
 
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from editorutils import Dialog, AlertPopUp
 from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
 from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.checkbox import CheckBox
 
-from editorutils import CancelableButton
+from editorutils import CancelableButton, NumberInput
 from tilemapfiles import FilesManager
 from os import getcwd
 from os.path import isfile, join, sep as pathSeparator
+from communicationobjects import FileOptionsMenuToScene
+from keyboard import KeyboardAccess, KeyboardGuardian
+
+class NewScenePopup(KeyboardAccess):
+	
+	def __confirm(self, *args):
+		self.close()
+
+	def __init__(self):
+		self.__popup = Popup(title = 'New Scene Attributes', size_hint = (0.5, 0.5))
+		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
+		self.__tileSizeInput = NumberInput(module = 'NewScene', size_hint = (0.3, 1.0))
+		self.__xTilesInput = NumberInput(module = 'NewScene', size_hint = (0.3, 1.0))
+		self.__yTilesInput = NumberInput(module = 'NewScene', size_hint = (0.3, 1.0))
+		self.__keepCollisionFlags = CheckBox(size_hint = (0.1, 1.0))
+		self.__keepGroupsFlags = CheckBox(size_hint = (0.1, 1.0))
+		self.__okButton = CancelableButton(text = 'Ok', on_release = self.__confirm, size_hint = (0.2, 1.0))
+		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, size_hint = (0.2, 1.0))
+		
+		tilesSizeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		tilesSizeLine.add_widget(Label(text = 'Size of the tiles:', size_hint = (0.7, 1.0)))
+		tilesSizeLine.add_widget(self.__tileSizeInput)
+		
+		xNumberOfTilesLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		xNumberOfTilesLine.add_widget(Label(text = 'Number of tiles on X:', size_hint = (0.7, 1.0)))
+		xNumberOfTilesLine.add_widget(self.__xTilesInput)
+
+		yNumberOfTilesLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		yNumberOfTilesLine.add_widget(Label(text = 'Number of tiles on Y:', size_hint = (0.7, 1.0)))
+		yNumberOfTilesLine.add_widget(self.__yTilesInput)
+
+		keepCollisionFlagsLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		keepCollisionFlagsLine.add_widget(self.__keepCollisionFlags)
+		keepCollisionFlagsLine.add_widget(Label(text = 'Keep collision flags.'))
+
+		keepGroupsLine = BoxLayout (orientation = 'horizontal', size_hint = (1.0, 0.1))
+		keepGroupsLine.add_widget(self.__keepGroupsFlags)
+		keepGroupsLine.add_widget(Label(text = 'Keep layer groups.'))
+
+		confirmLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		confirmLine.add_widget(Label(text = '', size_hint = (0.6, 1.0)))
+		confirmLine.add_widget(self.__okButton)
+		confirmLine.add_widget(self.__cancelButton)
+
+		self.__layout.add_widget(tilesSizeLine)
+		self.__layout.add_widget(xNumberOfTilesLine)
+		self.__layout.add_widget(yNumberOfTilesLine)
+		self.__layout.add_widget(keepCollisionFlagsLine)
+		self.__layout.add_widget(keepGroupsLine)
+		self.__layout.add_widget(Label(text = 'Any unsaved changes will be lost.', size_hint = (1.0, 0.1)))
+		self.__layout.add_widget(confirmLine)
+
+		self.__popup.content = self.__layout
+			
+	def open(self, *args):
+		KeyboardGuardian.Instance().acquireKeyboard(self)	
+		self.__popup.open()
+
+	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
+		self.__popup.dismiss()
 
 @Singleton
 class FilesOptionsMenu:
@@ -92,8 +153,9 @@ class FilesOptionsMenu:
 	
 
 	def __startBasicButtonsLayout(self):
-		self.__layout = GridLayout(rows = 4, cols = 1, size_hint = (1.0, 1.0))
-		self.__newButton = CancelableButton(text = 'New Scene', size_hint = (1.0, 0.25), on_release = self.__newScene)
+		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
+		self.__newButton = CancelableButton(text = 'New Scene', size_hint = (1.0, 0.25), 
+			on_release = self.__newScenePopup.open)
 		self.__loadButton = CancelableButton(text = 'Load Scene', size_hint = (1.0, 0.25), 
 			on_release = self.__loadScene)
 		self.__saveButton = CancelableButton(text = 'Save Scene', size_hint = (1.0, 0.25), 
@@ -117,7 +179,6 @@ class FilesOptionsMenu:
 		)
 
 	def __startFileChooser(self):
-		
 		self.__fileChooserLayout = BoxLayout(orientation = 'vertical')
 		self.__fileChooserPopUp = Popup(auto_dismiss = False, title = 'Select the file:')
 		self.__fileChooserInputLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
@@ -141,11 +202,8 @@ class FilesOptionsMenu:
 		self.__lastPath = getcwd()
 
 
-	def __init__(self, accordionItem, newSceneMethod, saveSceneMethod, loadSceneMethod):
-
-		self.__newSceneMethodReference = newSceneMethod
-		self.__saveSceneMethodReference = FilesManager.Instance().saveScene
-		self.__loadSceneMethodReference = loadSceneMethod
+	def __init__(self, accordionItem):
+		self.__newScenePopup = NewScenePopup()
 
 		self.__startBasicButtonsLayout()	
 		self.__startConfirmationPopUp()	

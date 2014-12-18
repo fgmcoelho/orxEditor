@@ -19,6 +19,7 @@ from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMe
 from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder, LayerToSceneCommunication
 from communicationobjects import ResourceLoaderToObjectDescriptor
 from editorutils import CancelableButton
+from kivy.core.window import Window
 
 class TileEditor(App):
 
@@ -101,3 +102,8 @@ class TileEditor(App):
 
 if __name__ == '__main__':
 	TileEditor().run()
+	try:
+		Window.maximize()
+	except:
+		# maximize may not be supported
+		pass

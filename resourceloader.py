@@ -12,6 +12,7 @@ from kivy.graphics.texture import Texture
 
 from editorheritage import SpecialScrollControl
 from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog, convertKivyCoordToOrxCoord
+from editorutils import NumberInput
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import SpriteSelection, SplittedImageExporter, SplittedImageImporter
 from communicationobjects import ResourceLoaderToObjectDescriptor
@@ -35,53 +36,6 @@ class WhiteImage:
 
 	def getImage(self):
 		return self.__image
-
-class NumberInput(TextInput):
-	modulesDict = {}
-
-	@staticmethod
-	def selectInputByFocus(module, reverse = False):
-		i = 0
-		for numberInput in NumberInput.modulesDict[module]:
-			if (numberInput.focus == True):
-				if (reverse == True):
-					return numberInput.selectPreviousInput(module, i)
-				else:
-					return numberInput.selectNextInput(module, i)
-			i += 1
-
-		numberInput.selectInput(module, 0)
-
-	@staticmethod
-	def selectInput(module, index):
-		NumberInput.modulesDict[module][index].focus = True
-
-	@staticmethod
-	def selectNextInput(module, index):
-		nextIndex = (index + 1) % len(NumberInput.modulesDict[module])
-		NumberInput.selectInput(module, nextIndex)
-	
-	@staticmethod
-	def selectPreviousInput(module, index):
-		nextIndex = (index - 1) % len(NumberInput.modulesDict[module])
-		NumberInput.selectInput(module, nextIndex)
-
-	def insert_text(self, substring, from_undo = False):
-		if (substring in "0123456789"):
-			super(NumberInput, self).insert_text(substring, from_undo = from_undo)
-			if (self.text[0] == '0'):
-				self.text = self.text[1:]
-
-	def __init__(self, **kwargs):
-		super(NumberInput, self).__init__(**kwargs)
-		if ('module' in kwargs and kwargs['module']):
-			self.__module = kwargs['module']
-			if (self.__module not in NumberInput.modulesDict):
-				NumberInput.modulesDict[self.__module] = [self]
-			else:
-				NumberInput.modulesDict[self.__module].append(self)
-		else:
-			self.__module = None
 
 class GridCell:
 	def __init__(self, canvas, x, y, xSize, ySize):

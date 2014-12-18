@@ -77,3 +77,9 @@ class LayerToSceneCommunication:
 
 	def redraw(self):
 		return self.__redrawMethod()
+
+@Singleton
+class FileOptionsMenuToScene:
+	def __init__(self, newSceneMethod):
+		self.__newSceneMethod = newSceneMethod
+

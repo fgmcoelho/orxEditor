@@ -25,7 +25,7 @@ class OptionsMenu:
 		self.__layout.add_widget(self.__accordionItems['MultipleSelectionDescriptor'])
 		self.__layout.add_widget(self.__accordionItems['Options'])
 		
-		FilesOptionsMenu.Instance(self.__accordionItems['Options'], None, None, None)
+		FilesOptionsMenu.Instance(self.__accordionItems['Options'])
 		MultipleSelectionDescriptor.Instance(self.__accordionItems['MultipleSelectionDescriptor'])
 		ObjectDescriptor.Instance(self.__accordionItems['BaseObject'], self.__accordionItems['RenderedObject'])
 
