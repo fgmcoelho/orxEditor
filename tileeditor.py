@@ -17,7 +17,7 @@ from resourceloader import ResourceLoaderPopup
 from layer import LayerInformationPopup
 from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
 from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder, LayerToSceneCommunication
-from communicationobjects import ResourceLoaderToObjectDescriptor
+from communicationobjects import ResourceLoaderToObjectDescriptor, FileOptionsMenuToScene
 from editorutils import CancelableButton
 from kivy.core.window import Window
 
@@ -94,6 +94,7 @@ class TileEditor(App):
 		ResourceLoaderToObjectDescriptor.Instance(ObjectsMenu.Instance().reloadResource)
 		LayerToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
 			self.__sceneHandler.getAllObjects, self.__sceneHandler.redraw)
+		FileOptionsMenuToScene.Instance(self.__sceneHandler.newScene)
 
 		# Periodic functions:
 		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)

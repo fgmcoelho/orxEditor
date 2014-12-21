@@ -18,9 +18,12 @@ class CollisionFlag:
 
 @Singleton
 class CollisionGuardian:
-	def __init__(self):
+	def __startFlags(self):
 		self.__id = 0
 		self.__flagsDict = {}
+	
+	def __init__(self):
+		self.__startFlags()
 
 	def addNewFlag(self, name):
 		if (name not in self.__flagsDict):
@@ -50,6 +53,9 @@ class CollisionGuardian:
 		if (name not in self.__flagsDict):
 			return None
 		return self.__flagsDict[name][1]
+
+	def reset(self):
+		self.__startFlags()
 
 class CollisionPartInformation:
 

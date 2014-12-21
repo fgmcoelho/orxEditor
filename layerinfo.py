@@ -16,13 +16,19 @@ class LayerRegister:
 
 @Singleton
 class LayerGuardian:
-	def __init__(self):
+	
+	def __startLayers(self):
 		self.__defaultLayer = LayerRegister('default', 0)
 		self.__layersDict = { 0 : self.__defaultLayer }
 		for i in range(1, 16):
 			self.__layersDict[i] = None
 
 		self.__highestPriority = 0
+
+		assert(len(self.__layersDict) == 16)
+
+	def __init__(self):
+		self.__startLayers()
 
 	def __getIndex(self, layerName):
 		for i in range(self.__highestPriority + 1):
@@ -89,3 +95,6 @@ class LayerGuardian:
 				break
 		return d
 	
+	def reset(self):
+		self.__startLayers()
+

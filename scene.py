@@ -451,5 +451,8 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 
 	# TODO: This method still considers a single scene condition.
 	def newScene(self, attributes):
-		self.__sceneList[self.__currentIndex] = Scene(attributes)
-
+		newScene = Scene(attributes)
+		self._scrollView.clear_widgets()
+		self._scrollView.add_widget(newScene.getLayout())
+		
+		self.__sceneList[self.__currentIndex] = newScene

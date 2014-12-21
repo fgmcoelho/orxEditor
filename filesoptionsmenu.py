@@ -14,10 +14,47 @@ from os import getcwd
 from os.path import isfile, join, sep as pathSeparator
 from communicationobjects import FileOptionsMenuToScene
 from keyboard import KeyboardAccess, KeyboardGuardian
+from layerinfo import LayerGuardian
+from collisioninfo import CollisionGuardian
+from scene import SceneAttributes
 
 class NewScenePopup(KeyboardAccess):
 	
 	def __confirm(self, *args):
+		try:
+			x = int(self.__xTilesInput.text)
+			assert(x > 0)
+		except:
+			alert = AlertPopUp('Error', 'Invalid entry for number of tiles in x.', 'Ok')
+			return alert.open()
+
+		try:
+			y = int(self.__yTilesInput.text)
+			assert (y > 0)
+		except:
+			alert = AlertPopUp('Error', 'Invalid entry for number of tiles in y.', 'Ok')
+			return alert.open()
+		
+		try:
+			s = int(self.__tileSizeInput.text)
+			assert(s > 0)
+		except:
+			alert = AlertPopUp('Error', 'Invalid entry for the size of tiles.', 'Ok')
+			return alert.open()
+
+		if (s < 8):
+			alert = AlertPopUp('Error', 'Minimum size tile supported is 8.', 'Ok')
+			return alert.open()
+
+		if (self.__keepCollisionFlags.active == False):
+			CollisionGuardian.Instance().reset()
+
+		if (self.__keepGroupsFlags.active == False):
+			LayerGuardian.Instance().reset()
+
+		newSceneAttributes = SceneAttributes(s, x, y)
+		FileOptionsMenuToScene.Instance().newScene(newSceneAttributes)
+
 		self.close()
 
 	def __init__(self):

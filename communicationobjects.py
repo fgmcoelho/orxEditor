@@ -83,3 +83,6 @@ class FileOptionsMenuToScene:
 	def __init__(self, newSceneMethod):
 		self.__newSceneMethod = newSceneMethod
 
+	def newScene(self, attributes):
+		return self.__newSceneMethod(attributes)
+
