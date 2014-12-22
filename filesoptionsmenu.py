@@ -58,7 +58,7 @@ class NewScenePopup(KeyboardAccess):
 		self.close()
 
 	def __init__(self):
-		self.__popup = Popup(title = 'New Scene Attributes', size_hint = (0.5, 0.5))
+		self.__popup = Popup(title = 'New Scene Attributes', size_hint = (0.5, 0.5), auto_dismiss = False)
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__tileSizeInput = NumberInput(module = 'NewScene', size_hint = (0.3, 1.0))
 		self.__xTilesInput = NumberInput(module = 'NewScene', size_hint = (0.3, 1.0))

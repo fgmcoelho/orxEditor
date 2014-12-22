@@ -117,7 +117,6 @@ class ObjectsMenu:
 		self.__loadItems()
 		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
 		self.__scrollView.add_widget(self.__objectListLayout)
-		self.__scrollView.do_scroll_x = False
 
 	def reloadResource(self, resourceInfo):
 		pathToCheck = resourceInfo.getPath()
@@ -155,7 +154,7 @@ class ObjectsMenu:
 
 	def resetAllWidgets(self):
 		for menuObject in self.__menuObjectsList:
-			self.__layout.remove_widget(menuObject.getDisplayImage())
+			self.__scrollView.remove_widget(menuObject.getDisplayImage())
 			menuObject = None
 
 		self.__loadItems()
