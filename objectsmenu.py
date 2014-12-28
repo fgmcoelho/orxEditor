@@ -110,7 +110,7 @@ class ObjectsMenu:
 			img = menuObject.getDisplayImage()
 			self.__objectListLayout.add_widget(img)
 
-		self.__objectListLayout.size[1] = (self.__numberOfItems * 67)
+		self.__objectListLayout.size = (100, self.__numberOfItems * 67)
 
 	def __init__(self):
 		self.__objectListLayout = None
