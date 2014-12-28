@@ -450,9 +450,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			self.__renderGuardian.propagateTranslation(self, trans, post_multiply, anchor)
 
 		xBefore, yBefore = self.bbox[0]
-
 		self.__defaultApplyTransform(trans, post_multiply, anchor)
-
 		x, y = self.bbox[0]
 		if (xBefore == x and yBefore == y):
 			return
@@ -628,19 +626,14 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			self.__sy = self.__baseSize[1]
 			self.__scale = 1.0
 			self.__layer = 'default'
-			self.__flipX = False
-			self.__flipY = False
 			self.__collisionInfo = None
 
 		else:
 			self.__baseSize = obj.getBaseSize()
 			self.__sx, self.__sy = obj.getSize()
-			self.__texture = AutoReloadTexture(obj.getSize(), obj.getImage())
+			self.__texture = AutoReloadTexture(self.__baseSize, obj.getImage())
 			self.image = Image(size = self.__baseSize, texture = self.__texture.getTexture())
-			self.__scale = obj.getScale()
 			self.__layer = obj.getLayer()
-			self.__flipX = obj.getFlipX()
-			self.__flipY = obj.getFlipY()
 			if (obj.getCollisionInfo() is None):
 				self.__collisionInfo = None
 			else:
@@ -648,7 +641,6 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None),
 			size = self.__baseSize, auto_bring_to_front = False)
-
 		self.add_widget(self.image)
 
 		self.__renderGuardian = guardianToUse
@@ -656,6 +648,8 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__isHidden = False
 		self.__forceMove = False
 		self.__borderLine = None
+		self.__flipX = False
+		self.__flipY = False
 
 		self.__objectType = ObjectTypes.renderedObject
 		self.__tileSize = tileSize
@@ -663,7 +657,12 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__maxY = maxY
 		self.__path = path
 		self._set_pos(pos)
-		self.size = self.getSize()
+		if (isinstance(obj, RenderedObject) == True):
+			self.setScale(obj.getScale(), True)
+			if (obj.getFlipX() == True):
+				self.flipOnX()
+			if (obj.getFlipY() == True):
+				self.flipOnY()
 
 		self.__defaultTouchDown = self.on_touch_down
 		self.on_touch_down = self.__handleTouchDown
