@@ -407,8 +407,8 @@ class SpritedObjectInfo:
 		return self.__spriteCoords
 
 class BaseObject:
-
 	def __init__(self, baseImage, identifier, virtualPath = None, spriteCoords = None):
+		assert (virtualPath is None and spriteCoords is None) or (virtualPath is not None and spriteCoords is not None)
 		self.__identifier = identifier
 		self.__baseImage = baseImage
 		if (virtualPath is None):

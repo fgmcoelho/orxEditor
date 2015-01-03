@@ -5,6 +5,7 @@ from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
 from kivy.graphics.texture import Texture
+from kivy.uix.image import Image
 from kivy.effects.scroll import ScrollEffect
 
 from os.path import sep as pathSeparator
@@ -95,78 +96,6 @@ class CancelableButton (Button):
 			self.on_touch_up = self.__processAction
 			self.__default_on_touch_down = self.on_touch_down
 			self.on_touch_down = self.__startButtonSelection
-
-def convertKivyCoordToOrxCoord(v, maxY):
-	assert len(v) == 2 or len(v) == 3
-	if (len(v) == 2):
-		return (v[0], maxY - v[1])
-	else:
-		return (v[0], maxY - v[1], v[2])
-
-def strToDoubleFloatTuple(s):
-	assert(type(s) is str)
-	splitted = s.split(',')
-	assert(len(splitted) == 2)
-	x = float(splitted[0].replace('(', ''))
-	y = float(splitted[1].replace(')', ''))
-	return (x, y)
-
-def strToDoubleIntTuple(s):
-	assert(type(s) is str)
-	splitted = s.split(',')
-	assert(len(splitted) == 2)
-	x = int(splitted[0].replace('(', ''))
-	y = int(splitted[1].replace(')', ''))
-	return (x, y)
-
-def vector2ToVector3String(v, default = 0):
-	return '(' + str(v[0]) + ', ' + str(v[1]) + ', ' + str (default) + ')'
-
-def vector2Multiply(v, x):
-	assert(type(v) is tuple or type(v) is list)
-	assert(len(v) == 2)
-	if (type(v) is tuple):
-		return (v[0] * x, v[1] * x)
-	else:
-		return [v[0] * x, v[1] * x]
-
-def boolToStr(b):
-	if (b == True):
-		return 'true'
-	else:
-		return 'false'
-
-def strToBool(s):
-	assert(s in ['true', 'false'])
-	if (s == 'true'):
-		return True
-	else:
-		return False
-
-def isClockWise(points):
-	assert type(points) is list or type(points) is tuple, 'Type is not supported.'
-	assert len(points) > 2, 'At least three points are needed.'
-	numberOfPoints = len(points)
-	total = 0
-	for i in range(numberOfPoints):
-		if (i == (numberOfPoints - 1)):
-			total += ((points[0][0] - points[i][0]) * (points[0][1] + points[i][1]))
-		else:
-			total += ((points[i+1][0] - points[i][0]) * (points[i+1][1] + points[i][1]))
-
-	if (total < 0):
-		return True
-	else:
-		return False
-
-
-def copyTexture(sizeToUse, imageToUse):
-	newTexture = Texture.create(size = sizeToUse)
-	pixels = imageToUse.texture.pixels[:]
-	newTexture.blit_buffer(pixels, colorfmt='rgba', bufferfmt='ubyte')
-	newTexture.flip_vertical()
-
-	return newTexture
 
 class EmptyScrollEffect(ScrollEffect):
 	pass
@@ -300,8 +229,84 @@ class AutoReloadTexture:
 	def getTexture(self):
 		return self.__texture
 
+def convertKivyCoordToOrxCoord(v, maxY):
+	assert len(v) == 2 or len(v) == 3
+	if (len(v) == 2):
+		return (v[0], maxY - v[1])
+	else:
+		return (v[0], maxY - v[1], v[2])
+
+def strToDoubleFloatTuple(s):
+	assert(type(s) is str)
+	splitted = s.split(',')
+	assert(len(splitted) == 2)
+	x = float(splitted[0].replace('(', ''))
+	y = float(splitted[1].replace(')', ''))
+	return (x, y)
+
+def strToDoubleIntTuple(s):
+	assert(type(s) is str)
+	splitted = s.split(',')
+	assert(len(splitted) == 2)
+	x = int(splitted[0].replace('(', ''))
+	y = int(splitted[1].replace(')', ''))
+	return (x, y)
+
+def vector2ToVector3String(v, default = 0):
+	return '(' + str(v[0]) + ', ' + str(v[1]) + ', ' + str (default) + ')'
+
+def vector2Multiply(v, x):
+	assert(type(v) is tuple or type(v) is list)
+	assert(len(v) == 2)
+	if (type(v) is tuple):
+		return (v[0] * x, v[1] * x)
+	else:
+		return [v[0] * x, v[1] * x]
+
+def boolToStr(b):
+	if (b == True):
+		return 'true'
+	else:
+		return 'false'
+
+def strToBool(s):
+	assert(s in ['true', 'false'])
+	if (s == 'true'):
+		return True
+	else:
+		return False
+
+def isClockWise(points):
+	assert type(points) is list or type(points) is tuple, 'Type is not supported.'
+	assert len(points) > 2, 'At least three points are needed.'
+	numberOfPoints = len(points)
+	total = 0
+	for i in range(numberOfPoints):
+		if (i == (numberOfPoints - 1)):
+			total += ((points[0][0] - points[i][0]) * (points[0][1] + points[i][1]))
+		else:
+			total += ((points[i+1][0] - points[i][0]) * (points[i+1][1] + points[i][1]))
+
+	if (total < 0):
+		return True
+	else:
+		return False
+
+
+def copyTexture(sizeToUse, imageToUse):
+	newTexture = Texture.create(size = sizeToUse)
+	pixels = imageToUse.texture.pixels[:]
+	newTexture.blit_buffer(pixels, colorfmt='rgba', bufferfmt='ubyte')
+	newTexture.flip_vertical()
+
+	return newTexture
+
 def distance(pos1, pos2):
 	fx, fy = pos1
 	sx, sy = pos2
 	return sqrt((fx - sx) * (fx - sx) + (fy - sy) * (fy - sy))
+
+def createSpriteImage(baseImage, x, y, width, height):
+	newTexture = baseImage.texture.get_region(x, y, width, height)
+	return Image(texture = newTexture, size = (width, height), size_hint = (None, None))
 

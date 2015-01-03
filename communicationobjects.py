@@ -32,11 +32,33 @@ class SceneToObjectsMenu:
 
 @Singleton
 class SceneToFilesManager:
-	def __init__(self, getSceneObjectsMethod):
+	def __init__(self, getSceneObjectsMethod, getSceneAttributes, newSceneMethod, addObjectByInfoMethod, 
+			setSceneObjectIdMethod, getSceneObjectIdMethod):
+
 		self.__getSceneObjectsMethod = getSceneObjectsMethod
+		self.__getSceneAttributesMethod = getSceneAttributes
+		self.__newSceneMethod = newSceneMethod
+		self.__addObjectByInfoMethod = addObjectByInfoMethod
+		self.__setSceneObjectIdMethod = setSceneObjectIdMethod
+		self.__getSceneObjectIdMethod = getSceneObjectIdMethod
 
 	def getSceneObjects(self):
 		return self.__getSceneObjectsMethod()
+
+	def getSceneAttributes(self):
+		return self.__getSceneAttributesMethod()
+	
+	def newScene(self, *args):
+		self.__newSceneMethod(*args)
+
+	def addObjectByInfo(self, *args):
+		self.__addObjectByInfoMethod(*args)
+
+	def setSceneObjectId(self, *args):
+		self.__setSceneObjectIdMethod(*args)
+
+	def getSceneObjectId(self):
+		return self.__getSceneObjectIdMethod()
 
 @Singleton
 class CollisionToCollisionForm:

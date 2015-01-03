@@ -17,32 +17,33 @@ from keyboard import KeyboardAccess, KeyboardGuardian
 from layerinfo import LayerGuardian
 from collisioninfo import CollisionGuardian
 from scene import SceneAttributes
+from tilemapfiles import FilesManager
 
 class NewScenePopup(KeyboardAccess):
 	
 	def __confirm(self, *args):
 		try:
-			x = int(self.__xTilesInput.text)
-			assert(x > 0)
+			tilesOnX = int(self.__xTilesInput.text)
+			assert(tilesOnX > 0)
 		except:
-			alert = AlertPopUp('Error', 'Invalid entry for number of tiles in x.', 'Ok')
+			alert = AlertPopUp('Error', 'Invalid entry for number of tiles on x.', 'Ok')
 			return alert.open()
 
 		try:
-			y = int(self.__yTilesInput.text)
-			assert (y > 0)
+			tilesOnY = int(self.__yTilesInput.text)
+			assert (tilesOnY > 0)
 		except:
-			alert = AlertPopUp('Error', 'Invalid entry for number of tiles in y.', 'Ok')
+			alert = AlertPopUp('Error', 'Invalid entry for number of tiles on y.', 'Ok')
 			return alert.open()
 		
 		try:
-			s = int(self.__tileSizeInput.text)
-			assert(s > 0)
+			tilesSize = int(self.__tileSizeInput.text)
+			assert(tilesSize > 0)
 		except:
 			alert = AlertPopUp('Error', 'Invalid entry for the size of tiles.', 'Ok')
 			return alert.open()
 
-		if (s < 8):
+		if (tilesSize < 8):
 			alert = AlertPopUp('Error', 'Minimum size tile supported is 8.', 'Ok')
 			return alert.open()
 
@@ -52,7 +53,7 @@ class NewScenePopup(KeyboardAccess):
 		if (self.__keepGroupsFlags.active == False):
 			LayerGuardian.Instance().reset()
 
-		newSceneAttributes = SceneAttributes(s, x, y)
+		newSceneAttributes = SceneAttributes(tilesSize, tilesOnX, tilesOnY)
 		FileOptionsMenuToScene.Instance().newScene(newSceneAttributes)
 
 		self.close()
@@ -111,111 +112,20 @@ class NewScenePopup(KeyboardAccess):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__popup.dismiss()
 
-@Singleton
-class FilesOptionsMenu:
+class FileSelectorPopup(KeyboardAccess):
 	
-	def __newSceneFinish(self, *args):
-		self.__newSceneMethodReference()
-		self.__newSceneDialog.dismiss()
+	def __finish(self):
+		self.__selected = join(self.__fileChooser.path, self.__fileChooserInput.text)
+		self.close()
 
-	def __newScene(self, *args):
-		self.__newSceneDialog.open()
-
-	def __saveSceneFinish(self, *args):
-		self.__saveSceneMethodReference(join(self.__fileChooser.path, self.__fileChooserInput.text))
-		self.__fileChooserPopUp.dismiss()
-		self.__saveSceneDialog.dismiss()
-		self.__lastPath = self.__fileChooser.path
-
-	def __validateSelectedOsf(self, entry, *args):
-		if (isfile(entry[0]) == True):
-			sepIndex = entry[0].rfind(pathSeparator)
-			if (sepIndex != -1):
-				self.__fileChooserInput.text = entry[0][sepIndex+1:]
-			else:
-				self.__fileChooserInput.text = entry[0]
+	def __validate(self):
+		if (self.__validadeExists == True):
+			if (isfile(join(self.__fileChooser.path, self.__fileChooserInput.text)) == True):
+				self.__warn.open()
 		else:
-			self.__errorPopUp.setText('Invalid file selected.')
-			self.__errorPopUp.open()
+			self.__finish()
 
-	def __validateAndContinueToSave(self, *args):
-		if (self.__fileChooserInput.text == ''):
-			self.__errorPopUp.setText('No file selected.')
-			self.__errorPopUp.open()
-			return
-
-		if (isfile(join(self.__fileChooser.path, self.__fileChooserInput.text)) == True):
-			self.__saveSceneDialog.open()
-		else:
-			self.__saveSceneFinish()
-
-	def __saveScene(self, *args):
-		self.__fileChooser.path = self.__lastPath
-		self.__fileChooser.filters = ['*.osf']
-		self.__fileChooser.on_submit = self.__validateSelectedOsf
-		self.__fileChooserOkButton.on_release = self.__validateAndContinueToSave
-		self.__fileChooserPopUp.open()
-
-	def __loadSceneFinish(self, *args):
-		self.__loadSceneMethodReference(join(self.__fileChooser.path, self.__fileChooserInput.text))
-		self.__fileChooserPopUp.dismiss()
-		self.__lastPath = self.__fileChooser.path
-
-	def __validateAndContinueToLoad(self, *args):
-		if (self.__fileChooserInput.text == ''):
-			self.__errorPopUp.setText('No file selected.')
-			self.__errorPopUp.open()
-			return
-
-		if (isfile(join(self.__fileChooser.path, self.__fileChooserInput.text)) == True):
-			self.__loadSceneFinish()
-		else:
-			self.__errorPopUp.setText("Selected file doesn't exist.")
-			self.__errorPopUp.open()
-
-	def __loadScene(self, *args):
-		self.__fileChooser.path = self.__lastPath
-		self.__fileChooser.filters = ['*.osf']
-		self.__fileChooser.on_submit = self.__validateSelectedOsf
-		self.__fileChooserOkButton.on_release = self.__validateAndContinueToLoad
-		self.__fileChooserPopUp.open()
-
-	def __exportScene(self, *args):
-		#self.__fileChooser.path = self.__lastPath
-		#self.__fileChooser.filters = ['*.ini']
-		#self.__fileChooser.on_submit = self.__validateSelectedOsf
-		#self.__fileChooserOkButton.on_release = self.__validateAndContinueToLoad
-		#self.__fileChooserPopUp.open()
-		FilesManager.Instance().exportScene('teste.ini')
-	
-
-	def __startBasicButtonsLayout(self):
-		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__newButton = CancelableButton(text = 'New Scene', size_hint = (1.0, 0.25), 
-			on_release = self.__newScenePopup.open)
-		self.__loadButton = CancelableButton(text = 'Load Scene', size_hint = (1.0, 0.25), 
-			on_release = self.__loadScene)
-		self.__saveButton = CancelableButton(text = 'Save Scene', size_hint = (1.0, 0.25), 
-			on_release = self.__saveScene)
-		self.__exportButton = CancelableButton(text = 'Export Scene', size_hint = (1.0, 0.25), 
-			on_release = self.__exportScene)
-		
-		self.__layout.add_widget(self.__newButton)
-		self.__layout.add_widget(self.__loadButton)
-		self.__layout.add_widget(self.__saveButton)
-		self.__layout.add_widget(self.__exportButton)
-
-	def __startConfirmationPopUp(self):
-		self.__newSceneDialog = Dialog(
-			self.__newSceneFinish, 'Confirmation', 
-			'Starting a new scene will remove all the\nnon saved changes.\nAre you sure?', 'Ok', 'Cancel'
-		)
-		self.__saveSceneDialog = Dialog(
-			self.__saveSceneFinish, 'Confirmation',
-			'This will override the selected file.\nContinue?', 'Ok', 'Cancel'
-		)
-
-	def __startFileChooser(self):
+	def __init__(self, validateExists = False):
 		self.__fileChooserLayout = BoxLayout(orientation = 'vertical')
 		self.__fileChooserPopUp = Popup(auto_dismiss = False, title = 'Select the file:')
 		self.__fileChooserInputLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
@@ -226,9 +136,8 @@ class FilesOptionsMenu:
 		self.__fileChooser = FileChooserIconView(size_hint = (1.0, 0.9))
 
 		self.__fileChooserYesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		self.__fileChooserOkButton = CancelableButton(text = 'Ok')
-		self.__fileChooserCancelButton = CancelableButton(text = 'Cancel', 
-			on_release = self.__fileChooserPopUp.dismiss)
+		self.__fileChooserOkButton = CancelableButton(text = 'Ok', on_release = self.__validate)
+		self.__fileChooserCancelButton = CancelableButton(text = 'Cancel', on_release = self.close)
 		self.__fileChooserYesNoLayout.add_widget(self.__fileChooserOkButton)
 		self.__fileChooserYesNoLayout.add_widget(self.__fileChooserCancelButton)
 
@@ -236,17 +145,176 @@ class FilesOptionsMenu:
 		self.__fileChooserLayout.add_widget(self.__fileChooser)
 		self.__fileChooserLayout.add_widget(self.__fileChooserYesNoLayout)
 		self.__fileChooserPopUp.content = self.__fileChooserLayout
-		self.__lastPath = getcwd()
 
+		# control variables
+		self.__validadeExists = validateExists
+		if (validateExists == True):
+			self.__warn = Dialog(self.__finish, 'Warning', 
+				'The selected file already exists.\nThis operation will override it,\n'\
+				'are you sure you want to continue?', 'Ok', 'Cancel'
+			)
+		self.__lastPath = getcwd()
+		self.__selected = None
+
+	def open(self):
+		KeyboardGuardian.acquireKeyboard(self)
+		self.__fileChooserPopUp.open()
+		self.__selected = None
+
+	def close(self):
+		KeyboardGuardian.dropKeyboard(self)
+		self.__fileChooserPopUp.dismiss()
+
+	def getSelected(self):
+		return self.__selected
+
+class FileChooserUser(object):
+	
+	def _prepareOpen(self, filterToUse = ['*.osf']):
+		assert(type(filterToUse) is list)
+		self._fileChooser.path = self._lastPath
+		self._fileChooser.filters = filterToUse
+
+	def _submitMethod(self, selection, touch):
+		if len(selection) == 0:
+			return
+
+		filename = selection[0].split(pathSeparator)[-1]
+		if (filename[-4:] != '.osf'):
+			return
+
+		self._fileChooserInput.text = filename
+
+	def __init__(self):
+		self._fileChooserLayout = BoxLayout(orientation = 'vertical')
+		self._fileChooserPopUp = Popup(auto_dismiss = False, title = 'Select the file:')
+		self._fileChooserInputLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		filenameLabel = Label(text = 'File:', size_hint = (0.3, 1.0))
+		self._fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0))
+		self._fileChooserInputLayout.add_widget(filenameLabel)
+		self._fileChooserInputLayout.add_widget(self._fileChooserInput)
+		self._fileChooser = FileChooserIconView(size_hint = (1.0, 0.9))
+		self._fileChooser.on_submit = self._submitMethod
+
+		self._fileChooserYesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		self._fileChooserOkButton = CancelableButton(text = 'Ok')
+		self._fileChooserCancelButton = CancelableButton(text = 'Cancel', 
+			on_release = self.close)
+		self._fileChooserYesNoLayout.add_widget(self._fileChooserOkButton)
+		self._fileChooserYesNoLayout.add_widget(self._fileChooserCancelButton)
+
+		self._fileChooserLayout.add_widget(self._fileChooserInputLayout)
+		self._fileChooserLayout.add_widget(self._fileChooser)
+		self._fileChooserLayout.add_widget(self._fileChooserYesNoLayout)
+		self._fileChooserPopUp.content = self._fileChooserLayout
+		self._lastPath = getcwd()
+		self._errorPopUp = AlertPopUp('Error', '', 'Ok')
+
+
+class SaveScenePopup(KeyboardAccess, FileChooserUser):
+	def __saveSceneFinish(self, *args):
+		filename = self._fileChooserInput.text	
+		if (filename[-4:] != '.osf'):
+			filename += '.osf'
+
+		FilesManager.Instance().saveScene(join(self._fileChooser.path, filename))
+		self.__saveSceneDialog.dismiss()
+		self._lastPath = self._fileChooser.path
+		self.close()
+
+	def __validateAndContinueToSave(self, *args):
+		if (self._fileChooserInput.text == ''):
+			self._errorPopUp.setText('No file selected.')
+			self._errorPopUp.open()
+			return
+
+		if (isfile(join(self._fileChooser.path, self._fileChooserInput.text)) == True):
+			self.__saveSceneDialog.open()
+		else:
+			self.__saveSceneFinish()
+	
+	def __init__(self):
+		super(SaveScenePopup, self).__init__()
+		self.__saveSceneDialog = Dialog(
+			self.__saveSceneFinish, 'Confirmation',
+			'This will override the selected file.\nContinue?', 'Ok', 'Cancel'
+		)
+	
+	def open(self, *args):
+		self._prepareOpen()
+		KeyboardGuardian.Instance().acquireKeyboard(self)
+		self._fileChooserOkButton.on_release = self.__validateAndContinueToSave
+		self._fileChooserPopUp.open()
+
+	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
+		self._fileChooserPopUp.dismiss()
+
+class LoadScenePopup(KeyboardAccess, FileChooserUser):
+	def __validateAndContinueToLoad(self, *args):
+		if (self._fileChooserInput.text == ''):
+			self._errorPopUp.setText('No file selected.')
+			self._errorPopUp.open()
+			return
+
+		if (isfile(join(self._fileChooser.path, self._fileChooserInput.text)) == True):
+			self.__loadSceneFinish()
+		else:
+			self._errorPopUp.setText("Selected file doesn't exist.")
+			self._errorPopUp.open()
+
+	def __loadSceneFinish(self, *args):
+		FilesManager.Instance().loadScene(join(self._fileChooser.path, self._fileChooserInput.text))
+		self._fileChooserPopUp.dismiss()
+		self._lastPath = self._fileChooser.path
+		self.close()
+
+	def __init__(self):
+		super(LoadScenePopup, self).__init__()
+
+	def open(self, *args):
+		self._prepareOpen()
+		KeyboardGuardian.Instance().acquireKeyboard(self)
+		self._fileChooserOkButton.on_release = self.__validateAndContinueToLoad
+		self._fileChooserPopUp.open()
+	
+	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
+		self._fileChooserPopUp.dismiss()
+
+@Singleton
+class FilesOptionsMenu:
+
+	def __exportScene(self, *args):
+		#self.__fileChooser.path = self.__lastPath
+		#self.__fileChooser.filters = ['*.ini']
+		#self.__fileChooser.on_submit = self.__validateSelectedOsf
+		#self.__fileChooserOkButton.on_release = self.__validateAndContinueToLoad
+		#self.__fileChooserPopUp.open()
+		FilesManager.Instance().exportScene('teste.ini')
+
+	def __startBasicButtonsLayout(self):
+		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
+		self.__newButton = CancelableButton(text = 'New Scene', size_hint = (1.0, 0.25), 
+			on_release = self.__newScenePopup.open)
+		self.__loadButton = CancelableButton(text = 'Load Scene', size_hint = (1.0, 0.25), 
+			on_release = self.__loadScenePopup.open)
+		self.__saveButton = CancelableButton(text = 'Save Scene', size_hint = (1.0, 0.25), 
+			on_release = self.__saveScenePopup.open)
+		self.__exportButton = CancelableButton(text = 'Export Scene', size_hint = (1.0, 0.25), 
+			on_release = self.__exportScene)
+		
+		self.__layout.add_widget(self.__newButton)
+		self.__layout.add_widget(self.__loadButton)
+		self.__layout.add_widget(self.__saveButton)
+		self.__layout.add_widget(self.__exportButton)
 
 	def __init__(self, accordionItem):
 		self.__newScenePopup = NewScenePopup()
+		self.__saveScenePopup = SaveScenePopup()
+		self.__loadScenePopup = LoadScenePopup()
 
-		self.__startBasicButtonsLayout()	
-		self.__startConfirmationPopUp()	
-		self.__startFileChooser()
-		self.__errorPopUp = AlertPopUp('Error', '', 'Ok')
-
+		self.__startBasicButtonsLayout()
 		self.__accordionItemReference = accordionItem
 		self.__accordionItemReference.add_widget(self.__layout)
 

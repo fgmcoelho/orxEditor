@@ -9,7 +9,7 @@ from kivy.uix.scrollview import ScrollView
 
 from editorobjects import BaseObject
 from objectdescriptor import ObjectDescriptor
-from editorutils import EmptyScrollEffect
+from editorutils import EmptyScrollEffect, createSpriteImage
 from communicationobjects import SceneToObjectsMenu
 from splittedimagemap import SplittedImageImporter
 
@@ -36,7 +36,6 @@ class ObjectMenuItem:
 
 @Singleton
 class ObjectsMenu:
-
 	def __reloadMenuList(self):
 		self.__numberOfItems = len(self.__menuObjectsList)
 		self.__objectListLayout.clear_widgets()
@@ -60,7 +59,7 @@ class ObjectsMenu:
 		l = []
 		mainImage = Image (source = resourceInfo.getPath())
 		if (resourceInfo.getKeepOriginal() == True):
-			l.append(BaseObject(mainImage, self.__baseObjectId, resourceInfo.getPath()))
+			l.append(BaseObject(mainImage, self.__baseObjectId))
 			self.__baseObjectId += 1
 
 		for selection in resourceInfo.getSelectionList():
@@ -68,8 +67,7 @@ class ObjectsMenu:
 			y = selection.getY()
 			width = selection.getSizeX()
 			height = selection.getSizeY()
-			newTexture = mainImage.texture.get_region(x, y, width, height)
-			image = Image(texture = newTexture, size = (width, height), size_hint = (None, None))
+			image = createSpriteImage(mainImage, x, y, width, height)
 			obj = BaseObject(image, self.__baseObjectId, resourceInfo.getPath(), (x, y))
 			l.append(obj)
 			self.__baseObjectId += 1

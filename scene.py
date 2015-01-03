@@ -231,13 +231,15 @@ class Scene:
 	def addObject(self, obj, relativeX, relaviveY):
 		sx, sy = obj.getSize()
 		if (sx > self.__maxX or sy > self.__maxY):
-			errorAlert = AlertPopUp('Error', 'Object could not be rendered because\nit is bigger than the scene space.',
-				'Ok')
+			errorAlert = AlertPopUp(
+				'Error', 
+				'Object could not be rendered because\nit is bigger than the scene space.',
+				'Ok'
+			)
 			errorAlert.open()
 			return
 
 		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
-
 		if (pos[0] + sx > self.__maxX):
 			finalX = self.__maxX - sx
 		else:
@@ -255,6 +257,26 @@ class Scene:
 		self.__id += 1
 
 		ObjectDescriptor.Instance().setObject(newRenderedObject)
+	
+	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo):
+		newRenderedObject = self.__renderGuardian.createNewObject(identifier, baseObject, pos, self.__tileSize, 
+			self.__maxX, self.__maxY)
+
+		if (flipOnX == True):
+			newRenderedObject.flipOnX()
+
+		if (flipOnY == True):
+			newRenderedObject.flipOnY()
+
+		if (scale != 1.0):
+			newRenderedObject.setScale(scale, True)
+
+		if (collisionInfo is not None):
+			newRenderedObject.setCollisionInfo(collisionInfo)	
+		
+		newRenderedObject.setLayer(layer)
+		self.__layout.add_widget(newRenderedObject)
+		self.__objectDict[identifier] = newRenderedObject
 
 	def getObjectsDict(self):
 		return self.__objectDict
@@ -276,6 +298,12 @@ class Scene:
 	def getSceneAttributes(self):
 		return self.__sceneAttr
 
+	def getCurrentId(self):
+		return self.__id
+
+	def setCurrentId(self, newId):
+		assert self.__id <= newId
+		self.__id = newId
 
 class SceneHandler (SpecialScrollControl, KeyboardAccess):
 	# Overloaded method
@@ -456,3 +484,16 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 		self._scrollView.add_widget(newScene.getLayout())
 		
 		self.__sceneList[self.__currentIndex] = newScene
+
+	def getCurrentSceneAttributes(self):
+		return self.__sceneList[self.__currentIndex].getSceneAttributes()
+
+	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo):
+		self.__sceneList[self.__currentIndex].addObjectByInfo(baseObject, identifier, pos, scale, flipOnX, flipOnY, 
+			layer, collisionInfo)
+
+	def setSceneObjectId(self, newId):
+		self.__sceneList[self.__currentIndex].setCurrentId(newId)
+
+	def getSceneObjectId(self):
+		return self.__sceneList[self.__currentIndex].getCurrentId()

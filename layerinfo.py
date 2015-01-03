@@ -16,7 +16,6 @@ class LayerRegister:
 
 @Singleton
 class LayerGuardian:
-	
 	def __startLayers(self):
 		self.__defaultLayer = LayerRegister('default', 0)
 		self.__layersDict = { 0 : self.__defaultLayer }

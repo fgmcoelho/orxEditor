@@ -88,7 +88,10 @@ class TileEditor(App):
 		CollisionToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
 			self.__sceneHandler.getAllObjects)
 		SceneToObjectsMenu.Instance(self.__sceneHandler.draw)
-		SceneToFilesManager.Instance(self.__sceneHandler.getCurrentSceneObjects)
+		SceneToFilesManager.Instance(self.__sceneHandler.getCurrentSceneObjects, 
+			self.__sceneHandler.getCurrentSceneAttributes, self.__sceneHandler.newScene,
+			self.__sceneHandler.addObjectByInfo, self.__sceneHandler.setSceneObjectId, 
+			self.__sceneHandler.getSceneObjectId)
 		CollisionToCollisionForm.Instance(CollisionInformationPopup.Instance().callPreview)
 		ObjectDescriptorToResourceLoarder.Instance(self.__resourcePopup.open)
 		ResourceLoaderToObjectDescriptor.Instance(ObjectsMenu.Instance().reloadResource)
