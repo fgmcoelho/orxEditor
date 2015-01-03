@@ -42,7 +42,6 @@ class CollisionGuardian:
 				flagsList.append(flag)
 
 		flagsOrderedList = sorted(flagsList, key=itemgetter(0))
-
 		listToReturn = []
 		for flag in flagsOrderedList:
 			listToReturn.append(flag[1])
@@ -71,18 +70,57 @@ class CollisionPartInformation:
 		)
 
 	def __assertPointsValue(self, form, points):
-		assert ((points is None) or (form == "box" and len(points) == 2) or (form == "sphere" and
-			len(points) == 2) or (form == "mesh" and len(points) >= 3))
+		assert (points is None) or (form == "box" and len(points) == 2) or (form == "sphere" and \
+			len(points) == 2) or (form == "mesh" and len(points) >= 3),\
+			"Number of points does not match the part form type."
 
 	def __removeFlagFromList(self, listToUse, flag):
 		flagObjectToRemove = None
 		for flagObject in listToUse:
-			if (flagObject.getName() == flag):
+			if (flagObject == flag):
 				flagObjectToRemove = flagObject
 				break
 
 		if (flagObjectToRemove is not None):
 			listToUse.remove(flagObjectToRemove)
+
+	def __compareFlagLists(self, firstList, secondList):
+		if (len(firstList) != len(secondList)):
+			return False
+		else:
+			for firstFlag in firstList:
+				hasFlag == False
+				for secondFlag in secondList:
+					if (firstFlag.getName() == secondFlag.getName()):
+						hasFlag = True
+						break
+				if (hasFlag == False):
+					return False
+		
+		return True
+
+	def __compareFormTypeAndPoints(self, part):
+		if (self.__formType != part.getFormType()):
+			return False
+
+		otherPoints = part.getPoints() 
+		if (self.__points is None and otherPoints is None):
+			return True
+
+		if (len(self.__points) != len(otherPoints)):
+			return False
+
+		for firstPartPoint in self.__points:
+			hasPoint = False
+			for secondPartPoint in otherPoints:
+				if (firstPartPoint == secondPartPoint):
+					hasPoint = True
+					break
+
+			if (hasPoint == False):
+				return False
+
+		return True
 
 	def __init__(self, checkMask = [], selfFlags = [], solid = False, formType = "box", points = None):
 		self.__assertPointsValue(formType, points)
@@ -132,6 +170,15 @@ class CollisionPartInformation:
 
 	def getPoints(self):
 		return self.__points
+
+	def isEqual(self, part):
+		assert isinstance(part, CollisionPartInformation), "Argument must be a CollisionPartInformation."
+		if (self.__compareFlagLists(self.__checkMask, part.getCheckMask()) == True and
+				self.__compareFlagLists(self.__selfFlags, part.getSelfFlags()) == True and
+				self.__compareFormTypeAndPoints(part) == True and self.__solid == part.getSolid()):
+			return True
+		else:
+			return False
 
 class CollisionInformation:
 

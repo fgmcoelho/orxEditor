@@ -580,7 +580,6 @@ class CollisionInformationPopup:
 					obj.setCollisionInfo(self.__copiesDict[currentId])
 			else:
 				obj.setCollisionInfo(self.__copiesDict[currentId])
-
 		self.dismissPopUp()
 
 	def __needToOversizePreview(self, part):

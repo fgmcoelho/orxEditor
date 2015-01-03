@@ -118,7 +118,7 @@ class FileSelectorPopup(KeyboardAccess):
 		self.__selected = join(self.__fileChooser.path, self.__fileChooserInput.text)
 		self.close()
 
-	def __validate(self):
+	def __validateAndContinue(self):
 		if (self.__validadeExists == True):
 			if (isfile(join(self.__fileChooser.path, self.__fileChooserInput.text)) == True):
 				self.__warn.open()
@@ -183,7 +183,10 @@ class FileChooserUser(object):
 		if (filename[-4:] != '.osf'):
 			return
 
-		self._fileChooserInput.text = filename
+		if (self._fileChooserInput.text == filename):
+			return self._validateAndContinue()
+		else:
+			self._fileChooserInput.text = filename
 
 	def __init__(self):
 		self._fileChooserLayout = BoxLayout(orientation = 'vertical')
@@ -222,7 +225,7 @@ class SaveScenePopup(KeyboardAccess, FileChooserUser):
 		self._lastPath = self._fileChooser.path
 		self.close()
 
-	def __validateAndContinueToSave(self, *args):
+	def _validateAndContinue(self, *args):
 		if (self._fileChooserInput.text == ''):
 			self._errorPopUp.setText('No file selected.')
 			self._errorPopUp.open()
@@ -243,7 +246,7 @@ class SaveScenePopup(KeyboardAccess, FileChooserUser):
 	def open(self, *args):
 		self._prepareOpen()
 		KeyboardGuardian.Instance().acquireKeyboard(self)
-		self._fileChooserOkButton.on_release = self.__validateAndContinueToSave
+		self._fileChooserOkButton.on_release = self._validateAndContinue
 		self._fileChooserPopUp.open()
 
 	def close(self, *args):
@@ -251,7 +254,7 @@ class SaveScenePopup(KeyboardAccess, FileChooserUser):
 		self._fileChooserPopUp.dismiss()
 
 class LoadScenePopup(KeyboardAccess, FileChooserUser):
-	def __validateAndContinueToLoad(self, *args):
+	def _validateAndContinue(self, *args):
 		if (self._fileChooserInput.text == ''):
 			self._errorPopUp.setText('No file selected.')
 			self._errorPopUp.open()
@@ -275,7 +278,7 @@ class LoadScenePopup(KeyboardAccess, FileChooserUser):
 	def open(self, *args):
 		self._prepareOpen()
 		KeyboardGuardian.Instance().acquireKeyboard(self)
-		self._fileChooserOkButton.on_release = self.__validateAndContinueToLoad
+		self._fileChooserOkButton.on_release = self._validateAndContinue
 		self._fileChooserPopUp.open()
 	
 	def close(self, *args):
