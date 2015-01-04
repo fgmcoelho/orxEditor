@@ -427,7 +427,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 			self.__selectionTree.setIsCtrlPressed(True)
 
 		elif (keycode[1] == 'escape'):
-			KeyboardGuardian.Instance().dropKeyboard(self)
+			self.close()
 
 	def __splitImage(self, *args):
 		if (self.__state == 'divisions'):
@@ -543,7 +543,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 		# buttons, mostly shared
 		self.__cancelButton = CancelableButton(on_release = self.__processCancel, text = 'Cancel',
-				size_hint = (1.0, 0.05))
+			size_hint = (1.0, 0.05))
 		self.__doneButton = CancelableButton(on_release = self.__processDone, text = 'Done', size_hint = (1.0, 0.05))
 		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', size_hint = (1.0, 0.05))
 		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
@@ -658,7 +658,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 		super(ResourceLoaderPopup, self).__init__()
 		self.__isShiftPressed = False
 
-		self.__popup = Popup(title = 'Resource Loader')
+		self.__popup = Popup(title = 'Resource Loader', auto_dismiss = False)
 
 		self.__layout = BoxLayout(orientation = 'horizontal')
 

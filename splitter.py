@@ -590,9 +590,7 @@ class Display:
 		for check in self.__checkBoxList:
 			if check.active == True:
 				i += 1
-
 		return i
-
 
 	def saveSelectedImages(self, filename, colorToAlpha = None, divs = None):
 		if (self.__state != DisplayStates.showingSplitList or len(self.__checkBoxList) == 0):

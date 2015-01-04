@@ -57,7 +57,6 @@ class CollisionGuardian:
 		self.__startFlags()
 
 class CollisionPartInformation:
-
 	@staticmethod
 	def copy(part):
 		assert (isinstance(part, CollisionPartInformation))
@@ -181,7 +180,6 @@ class CollisionPartInformation:
 			return False
 
 class CollisionInformation:
-
 	@staticmethod
 	def copy(info):
 		assert(isinstance(info, CollisionInformation))

@@ -173,9 +173,7 @@ class CollisionPartDisplay(RelativeLayout):
 		return tuple(self.size)
 
 class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
-
 	dotSize = 11
-
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
 		xBefore, yBefore = self.bbox[0]
 
@@ -220,10 +218,8 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 
 
 class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
-
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
-
 		if (keycode[1] == 'shift'):
 			self.setIsShiftPressed(False)
 
@@ -237,6 +233,9 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 				self.__display.remove_widget(self.__lastPointPressed)
 				self.__pointsList.remove(self.__lastPointPressed)
 				self.__updatePoints(None)
+
+		elif(keycode[1] == 'escape'):
+			CollisionFlagFormEditorPopup.Instance().dismissPopUp()
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
@@ -403,16 +402,14 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 
 @Singleton
 class CollisionFlagFormEditorPopup:
-
 	def __saveAndClose(self, *args):
 		self.__mainScreen.savePoints()
 		CollisionToCollisionForm.Instance().preview()
 		self.dismissPopUp()
 
 	def __init__(self):
-
 		self.__layout = BoxLayout(orientation = 'vertical')
-		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout)
+		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout, auto_dismiss = False)
 		self.__mainScreen = CollisionFlagFormEditorLayout()
 		self.__bottomMenu = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.15, 1.0),
@@ -431,7 +428,6 @@ class CollisionFlagFormEditorPopup:
 
 	def dismissPopUp(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self.__mainScreen)
-
 		self.__popup.dismiss()
 
 	def showPopUp(self, part, obj):

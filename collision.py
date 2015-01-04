@@ -20,9 +20,16 @@ from keyboard import KeyboardAccess, KeyboardGuardian
 from collisioninfo import CollisionGuardian, CollisionPartInformation, CollisionInformation
 from collisionform import CollisionPartDisplay, CollisionFlagFormEditorPopup
 
+class CollisionFlagsEditorKeyboardHandler(KeyboardAccess):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			CollisionFlagsEditor.Instance().close()
+	
+	def __init__(self):
+		pass
+
 @Singleton
 class CollisionFlagsEditor:
-
 	def __reaplyFocus(self):
 		flagsList = CollisionGuardian.Instance().getFlags()
 		if (len(flagsList) != self.__maxCollisionFlags):
@@ -44,8 +51,6 @@ class CollisionFlagsEditor:
 			flagLine.add_widget(CancelableButton(text = 'Delete', size_hint = (0.1, 1.0), id = 'Delete#' + \
 				flag.getName(),	on_release = self.__processRemoveFlag))
 			self.__layout.add_widget(flagLine)
-
-
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, 1.0 - ((len(flagsList) + 3) * self.__baseHeight))))
 
 		if (len(flagsList) == self.__maxCollisionFlags):
@@ -56,7 +61,6 @@ class CollisionFlagsEditor:
 			self.__layout.add_widget(self.__inputBar)
 
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
-
 		self.__layout.add_widget(self.__bottomBar)
 
 	def __removeFlagsFromPartsList(self, partsList):
@@ -73,7 +77,6 @@ class CollisionFlagsEditor:
 		for part in partsList:
 			if (flagObject in part.getSelfFlags() or flagObject in part.getCheckMask()):
 				return 1
-
 		return 0
 
 	def __doRemoveFlag(self, *args):
@@ -173,12 +176,6 @@ class CollisionFlagsEditor:
 		self.__flagNameInput.text = ''
 		self.__render()
 
-	def __processClose(self, *args):
-		self.__flagNameInput.focus = False
-
-		CollisionInformationPopup.Instance().updateLayout()
-		self.__popup.dismiss()
-
 	def __init__(self):
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__popup = Popup (title = 'Collision flags editor', auto_dismiss = False, content = self.__layout)
@@ -199,7 +196,7 @@ class CollisionFlagsEditor:
 		self.__inputBar.add_widget(self.__flagAddButton)
 
 		self.__bottomBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		doneButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release = self.__processClose)
+		doneButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release = self.close)
 		self.__bottomBar.add_widget(Label(text = '', size_hint = (0.9, 1.0)))
 		self.__bottomBar.add_widget(doneButton)
 
@@ -211,13 +208,20 @@ class CollisionFlagsEditor:
 		self.__flagRemoveWarning = Dialog(self.__doRemoveFlag, 'Confirmation',
 			'This will affect existing objects.\nAre you sure you want to remove this flag?', 'Yes', 'No',
 			self.__reaplyFocus, self.__reaplyFocus)
+		self.__keyboardHandler = CollisionFlagsEditorKeyboardHandler()
+
+	def close(self, *args):
+		self.__flagNameInput.focus = False
+		CollisionInformationPopup.Instance().updateLayout()
+		self.__popup.dismiss()
+		KeyboardGuardian.Instance().dropKeyboard(self.__keyboardHandler)
 
 	def showPopUp(self, *args):
+		KeyboardGuardian.Instance().acquireKeyboard(self.__keyboardHandler)
 		self.__render()
 		self.__popup.open()
 
 class CollisionPartLayout:
-
 	def __togglePartFlag(self, buttonObject):
 		buttonInfo = buttonObject.id.split('#')
 		if (buttonObject.state == 'normal'):
@@ -401,6 +405,10 @@ class CollisionPartLayout:
 		return self.__part
 
 class CollisionInformationPopupKeyboardHandler(KeyboardAccess):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			CollisionInformationPopup.Instance().dismissPopUp()
+	
 	def __init__(self):
 		pass
 

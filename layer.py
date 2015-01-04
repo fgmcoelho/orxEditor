@@ -14,11 +14,10 @@ from layerinfo import LayerRegister, LayerGuardian
 from string import letters, digits
 
 class LayerEditorPopup(KeyboardAccess):
-
 	# Overloaded method
-	def _processKeyDown(self, keyboard, keycode, text, modifiers):
+	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
-			KeyboardGuardian.Instance().dropKeyboard(self)
+			self.__close()
 
 	def __close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
@@ -163,7 +162,7 @@ class LayerEditorPopup(KeyboardAccess):
 			on_release = self.__processAddLayer)
 
 
-		self.__popup = Popup(title = 'Groups Editor', content = self.__layout)
+		self.__popup = Popup(title = 'Groups Editor', content = self.__layout, auto_dismiss = False)
 		self.__maxLayers = 16
 		self.__validCharacters = letters + digits
 		self.__layerToRemoveName = None
@@ -174,9 +173,9 @@ class LayerEditorPopup(KeyboardAccess):
 		self.__popup.open()
 
 class LayerKeyboardHandler(KeyboardAccess):
-	def _processKeyDown(self, keyboard, keycode, text, modifiers):
+	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
-			KeyboardGuardian.Instance().dropKeyboard(self)
+			LayerInformationPopup.Instance().close()
 
 	def __init__(self):
 		pass
@@ -184,7 +183,7 @@ class LayerKeyboardHandler(KeyboardAccess):
 @Singleton
 class LayerInformationPopup:
 
-	def __close(self, *args):
+	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self.__keyboardHandler)
 		self.__popup.dismiss()
 
@@ -206,7 +205,7 @@ class LayerInformationPopup:
 			for obj in self.__objectsList:
 				obj.setLayer(newLayer)
 			LayerToSceneCommunication.Instance().redraw()
-			self.__close()
+			self.close()
 
 	def __getLayerNameIfAllEqual(self):
 		firstLayer = self.__objectsList[0].getLayer()
@@ -242,12 +241,12 @@ class LayerInformationPopup:
 	def __init__(self):
 		LayerGuardian.Instance()
 		self.__editFlagsPopup = LayerEditorPopup()
-		self.__popup = Popup(title = 'Group Selector')
+		self.__popup = Popup(title = 'Group Selector', auto_dismiss = False)
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__objectsList = None
 
 		self.__bottomLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.05))
-		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.__close)
+		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.close)
 		self.__doneButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release = self.__save)
 		self.__editLayersButton = CancelableButton(text = 'Edit groups', size_hint = (0.2, 1.0),
 			on_release = self.__editFlagsPopup.open)

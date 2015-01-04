@@ -11,7 +11,6 @@ from editorheritage import SpaceLimitedObject
 
 class SceneAction:
 	def __init__(self, action, objectsList, args = []):
-
 		assert (type(objectsList) is list)
 		assert ((len (args) == 0) or (len(args) == len (objectsList)))
 
@@ -119,7 +118,6 @@ class SceneActionHistory:
 			self.__historyList.append(action)
 
 class RenderObjectGuardian:
-
 	def __getSelectionLimits(self):
 		first = True
 		cur = None
@@ -167,7 +165,6 @@ class RenderObjectGuardian:
 		self.__reviewSelection()
 
 	def endMovement(self):
-
 		if (self.__moveStarted == True):
 			if (self.__movePositions != [] and self.__multiSelectionObjects != []):
 				start = self.__movePositions[0]
@@ -202,7 +199,6 @@ class RenderObjectGuardian:
 		return self.__multiSelectionObjects
 
 	def propagateTranslation(self, callingObject, translation, post, anchor):
-
 		if (self.__moveStarted == False):
 			self.__movePositions = []
 			for obj in self.__multiSelectionObjects:
@@ -254,7 +250,6 @@ class RenderObjectGuardian:
 		return None
 
 	def flipSelectionOnX(self):
-
 		tempSelection = self.__multiSelectionObjects[:]
 		for obj in tempSelection:
 			self.__multiSelectionObjects = [ obj ]
@@ -268,7 +263,6 @@ class RenderObjectGuardian:
 		return self.__multiSelectionObjects
 
 	def flipSelectionOnY(self):
-
 		tempSelection = self.__multiSelectionObjects[:]
 		for obj in tempSelection:
 			self.__multiSelectionObjects = [ obj ]
@@ -282,7 +276,6 @@ class RenderObjectGuardian:
 		return self.__multiSelectionObjects
 
 	def alignSelectionToGrid(self):
-
 		# By default every translation one object in the multiple selection is
 		# propagated to the others. So we need to clean the list to alighn each
 		# object properly.
@@ -440,7 +433,6 @@ class BaseObject:
 		return self.__spriteInfo
 
 class RenderedObject (Scatter, SpaceLimitedObject):
-
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
 
 		if (self.__forceMove == False and self.__renderGuardian.isSelected(self) == False):

@@ -20,6 +20,9 @@ from scene import SceneAttributes
 from tilemapfiles import FilesManager
 
 class NewScenePopup(KeyboardAccess):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.close()
 	
 	def __confirm(self, *args):
 		try:
@@ -113,6 +116,9 @@ class NewScenePopup(KeyboardAccess):
 		self.__popup.dismiss()
 
 class FileSelectorPopup(KeyboardAccess):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.close()
 	
 	def __finish(self):
 		self.__selected = join(self.__fileChooser.path, self.__fileChooserInput.text)
@@ -169,7 +175,6 @@ class FileSelectorPopup(KeyboardAccess):
 		return self.__selected
 
 class FileChooserUser(object):
-	
 	def _prepareOpen(self, filterToUse = ['*.osf']):
 		assert(type(filterToUse) is list)
 		self._fileChooser.path = self._lastPath
@@ -215,6 +220,10 @@ class FileChooserUser(object):
 
 
 class SaveScenePopup(KeyboardAccess, FileChooserUser):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.close()
+
 	def __saveSceneFinish(self, *args):
 		filename = self._fileChooserInput.text	
 		if (filename[-4:] != '.osf'):
@@ -254,6 +263,10 @@ class SaveScenePopup(KeyboardAccess, FileChooserUser):
 		self._fileChooserPopUp.dismiss()
 
 class LoadScenePopup(KeyboardAccess, FileChooserUser):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.close()
+
 	def _validateAndContinue(self, *args):
 		if (self._fileChooserInput.text == ''):
 			self._errorPopUp.setText('No file selected.')
@@ -284,6 +297,10 @@ class LoadScenePopup(KeyboardAccess, FileChooserUser):
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self._fileChooserPopUp.dismiss()
+
+class ExportScenePopup:
+	def __init__(self):
+		pass		
 
 @Singleton
 class FilesOptionsMenu:

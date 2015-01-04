@@ -8,6 +8,8 @@ from kivy.graphics.texture import Texture
 from kivy.uix.image import Image
 from kivy.effects.scroll import ScrollEffect
 
+from keyboard import KeyboardAccess, KeyboardGuardian
+
 from os.path import sep as pathSeparator
 from os import getcwd
 from math import sqrt
@@ -59,7 +61,6 @@ class NumberInput(TextInput):
 			self.__module = None
 
 class CancelableButton (Button):
-
 	def __getActionByEntry(self, key, dictToLook):
 		if (key in dictToLook):
 			self.__action = dictToLook[key]
@@ -100,9 +101,9 @@ class CancelableButton (Button):
 class EmptyScrollEffect(ScrollEffect):
 	pass
 
-class BaseWarnMethods:
-
+class BaseWarnMethods(KeyboardAccess):
 	def open(self):
+		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.mainPopUp.open()
 
 	def setTitle(self, value):
@@ -114,13 +115,16 @@ class BaseWarnMethods:
 	def dismiss(self):
 		self.mainPopUp.dismiss()
 
-
-class Dialog (BaseWarnMethods):
-
+class Dialog(BaseWarnMethods):
 	def __doNothing(self, notUsed = None):
 		return None
 
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.__processCancel()
+
 	def __processCancel(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.mainPopUp.dismiss()
 		if (self.__afterCancelAction is not None):
 			self.__afterCancelAction()
@@ -128,6 +132,7 @@ class Dialog (BaseWarnMethods):
 	def __processOk(self, *args):
 		self.__okMethod()
 		self.mainPopUp.dismiss()
+		KeyboardGuardian.Instance().dropKeyboard(self)
 		if (self.__afterOkAction is not None):
 			self.__afterOkAction()
 
@@ -155,8 +160,12 @@ class Dialog (BaseWarnMethods):
 		self.mainPopUp.content = popUpLayout
 
 class AlertPopUp (BaseWarnMethods):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.__processClose()
 
 	def __processClose(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.mainPopUp.dismiss()
 		if (self.__processCloseAction is not None):
 			self.__processCloseAction()
@@ -178,7 +187,6 @@ class AlertPopUp (BaseWarnMethods):
 		self.mainPopUp.content = mainPopUpBox
 
 class FileSelectionPopup:
-
 	def __setFilenameWithoutTheFullPath(self, entry, notUsed = None):
 		sepIndex = entry[0].rfind(pathSeparator)
 		if (sepIndex != -1):
@@ -213,21 +221,20 @@ class FileSelectionPopup:
 
 
 class AutoReloadTexture:
-
-	def __reloadTexture(self, textureToReload):
-		textureToReload.blit_buffer(self.__pixels, colorfmt='rgba', bufferfmt='ubyte')
+	def _reloadTexture(self, textureToReload):
+		textureToReload.blit_buffer(self._pixels, colorfmt='rgba', bufferfmt='ubyte')
 		textureToReload.flip_vertical()
 
 	def __init__(self, sizeToUse, imageToUse):
-		self.__size = sizeToUse
-		self.__texture = Texture.create(size = self.__size)
-		self.__pixels = imageToUse.texture.pixels[:]
-		self.__texture.blit_buffer(self.__pixels, colorfmt='rgba', bufferfmt='ubyte')
-		self.__texture.flip_vertical()
-		self.__texture.add_reload_observer(self.__reloadTexture)
+		self._size = sizeToUse
+		self._texture = Texture.create(size = self._size)
+		self._pixels = imageToUse.texture.pixels[:]
+		self._texture.blit_buffer(self._pixels, colorfmt='rgba', bufferfmt='ubyte')
+		self._texture.flip_vertical()
+		self._texture.add_reload_observer(self._reloadTexture)
 
 	def getTexture(self):
-		return self.__texture
+		return self._texture
 
 def convertKivyCoordToOrxCoord(v, maxY):
 	assert len(v) == 2 or len(v) == 3
