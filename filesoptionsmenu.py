@@ -11,7 +11,7 @@ from kivy.uix.checkbox import CheckBox
 from editorutils import CancelableButton, NumberInput
 from tilemapfiles import FilesManager
 from os import getcwd
-from os.path import isfile, join, sep as pathSeparator
+from os.path import isfile, join, abspath, sep as pathSeparator
 from communicationobjects import FileOptionsMenuToScene
 from keyboard import KeyboardAccess, KeyboardGuardian
 from layerinfo import LayerGuardian
@@ -121,26 +121,66 @@ class FileSelectorPopup(KeyboardAccess):
 			self.close()
 	
 	def __finish(self):
-		self.__selected = join(self.__fileChooser.path, self.__fileChooserInput.text)
+		if (self.__directoriesOnly == True):
+			self.__selected = abspath(str(self.__fileChooser.path))
+			print self.__selected
+		else:
+			self.__selected = join(self.__fileChooser.path, self.__fileChooserInput.text)
+
+		if (self.__finishMethod is not None):
+			self.__finishMethod()
+		self.__lastPath = self.__fileChooser.path
 		self.close()
 
-	def __validateAndContinue(self):
-		if (self.__validadeExists == True):
+	def __validate(self, *args):
+		if (self.__validadeExists == True and self.__directoriesOnly == False):
 			if (isfile(join(self.__fileChooser.path, self.__fileChooserInput.text)) == True):
 				self.__warn.open()
 		else:
 			self.__finish()
 
-	def __init__(self, validateExists = False):
+	def __submit(self, selection, touch):
+		if(len(selection) != 1):
+			return
+		
+		if (self.__fileChooserInput.text == selection[0]):
+			return self.__validate()
+		else:
+			self.__fileChooserInput.text = selection[0]
+
+	def __setDirectory(self, chooser, newPath):
+		self.__fileChooserInput.text = abspath(str(newPath))
+
+	def __init__(self, validateExists = False, filters = ['*'], finishMethod = None, directoriesOnly = False):
+		# control variables
+		self.__validadeExists = validateExists
+		if (validateExists == True):
+			self.__warn = Dialog(self.__finish, 'Warning', 
+				'The selected file already exists.\nThis operation will override it,\n'\
+				'are you sure you want to continue?', 'Ok', 'Cancel'
+			)
+		self.__lastPath = getcwd()
+		self.__selected = None
+		self.__directoriesOnly = directoriesOnly
+
 		self.__fileChooserLayout = BoxLayout(orientation = 'vertical')
 		self.__fileChooserPopUp = Popup(auto_dismiss = False, title = 'Select the file:')
 		self.__fileChooserInputLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		filenameLabel = Label(text = 'File:', size_hint = (0.3, 1.0))
-		self.__fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0))
-		self.__fileChooserInputLayout.add_widget(filenameLabel)
-		self.__fileChooserInputLayout.add_widget(self.__fileChooserInput)
 		self.__fileChooser = FileChooserIconView(size_hint = (1.0, 0.9))
-
+		if (directoriesOnly == True):
+			self.__fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0), readonly = True)
+			self.__fileChooserInputLayout.add_widget(Label(text = 'Directory:', size_hint = (0.3, 1.0)))
+			self.__fileChooser.filters = [''] # we want to cut out all the files in this case
+			self.__fileChooser.dirselect = True
+			self.__fileChooser.bind(path = self.__setDirectory)
+		else:
+			self.__fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0))
+			self.__fileChooserInputLayout.add_widget(Label(text = 'File:', size_hint = (0.3, 1.0)))
+			self.__fileChooser.on_submit = self.__submit
+			self.__fileChooser.filters = filters
+		
+		self.__fileChooserInputLayout.add_widget(self.__fileChooserInput)
+		self.__finishMethod = finishMethod
 		self.__fileChooserYesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		self.__fileChooserOkButton = CancelableButton(text = 'Ok', on_release = self.__validate)
 		self.__fileChooserCancelButton = CancelableButton(text = 'Cancel', on_release = self.close)
@@ -152,23 +192,15 @@ class FileSelectorPopup(KeyboardAccess):
 		self.__fileChooserLayout.add_widget(self.__fileChooserYesNoLayout)
 		self.__fileChooserPopUp.content = self.__fileChooserLayout
 
-		# control variables
-		self.__validadeExists = validateExists
-		if (validateExists == True):
-			self.__warn = Dialog(self.__finish, 'Warning', 
-				'The selected file already exists.\nThis operation will override it,\n'\
-				'are you sure you want to continue?', 'Ok', 'Cancel'
-			)
-		self.__lastPath = getcwd()
-		self.__selected = None
 
-	def open(self):
-		KeyboardGuardian.acquireKeyboard(self)
+	def open(self, *args):
+		KeyboardGuardian.Instance().acquireKeyboard(self)
+		self.__fileChooser.path = self.__lastPath
 		self.__fileChooserPopUp.open()
 		self.__selected = None
 
-	def close(self):
-		KeyboardGuardian.dropKeyboard(self)
+	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__fileChooserPopUp.dismiss()
 
 	def getSelected(self):
@@ -197,9 +229,8 @@ class FileChooserUser(object):
 		self._fileChooserLayout = BoxLayout(orientation = 'vertical')
 		self._fileChooserPopUp = Popup(auto_dismiss = False, title = 'Select the file:')
 		self._fileChooserInputLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		filenameLabel = Label(text = 'File:', size_hint = (0.3, 1.0))
 		self._fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0))
-		self._fileChooserInputLayout.add_widget(filenameLabel)
+		self._fileChooserInputLayout.add_widget(Label(text = 'File:', size_hint = (0.3, 1.0)))
 		self._fileChooserInputLayout.add_widget(self._fileChooserInput)
 		self._fileChooser = FileChooserIconView(size_hint = (1.0, 0.9))
 		self._fileChooser.on_submit = self._submitMethod
@@ -298,21 +329,92 @@ class LoadScenePopup(KeyboardAccess, FileChooserUser):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self._fileChooserPopUp.dismiss()
 
-class ExportScenePopup:
+class ExportScenePopup (KeyboardAccess):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.close()
+
+	def __confirm(self, *args):
+		if (self.__filename is None):
+			self.__errorPopUp.setText('You need to select a file to export the scene.')
+			return self.__errorPopUp.open()
+
+		if (self.__assetsPath is None):
+			self.__errorPopUp.setText('You need to select a directory to keep the assets.')
+			return self.__errorPopUp.open()
+
+		FilesManager.Instance().exportScene(self.__filename, self.__assetsPath, bool(self.__smoothCheckBox.active))
+
+		self.close()
+
+	def __setFilename(self):
+		self.__filename = self.__fileChooser.getSelected()
+		self.__filenameDescription.text = self.__filename
+
+	def __setAssetsPath(self):
+		self.__assetsPath = self.__assetsChooser.getSelected()
+		self.__assetsPathDescription.text = self.__assetsPath
+
 	def __init__(self):
-		pass		
+		self.__filename = None
+		self.__assetsPath = None
+
+		self.__fileChooser = FileSelectorPopup(filters = ['*.ini'], finishMethod = self.__setFilename)
+		self.__assetsChooser = FileSelectorPopup(finishMethod = self.__setAssetsPath, directoriesOnly = True)
+		
+		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
+		self.__filenameDescription = TextInput(text = '', readonly = True, multiline = False, size_hint = (0.7, 1.0))
+		self.__chooseFilenameButton = CancelableButton(text = 'Choose', size_hint = (0.2, 1.0),
+			on_release = self.__fileChooser.open)
+		self.__assetsPathDescription = TextInput(text = '', readonly = True, multiline = False, size_hint = (0.7, 1.0))
+		self.__assetsPathButton = CancelableButton(text = 'Choose', size_hint = (0.2, 1.0),
+			on_release = self.__assetsChooser.open)
+		self.__smoothCheckBox = CheckBox(active = True, size_hint = (0.2,  1.0))
+		self.__okButton = CancelableButton(text = 'Ok', on_release = self.__confirm, size_hint = (0.2, 1.0))
+		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, size_hint = (0.2, 1.0))
+		
+		self.__filenameLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		self.__filenameLine.add_widget(self.__filenameDescription)
+		self.__filenameLine.add_widget(Label(text = '', size_hint = (0.1, 1.0)))
+		self.__filenameLine.add_widget(self.__chooseFilenameButton)
+
+		self.__assetsPathLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		self.__assetsPathLine.add_widget(self.__assetsPathDescription)
+		self.__assetsPathLine.add_widget(Label(size_hint = (0.1, 1.0), text = ''))
+		self.__assetsPathLine.add_widget(self.__assetsPathButton)
+
+		self.__smoothLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		self.__smoothLine.add_widget(self.__smoothCheckBox)
+		self.__smoothLine.add_widget(Label(text = 'Turn on graphics smoothing', size_hint = (0.8, 1.0)))
+
+		self.__confirmLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		self.__confirmLine.add_widget(Label(text = '', size_hint = (0.6, 0.2)))
+		self.__confirmLine.add_widget(self.__okButton)
+		self.__confirmLine.add_widget(self.__cancelButton)
+
+		self.__layout.add_widget(self.__filenameLine)
+		self.__layout.add_widget(self.__assetsPathLine)
+		self.__layout.add_widget(self.__smoothLine)
+		self.__layout.add_widget(Label(text = '', size_hint = (1.0, 0.2)))
+		self.__layout.add_widget(self.__confirmLine)
+
+		self.__popup = Popup(size_hint = (0.5, 0.5), auto_dismiss = False, content = self.__layout)
+		self.__errorPopUp = AlertPopUp('Error', '', 'Ok')
+		
+	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
+		self.__popup.dismiss()
+
+	def open(self, *args):
+		KeyboardGuardian.Instance().acquireKeyboard(self)
+		self.__filenameDescription.text = ''
+		self.__assetsPathDescription.text = ''
+		self.__filename = None
+		self.__assetsPath = None
+		self.__popup.open()
 
 @Singleton
 class FilesOptionsMenu:
-
-	def __exportScene(self, *args):
-		#self.__fileChooser.path = self.__lastPath
-		#self.__fileChooser.filters = ['*.ini']
-		#self.__fileChooser.on_submit = self.__validateSelectedOsf
-		#self.__fileChooserOkButton.on_release = self.__validateAndContinueToLoad
-		#self.__fileChooserPopUp.open()
-		FilesManager.Instance().exportScene('teste.ini')
-
 	def __startBasicButtonsLayout(self):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__newButton = CancelableButton(text = 'New Scene', size_hint = (1.0, 0.25), 
@@ -322,7 +424,7 @@ class FilesOptionsMenu:
 		self.__saveButton = CancelableButton(text = 'Save Scene', size_hint = (1.0, 0.25), 
 			on_release = self.__saveScenePopup.open)
 		self.__exportButton = CancelableButton(text = 'Export Scene', size_hint = (1.0, 0.25), 
-			on_release = self.__exportScene)
+			on_release = self.__exportPopup.open)
 		
 		self.__layout.add_widget(self.__newButton)
 		self.__layout.add_widget(self.__loadButton)
@@ -333,6 +435,7 @@ class FilesOptionsMenu:
 		self.__newScenePopup = NewScenePopup()
 		self.__saveScenePopup = SaveScenePopup()
 		self.__loadScenePopup = LoadScenePopup()
+		self.__exportPopup = ExportScenePopup()
 
 		self.__startBasicButtonsLayout()
 		self.__accordionItemReference = accordionItem

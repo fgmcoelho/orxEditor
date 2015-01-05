@@ -140,7 +140,6 @@ class FilesManager:
 			parser.read(filename)
 		except:
 			raise Exception("Error opening the file.")
-
 		
 		try:
 			# At first we need to recreate the base objects that were used, since the selections
