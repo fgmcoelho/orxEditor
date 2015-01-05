@@ -88,7 +88,7 @@ class CollisionPartInformation:
 			return False
 		else:
 			for firstFlag in firstList:
-				hasFlag == False
+				hasFlag = False
 				for secondFlag in secondList:
 					if (firstFlag.getName() == secondFlag.getName()):
 						hasFlag = True

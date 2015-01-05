@@ -8,8 +8,8 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 
 from keyboard import KeyboardGuardian
+from scene import SceneHandler
 from optionsmenu import OptionsMenu
-from scene import SceneHandler, SceneAttributes
 from objectsmenu import ObjectsMenu
 from tilemapfiles import FilesManager
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
@@ -18,7 +18,6 @@ from layer import LayerInformationPopup
 from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
 from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder, LayerToSceneCommunication
 from communicationobjects import ResourceLoaderToObjectDescriptor, FileOptionsMenuToScene
-from editorutils import CancelableButton
 from kivy.core.window import Window
 
 class TileEditor(App):

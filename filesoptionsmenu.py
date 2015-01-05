@@ -17,7 +17,6 @@ from keyboard import KeyboardAccess, KeyboardGuardian
 from layerinfo import LayerGuardian
 from collisioninfo import CollisionGuardian
 from scene import SceneAttributes
-from tilemapfiles import FilesManager
 
 class NewScenePopup(KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):

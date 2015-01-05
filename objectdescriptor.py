@@ -1,6 +1,5 @@
 from singleton import Singleton
 
-from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 

@@ -1,5 +1,3 @@
-from singleton import Singleton
-
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.graphics.vertex_instructions import Line
 #from kivy.graphics.fbo import Fbo

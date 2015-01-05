@@ -1,7 +1,6 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.uix.textinput import TextInput
 from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.treeview import TreeView, TreeViewLabel

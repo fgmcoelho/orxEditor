@@ -9,7 +9,7 @@ from kivy.uix.togglebutton import ToggleButton
 from editorutils import CancelableButton, AlertPopUp, Dialog
 from keyboard import KeyboardAccess, KeyboardGuardian
 from communicationobjects import LayerToSceneCommunication
-from layerinfo import LayerRegister, LayerGuardian
+from layerinfo import LayerGuardian
 
 from string import letters, digits
 
