@@ -11,6 +11,9 @@ from collisioninfo import CollisionGuardian, CollisionInformation, CollisionPart
 from layerinfo import LayerGuardian
 from scene import SceneAttributes
 
+from os.path import sep, isfile, join
+from shutil import copyfile
+
 @Singleton
 class FilesManager:
 	def __compileObjListWithName(self, listToCompile):
@@ -261,25 +264,39 @@ class FilesManager:
 		
 		SceneToFilesManager.Instance().setSceneObjectId(int(parser.get(self.__objectListName, 'LastId')))
 							
-	def exportScene(self, filename):
+	def exportScene(self, filename, assetsPath, shouldSmooth):
 		parser = ConfigParser()
 		parser.optionxform = str
 		objectListName = 'ObjectList'
 
-		parser.add_section('Physics')
-		parser.set('Physics', 'CollisionFlagList', self.__compileObjListWithName(
+		parser.add_section('General')
+		parser.set('General', 'CollisionFlagList', self.__compileObjListWithName(
 			CollisionGuardian.Instance().getFlags())
+		)
+		parser.set('General', 'CameraGroupsList', self.__compileObjListWithName(
+			LayerGuardian.Instance().getLayerList())
 		)
 
 		renderedObjectsList = SceneToFilesManager.Instance().getSceneObjects()
+		numberOfLists = 1 + len(renderedObjectsList)/64
+		if (len(renderedObjectsList) % 64 == 0):
+			numberOfLists -= 1
+
+		parser.set('General', 'ObjectListsNumber', str(numberOfLists))
 		objectsInScene = []
+		i = 0
+		j = 0
 		for obj in renderedObjectsList:
 			objectsInScene.append(obj.getName())
+			i += 1
+			if (i == 64):
+				parser.set('General', 'ObjectList_' + str(j), '#'.join(objectsInScene))
+				i = 0
+				j += 1
 
-		parser.add_section(objectListName)
-		parser.set(objectListName, 'ObjectNames', '#'.join(objectsInScene))
-		sceneMaxY = SceneAttributes.Instance().getValue('TilesMaxY') * SceneAttributes.Instance().getValue('TilesSize')
-
+		assetsDict = {}
+		sceneAttributes = SceneToFilesManager.Instance().getSceneAttributes()
+		sceneMaxY = sceneAttributes.getValue('TilesMaxY') * sceneAttributes.getValue('TilesSize')
 		for obj in renderedObjectsList:
 			# Needed data
 			newSectionName = obj.getName()
@@ -289,7 +306,6 @@ class FilesManager:
 
 			# Object
 			parser.add_section(newSectionName)
-
 			scale = (obj.getScale(), obj.getScale())
 			parser.set(newSectionName, 'Graphic', graphicSectionName)
 			parser.set(newSectionName, 'Position', vector2ToVector3String(self.__convertObjectPosition(obj, sceneMaxY),
@@ -311,13 +327,19 @@ class FilesManager:
 
 			# Graphic Part
 			parser.add_section(graphicSectionName);
-			parser.set(graphicSectionName, 'Texture',  str(obj.getPath()))
-			parser.set(graphicSectionName, 'Smoothing',  strToBool(True))
+			textureName = obj.getPath().split(sep)[-1]
+			if (textureName not in assetsDict):
+				assetsDict[textureName] = obj.getPath()
+
+			parser.set(graphicSectionName, 'Texture',  textureName)
+			if (shouldSmooth == True):
+				parser.set(graphicSectionName, 'Smoothing',  boolToStr(True))
+			
 			spriteInfo = obj.getSpriteInfo()
 			if (spriteInfo is not None):
 				coords = spriteInfo.getSpriteCoords()
 				size = obj.getBaseSize()
-				corner = (coords[0] * size[0], coords[1] * size[1])
+				corner = (coords[0], coords[1])
 				parser.set(graphicSectionName, 'TextureSize', vector2ToVector3String(size))
 				parser.set(graphicSectionName, 'TextureCorner',  vector2ToVector3String(corner))
 
@@ -390,4 +412,10 @@ class FilesManager:
 		f = open(filename, 'w')
 		parser.write(f)
 		f.close()
+
+		for key in assetsDict:
+			newFilePath = join(assetsPath, key)
+			if (isfile(newFilePath) == False):
+				copyfile(assetsDict[key], newFilePath)
+
 

@@ -348,6 +348,8 @@ class ExportScenePopup (KeyboardAccess):
 
 	def __setFilename(self):
 		self.__filename = self.__fileChooser.getSelected()
+		if (self.__filename[-4:] != '.ini'):
+			self.__filename += '.ini'
 		self.__filenameDescription.text = self.__filename
 
 	def __setAssetsPath(self):
@@ -391,13 +393,15 @@ class ExportScenePopup (KeyboardAccess):
 		self.__confirmLine.add_widget(self.__okButton)
 		self.__confirmLine.add_widget(self.__cancelButton)
 
+		self.__layout.add_widget(Label(text = 'Ini file to export the scene:', size_hint = (1.0, 0.1)))
 		self.__layout.add_widget(self.__filenameLine)
+		self.__layout.add_widget(Label(text = 'Directory to save the assets:', size_hint = (1.0, 0.1)))
 		self.__layout.add_widget(self.__assetsPathLine)
 		self.__layout.add_widget(self.__smoothLine)
-		self.__layout.add_widget(Label(text = '', size_hint = (1.0, 0.2)))
 		self.__layout.add_widget(self.__confirmLine)
 
-		self.__popup = Popup(size_hint = (0.5, 0.5), auto_dismiss = False, content = self.__layout)
+		self.__popup = Popup(size_hint = (0.5, 0.5), auto_dismiss = False, title = 'Export Scene', 
+			content = self.__layout)
 		self.__errorPopUp = AlertPopUp('Error', '', 'Ok')
 		
 	def close(self, *args):
