@@ -57,9 +57,26 @@ class BaseObjectDescriptor:
 class MultipleSelectionDescriptor:
 	def __init__(self, accordionItem):
 		self.__layout = BoxLayout (orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__selectedLabel = Label(text = 'Selected: 0')
+		self.__selectedLabel = Label(text = 'Selected: 0', size_hint = (1.0, 0.1))
+		
+		self.__layerLabel = Label(text = 'Layer info:', size_hint = (0.7, 1.0))
+		self.__layerButton = CancelableButton(text = 'Edit Layer', size_hint = (0.3, 1.0), 
+			on_release = LayerInformationPopup.Instance().showPopUp)
+		self.__layerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		self.__layerBox.add_widget(self.__layerLabel)
+		self.__layerBox.add_widget(self.__layerButton)
+
+		self.__collisionBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		self.__collisionInfoLabel = Label(text = 'Collision info:', size_hint = (0.7, 1.0))
+		self.__collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.3, 1.0), 
+			on_release = CollisionInformationPopup.Instance().showPopUp)
+		self.__collisionBox.add_widget(self.__collisionInfoLabel)
+		self.__collisionBox.add_widget(self.__collisionHandler)
 
 		self.__layout.add_widget(self.__selectedLabel)
+		self.__layout.add_widget(Label(text = '', size_hint = (1.0, 0.5)))
+		self.__layout.add_widget(self.__layerBox)
+		self.__layout.add_widget(self.__collisionBox)
 
 		self.__accordionItemReference = accordionItem
 		self.__accordionItemReference.add_widget(self.__layout)

@@ -741,7 +741,7 @@ class CollisionInformationPopup:
 	def getExtraPartsDictAsList(self):
 		return self.__extraPartsDict.values()
 
-	def showPopUp(self):
+	def showPopUp(self, *args):
 		objList = CollisionToSceneCommunication.Instance().getSelectedObjects()
 		if (objList == []):
 			self.__errorPopUp.setText('No object is selected!\nYou need to select at least one object from the scene.')
