@@ -112,9 +112,6 @@ class BaseWarnMethods(KeyboardAccess):
 	def setText(self, value):
 		self.mainPopUpText.text = value
 
-	def dismiss(self):
-		self.mainPopUp.dismiss()
-
 class Dialog(BaseWarnMethods):
 	def __doNothing(self, notUsed = None):
 		return None

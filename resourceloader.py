@@ -411,7 +411,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 				if (self.__isShiftPressed == False):
 					NumberInput.selectInputByFocus(self.__state)
 				else:
-					NumberInput.selectInputByFocus(self.__state, True)
+					NumberInput.selectInputByFocus(self.__state, reverse = True)
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
@@ -536,7 +536,8 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__exportColorToAlphaLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		self.__exportColorToAlphaCheckbox = CheckBox(size_hint = (0.2, 1.0))
 		self.__exportColorToAlphaLine.add_widget(self.__exportColorToAlphaCheckbox)
-		self.__exportColorToAlphaLine.add_widget(Label(text = 'Export\ncolor to\nalpha.', size_hint = (0.8, 1.0)))
+		self.__exportColorToAlphaLine.add_widget(Label(text = 'Export\ncolor to\nalpha [color=FF0000](NIY)[/color].', 
+			size_hint = (0.8, 1.0), markup = True))
 		self.__whiteImage = WhiteImage()
 		self.__whiteImage.getImage().size_hint = (1.0, 0.2)
 

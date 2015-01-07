@@ -22,7 +22,20 @@ class NewScenePopup(KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			self.close()
+		
+		elif (keycode[1] == 'shift'):
+			self.__isShiftPressed = False
+		
+		elif (keycode[1] == 'tab'):
+			if (self.__isShiftPressed == False):
+				NumberInput.selectInputByFocus('NewScene')
+			else:
+				NumberInput.selectInputByFocus('NewScene', reverse = True)
 	
+	def _processKeyDown(self, keyboard, keycode, text, modifiers):
+		if (keycode[1] == 'shift'):
+			self.__isShiftPressed = True
+
 	def __confirm(self, *args):
 		try:
 			tilesOnX = int(self.__xTilesInput.text)
@@ -105,6 +118,7 @@ class NewScenePopup(KeyboardAccess):
 		self.__layout.add_widget(confirmLine)
 
 		self.__popup.content = self.__layout
+		self.__isShiftPressed = False
 			
 	def open(self, *args):
 		KeyboardGuardian.Instance().acquireKeyboard(self)	
@@ -122,7 +136,6 @@ class FileSelectorPopup(KeyboardAccess):
 	def __finish(self):
 		if (self.__directoriesOnly == True):
 			self.__selected = abspath(str(self.__fileChooser.path))
-			print self.__selected
 		else:
 			self.__selected = join(self.__fileChooser.path, self.__fileChooserInput.text)
 
@@ -169,15 +182,16 @@ class FileSelectorPopup(KeyboardAccess):
 		if (directoriesOnly == True):
 			self.__fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0), readonly = True)
 			self.__fileChooserInputLayout.add_widget(Label(text = 'Directory:', size_hint = (0.3, 1.0)))
-			self.__fileChooser.filters = [''] # we want to cut out all the files in this case
+			self.__filters = [''] # we want to cut out all the files in this case
 			self.__fileChooser.dirselect = True
 			self.__fileChooser.bind(path = self.__setDirectory)
 		else:
 			self.__fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0))
 			self.__fileChooserInputLayout.add_widget(Label(text = 'File:', size_hint = (0.3, 1.0)))
 			self.__fileChooser.on_submit = self.__submit
-			self.__fileChooser.filters = filters
-		
+			self.__filters = filters
+	
+		self.__fileChooser.filters = self.__filters
 		self.__fileChooserInputLayout.add_widget(self.__fileChooserInput)
 		self.__finishMethod = finishMethod
 		self.__fileChooserYesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
@@ -197,18 +211,23 @@ class FileSelectorPopup(KeyboardAccess):
 		self.__fileChooser.path = self.__lastPath
 		self.__fileChooserPopUp.open()
 		self.__selected = None
+		self.__fileChooser.filters = [self.filters[0] + 'aaaa'] # this forces the file list to reload
+		self.__fileChooser.filters = self.__filters
+
 
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__fileChooserPopUp.dismiss()
 
 	def getSelected(self):
+		print self.__selected
 		return self.__selected
 
 class FileChooserUser(object):
 	def _prepareOpen(self, filterToUse = ['*.osf']):
 		assert(type(filterToUse) is list)
 		self._fileChooser.path = self._lastPath
+		self._fileChooser.filters = [''] # this forces the file chooser to reload the file list
 		self._fileChooser.filters = filterToUse
 
 	def _submitMethod(self, selection, touch):
@@ -223,6 +242,23 @@ class FileChooserUser(object):
 			return self._validateAndContinue()
 		else:
 			self._fileChooserInput.text = filename
+
+	def _closePopUpsAndShowResult(self, method, arg, operation):
+		try:
+			method(arg)
+			alertSuccess = True
+			errorText = ''
+		except Exception, e:
+			alertSuccess = False
+			errorText = str(e)
+
+		self._lastPath = self._fileChooser.path
+		self._fileChooserPopUp.dismiss()
+		self.close()
+		if (alertSuccess == True):
+			self._successPopup.open()
+		else:
+			self._errorPopup.setText('Error ' + operation + ' the file:\n'+errorText)
 
 	def __init__(self):
 		self._fileChooserLayout = BoxLayout(orientation = 'vertical')
@@ -246,7 +282,8 @@ class FileChooserUser(object):
 		self._fileChooserLayout.add_widget(self._fileChooserYesNoLayout)
 		self._fileChooserPopUp.content = self._fileChooserLayout
 		self._lastPath = getcwd()
-		self._errorPopUp = AlertPopUp('Error', '', 'Ok')
+		self._errorPopup = AlertPopUp('Error', '', 'Ok')
+		self._successPopup = AlertPopUp('Success', '', 'Ok')
 
 
 class SaveScenePopup(KeyboardAccess, FileChooserUser):
@@ -259,15 +296,16 @@ class SaveScenePopup(KeyboardAccess, FileChooserUser):
 		if (filename[-4:] != '.osf'):
 			filename += '.osf'
 
-		FilesManager.Instance().saveScene(join(self._fileChooser.path, filename))
-		self.__saveSceneDialog.dismiss()
-		self._lastPath = self._fileChooser.path
-		self.close()
+		self._closePopUpsAndShowResult(
+			FilesManager.Instance().saveScene, 
+			join(self._fileChooser.path, filename),
+			'saving'
+		)
 
 	def _validateAndContinue(self, *args):
 		if (self._fileChooserInput.text == ''):
-			self._errorPopUp.setText('No file selected.')
-			self._errorPopUp.open()
+			self._errorPopup.setText('No file selected.')
+			self._errorPopup.open()
 			return
 
 		if (isfile(join(self._fileChooser.path, self._fileChooserInput.text)) == True):
@@ -281,6 +319,7 @@ class SaveScenePopup(KeyboardAccess, FileChooserUser):
 			self.__saveSceneFinish, 'Confirmation',
 			'This will override the selected file.\nContinue?', 'Ok', 'Cancel'
 		)
+		self._successPopup.setText("The file was successfully saved.")
 	
 	def open(self, *args):
 		self._prepareOpen()
@@ -299,24 +338,26 @@ class LoadScenePopup(KeyboardAccess, FileChooserUser):
 
 	def _validateAndContinue(self, *args):
 		if (self._fileChooserInput.text == ''):
-			self._errorPopUp.setText('No file selected.')
-			self._errorPopUp.open()
+			self._errorPopup.setText('No file selected.')
+			self._errorPopup.open()
 			return
 
 		if (isfile(join(self._fileChooser.path, self._fileChooserInput.text)) == True):
 			self.__loadSceneFinish()
 		else:
-			self._errorPopUp.setText("Selected file doesn't exist.")
-			self._errorPopUp.open()
+			self._errorPopup.setText("Selected file doesn't exist.")
+			self._errorPopup.open()
 
 	def __loadSceneFinish(self, *args):
-		FilesManager.Instance().loadScene(join(self._fileChooser.path, self._fileChooserInput.text))
-		self._fileChooserPopUp.dismiss()
-		self._lastPath = self._fileChooser.path
-		self.close()
+		self._closePopUpsAndShowResult(
+			FilesManager.Instance().loadScene, 
+			join(self._fileChooser.path, self._fileChooserInput.text),
+			'loading'
+		)
 
 	def __init__(self):
 		super(LoadScenePopup, self).__init__()
+		self._successPopup.setText('The file was successfully loaded.')
 
 	def open(self, *args):
 		self._prepareOpen()
@@ -335,16 +376,27 @@ class ExportScenePopup (KeyboardAccess):
 
 	def __confirm(self, *args):
 		if (self.__filename is None):
-			self.__errorPopUp.setText('You need to select a file to export the scene.')
-			return self.__errorPopUp.open()
+			self.__errorPopup.setText('You need to select a file to export the scene.')
+			return self.__errorPopup.open()
 
 		if (self.__assetsPath is None):
-			self.__errorPopUp.setText('You need to select a directory to keep the assets.')
-			return self.__errorPopUp.open()
+			self.__errorPopup.setText('You need to select a directory to keep the assets.')
+			return self.__errorPopup.open()
 
-		FilesManager.Instance().exportScene(self.__filename, self.__assetsPath, bool(self.__smoothCheckBox.active))
+		alertSuccess = True
+		try:
+			FilesManager.Instance().exportScene(self.__filename, self.__assetsPath, bool(self.__smoothCheckBox.active))
+		except Exception, e:
+			errorText = str(e)
+			alertSuccess = False
 
 		self.close()
+
+		if (alertSuccess == True):
+			self.__successPopup.open()
+		else:
+			self.__errorPopup.setText('Error:\n' + errorText)
+			self.__errorPopup.open()
 
 	def __setFilename(self):
 		self.__filename = self.__fileChooser.getSelected()
@@ -402,7 +454,8 @@ class ExportScenePopup (KeyboardAccess):
 
 		self.__popup = Popup(size_hint = (0.5, 0.5), auto_dismiss = False, title = 'Export Scene', 
 			content = self.__layout)
-		self.__errorPopUp = AlertPopUp('Error', '', 'Ok')
+		self.__errorPopup = AlertPopUp('Error', '', 'Ok')
+		self.__successPopup = AlertPopUp('Success', 'The scene was successfully exported.', 'Ok')
 		
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)

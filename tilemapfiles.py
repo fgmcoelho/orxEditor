@@ -273,7 +273,7 @@ class FilesManager:
 		parser.set('General', 'CollisionFlagList', self.__compileObjListWithName(
 			CollisionGuardian.Instance().getFlags())
 		)
-		parser.set('General', 'CameraGroupsList', self.__compileObjListWithName(
+		parser.set('General', 'GroupList', self.__compileObjListWithName(
 			LayerGuardian.Instance().getLayerList())
 		)
 
@@ -293,6 +293,9 @@ class FilesManager:
 				parser.set('General', 'ObjectList_' + str(j), '#'.join(objectsInScene))
 				i = 0
 				j += 1
+				objectsInScene = []
+		if (i != 0):
+				parser.set('General', 'ObjectList_' + str(j), '#'.join(objectsInScene))
 
 		assetsDict = {}
 		sceneAttributes = SceneToFilesManager.Instance().getSceneAttributes()
