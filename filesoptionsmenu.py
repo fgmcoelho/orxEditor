@@ -211,7 +211,7 @@ class FileSelectorPopup(KeyboardAccess):
 		self.__fileChooser.path = self.__lastPath
 		self.__fileChooserPopUp.open()
 		self.__selected = None
-		self.__fileChooser.filters = [self.filters[0] + 'aaaa'] # this forces the file list to reload
+		self.__fileChooser.filters = [self.__filters[0] + 'aaaa'] # this forces the file list to reload
 		self.__fileChooser.filters = self.__filters
 
 

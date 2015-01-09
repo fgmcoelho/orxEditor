@@ -7,7 +7,7 @@ from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 
-from keyboard import KeyboardGuardian
+from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler
 from optionsmenu import OptionsMenu
 from objectsmenu import ObjectsMenu
@@ -30,6 +30,7 @@ class TileEditor(App):
 		Config.set('kivy', 'desktop', 1)
 		Config.set('kivy', 'log_enable', 0)
 		Config.set('kivy', 'exit_on_escape', 0)
+		Config.set('postproc', 'double_tap_time', 250)
 		Config.write()
 
 	def build(self):

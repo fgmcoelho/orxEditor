@@ -289,11 +289,16 @@ class ResourceLoaderList(SpecialScrollControl):
 
 		self.__defaultTouchDown(touch)
 
+	def __callShowMethod(self, label, touch):
+		if (label.collide_point(*touch.pos) == True and touch.is_mouse_scrolling == False and 
+				touch.is_double_tap == True and self.getSelection() is not None):
+			self.__showMethod(self.getSelection)
+
 	def __doAddItemRender(self, selection, identifier):
 		pos = convertKivyCoordToOrxCoord((selection.getX(), selection.getY() + selection.getSizeY()), self.__maxY)
 		node = TreeViewLabel(text='Pos: (' + str(pos[0]) + ', ' + str(pos[1]) + ') | Size: (' + \
 				str(selection.getSizeX()) + ', ' + str(selection.getSizeY()) + ')', id = 'selection#' + \
-				str(identifier))
+				str(identifier), on_touch_down = self.__callShowMethod)
 		self.__tree.add_node(node)
 		self.__layout.height = self.__tree.minimum_height
 
@@ -374,7 +379,7 @@ class ResourceLoaderList(SpecialScrollControl):
 		self.__resourceInfo = SplittedImageImporter().load(imageToUse)
 		self.__renderLoadedList(self.__resourceInfo.getSelectionItems())
 
-	def __init__(self, **kwargs):
+	def __init__(self, showMethod, **kwargs):
 		super(ResourceLoaderList, self).__init__(**kwargs)
 		self.__resourceInfo = None
 		self._scrollView.on_touch_move = self.__ignoreMoves
@@ -385,6 +390,7 @@ class ResourceLoaderList(SpecialScrollControl):
 		self.__layout = RelativeLayout(size = (300, 100), size_hint = (None, None))
 		self.__layout.add_widget(self.__tree)
 		self._scrollView.add_widget(self.__layout)
+		self.__showMethod = showMethod
 
 	def save(self, keepOriginal):
 		if (self.__resourceInfo is not None):
@@ -631,7 +637,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 		dialog.open()
 
 	def __createRightMenuUi(self):
-		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 0.75))
+		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 0.75), showMethod = self.__showSelection)
 		self.__addFullSelection = CancelableButton(text = 'Add as one', size_hint = (1.0, 0.05),
 			on_release = self.__processAddSelection)
 		self.__addPartSelection = CancelableButton(text = 'Add parts', size_hint = (1.0, 0.05),
