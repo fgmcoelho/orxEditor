@@ -34,6 +34,21 @@ class ObjectMenuItem:
 	def getDisplayImage(self):
 		return self.__displayImage
 
+class ShortcutHandler:
+	def __init__(self):
+		self.__shortcuts = {}
+		for i in range(10):
+			self.__shortcuts[str(i)] = None
+	
+	def setShortcut(self, obj, code):
+		assert code in '0123456789', 'Invalid code for shortcut: ' + str(code) + '.'
+		assert isinstance(obj, BaseObject) == True, 'Invalid object type for a shortcut, must be BaseObject.'
+		self.__shortcuts[code] = obj
+
+	def getShortcut(self, code):
+		assert code in '0123456789', 'Invalid code for shortcut: ' + str(code) + '.'
+		return self.__shortcuts[code]
+
 @Singleton
 class ObjectsMenu:
 	def __reloadMenuList(self):
@@ -111,6 +126,7 @@ class ObjectsMenu:
 		self.__objectListLayout.size = (100, self.__numberOfItems * 67)
 
 	def __init__(self):
+		self.__shortcutHandler = ShortcutHandler()
 		self.__objectListLayout = None
 		self.__loadItems()
 		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
@@ -156,4 +172,20 @@ class ObjectsMenu:
 			menuObject = None
 
 		self.__loadItems()
+
+	def setShortcut(self, code):
+		obj = ObjectDescriptor.Instance().getCurrentObject()
+		if (isinstance(obj, BaseObject) == True):
+			self.__shortcutHandler.setShortcut(obj, code)
+
+	def processShortcut(self, code):
+		obj = ObjectDescriptor.Instance().getCurrentObject()
+		print obj
+		if (obj is not None):
+			print obj.getIdentifier()
+			print self.__shortcutHandler.getShortcut(code).getIdentifier()
+			if (obj == self.__shortcutHandler.getShortcut(code)):
+				SceneToObjectsMenu.Instance().draw(obj)
+			else:
+				ObjectDescriptor.Instance().setObject(obj)
 

@@ -8,7 +8,6 @@ from operator import itemgetter
 from editorheritage import SpecialScrollControl
 from editorobjects import RenderObjectGuardian
 from editorutils import AlertPopUp
-from keyboard import KeyboardAccess
 from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 from layerinfo import LayerGuardian
 
@@ -303,9 +302,9 @@ class Scene:
 		assert self.__id <= newId
 		self.__id = newId
 
-class SceneHandler (SpecialScrollControl, KeyboardAccess):
+class SceneHandler (SpecialScrollControl):
 	# Overloaded method
-	def _processKeyUp(self, keyboard, keycode):
+	def processKeyUp(self, keyboard, keycode):
 
 		if (keycode[1] == 'shift'):
 			self.setIsShiftPressed(False)
@@ -314,8 +313,7 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 			self.setIsCtrlPressed(False)
 
 	# Overloaded method
-	def _processKeyDown(self, keyboard, keycode, text, modifiers):
-
+	def processKeyDown(self, keyboard, keycode, text, modifiers):
 		if (keycode[1] == 'q'):
 			self.__sceneList[self.__currentIndex].alignToGrid()
 
@@ -355,7 +353,7 @@ class SceneHandler (SpecialScrollControl, KeyboardAccess):
 		elif (keycode[1] == 'g'):
 			self.__sceneList[self.__currentIndex].flipOnY()
 
-		elif (keycode[1] == '\''):
+		elif (keycode[1] == '\'' or keycode[1] == '`'):
 			self.__sceneList[self.__currentIndex].toggleGrid()
 
 		elif (keycode[1] == 'z'):

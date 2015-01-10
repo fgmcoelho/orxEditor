@@ -174,7 +174,6 @@ class RenderedObjectDescriptor:
 
 @Singleton
 class ObjectDescriptor:
-
 	def updateObjectDescriptors(self):
 		self.setObject(self.__currentObject)
 

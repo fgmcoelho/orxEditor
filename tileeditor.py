@@ -20,7 +20,25 @@ from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToRes
 from communicationobjects import ResourceLoaderToObjectDescriptor, FileOptionsMenuToScene
 from kivy.core.window import Window
 
-class TileEditor(App):
+class TileEditor(App, KeyboardAccess):
+
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] in ['shift', 'ctrl']):
+			self.__sceneHandler.processKeyUp(keycode, keycode)
+
+	# Overloaded method
+	def _processKeyDown(self, keyboard, keycode, text, modifiers):
+		print keycode, modifiers
+		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcv') or keycode[1] in ['shift', 'ctrl']):
+			print "aaa"
+			self.__sceneHandler.processKeyDown(keyboard, keycode, text, modifiers)
+
+		elif (keycode[1] in '123456789'):
+			if ('ctrl' in modifiers):
+				ObjectsMenu.Instance().setShortcut(keycode[1])
+			else:
+				ObjectsMenu.Instance().processShortcut(keycode[1])
+
 
 	def build_config(self, c):
 		Config.set('graphics', 'width', 800)
@@ -30,7 +48,6 @@ class TileEditor(App):
 		Config.set('kivy', 'desktop', 1)
 		Config.set('kivy', 'log_enable', 0)
 		Config.set('kivy', 'exit_on_escape', 0)
-		Config.set('postproc', 'double_tap_time', 250)
 		Config.write()
 
 	def build(self):
@@ -63,7 +80,7 @@ class TileEditor(App):
 		# Scene Editor handlers:
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
-		KeyboardGuardian.Instance().acquireKeyboard(self.__sceneHandler)
+		KeyboardGuardian.Instance().acquireKeyboard(self)
 
 		# Collision Handlers:
 		CollisionGuardian.Instance()
