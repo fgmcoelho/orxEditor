@@ -77,13 +77,14 @@ class ObjectsMenu:
 			l.append(BaseObject(mainImage, self.__baseObjectId))
 			self.__baseObjectId += 1
 
+		spriteSize = tuple(mainImage.texture.size)
 		for selection in resourceInfo.getSelectionList():
 			x = selection.getX()
 			y = selection.getY()
 			width = selection.getSizeX()
 			height = selection.getSizeY()
 			image = createSpriteImage(mainImage, x, y, width, height)
-			obj = BaseObject(image, self.__baseObjectId, resourceInfo.getPath(), (x, y))
+			obj = BaseObject(image, self.__baseObjectId, resourceInfo.getPath(), (x, y), spriteSize)
 			l.append(obj)
 			self.__baseObjectId += 1
 
@@ -179,13 +180,13 @@ class ObjectsMenu:
 			self.__shortcutHandler.setShortcut(obj, code)
 
 	def processShortcut(self, code):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		print obj
-		if (obj is not None):
-			print obj.getIdentifier()
-			print self.__shortcutHandler.getShortcut(code).getIdentifier()
-			if (obj == self.__shortcutHandler.getShortcut(code)):
-				SceneToObjectsMenu.Instance().draw(obj)
+		selectedObject = ObjectDescriptor.Instance().getCurrentObject()
+		shortcutObject = self.__shortcutHandler.getShortcut(code)
+		if (selectedObject is not None and shortcutObject is not None):
+			if (selectedObject == shortcutObject):
+				SceneToObjectsMenu.Instance().draw(selectedObject)
 			else:
-				ObjectDescriptor.Instance().setObject(obj)
+				ObjectDescriptor.Instance().setObject(shortcutObject)
+		elif shortcutObject is not None:
+			ObjectDescriptor.Instance().setObject(shortcutObject)
 

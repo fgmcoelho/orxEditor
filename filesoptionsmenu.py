@@ -220,7 +220,6 @@ class FileSelectorPopup(KeyboardAccess):
 		self.__fileChooserPopUp.dismiss()
 
 	def getSelected(self):
-		print self.__selected
 		return self.__selected
 
 class FileChooserUser(object):
@@ -259,6 +258,7 @@ class FileChooserUser(object):
 			self._successPopup.open()
 		else:
 			self._errorPopup.setText('Error ' + operation + ' the file:\n'+errorText)
+			self._errorPopup.open()
 
 	def __init__(self):
 		self._fileChooserLayout = BoxLayout(orientation = 'vertical')

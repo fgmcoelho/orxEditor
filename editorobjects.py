@@ -389,9 +389,10 @@ class ObjectTypes:
 	renderedObject = 2
 
 class SpritedObjectInfo:
-	def __init__(self, virtualPath, coords):
+	def __init__(self, virtualPath, coords, spriteSize):
 		self.__virtualPath = virtualPath
 		self.__spriteCoords = coords
+		self.__spriteSize = spriteSize
 
 	def getVirtualPath(self):
 		return self.__virtualPath
@@ -399,9 +400,15 @@ class SpritedObjectInfo:
 	def getSpriteCoords(self):
 		return self.__spriteCoords
 
+	def getSpriteSize(self):
+		return self.__spriteSize
+
 class BaseObject:
-	def __init__(self, baseImage, identifier, virtualPath = None, spriteCoords = None):
-		assert (virtualPath is None and spriteCoords is None) or (virtualPath is not None and spriteCoords is not None)
+	def __init__(self, baseImage, identifier, virtualPath = None, spriteCoords = None, spriteSize = None):
+		assert (virtualPath is None and spriteCoords is None and spriteSize is None) or \
+			(virtualPath is not None and spriteCoords is not None and spriteSize is not None), \
+			"Invalid attributes received, information for sprite info must be all None or all filled."
+
 		self.__identifier = identifier
 		self.__baseImage = baseImage
 		if (virtualPath is None):
@@ -409,7 +416,7 @@ class BaseObject:
 			self.__spriteInfo = None
 		else:
 			self.__fullPath = virtualPath
-			self.__spriteInfo = SpritedObjectInfo(virtualPath, spriteCoords)
+			self.__spriteInfo = SpritedObjectInfo(virtualPath, spriteCoords, spriteSize)
 
 		self.__size = baseImage.texture.size
 		self.__objectType = ObjectTypes.baseObject

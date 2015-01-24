@@ -127,9 +127,9 @@ class Dialog(BaseWarnMethods):
 			self.__afterCancelAction()
 
 	def __processOk(self, *args):
-		self.__okMethod()
-		self.mainPopUp.dismiss()
 		KeyboardGuardian.Instance().dropKeyboard(self)
+		self.mainPopUp.dismiss()
+		self.__okMethod()
 		if (self.__afterOkAction is not None):
 			self.__afterOkAction()
 
