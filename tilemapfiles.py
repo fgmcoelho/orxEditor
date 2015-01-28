@@ -273,7 +273,6 @@ class FilesManager:
 	def exportScene(self, filename, assetsPath, shouldSmooth):
 		parser = ConfigParser()
 		parser.optionxform = str
-		objectListName = 'ObjectList'
 
 		parser.add_section('General')
 		parser.set('General', 'CollisionFlagList', self.__compileObjListWithName(

@@ -24,7 +24,7 @@ class TileEditor(App, KeyboardAccess):
 
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] in ['shift', 'ctrl']):
-			self.__sceneHandler.processKeyUp(keycode, keycode)
+			self.__sceneHandler.processKeyUp(keyboard, keycode)
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
@@ -32,12 +32,15 @@ class TileEditor(App, KeyboardAccess):
 				keycode[1] in ['shift', 'ctrl', 'delete']):
 			self.__sceneHandler.processKeyDown(keyboard, keycode, text, modifiers)
 
-		elif (len(keycode) == 1 and keycode[1] in '123456789'):
+		elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):
 			if ('ctrl' in modifiers):
 				ObjectsMenu.Instance().setShortcut(keycode[1])
 			else:
 				ObjectsMenu.Instance().processShortcut(keycode[1])
 
+	def confirm_exit(self, *args):
+		# TODO:  exit confirmation here!
+		return False
 
 	def build_config(self, c):
 		Config.set('graphics', 'width', 800)
@@ -50,6 +53,7 @@ class TileEditor(App, KeyboardAccess):
 		Config.write()
 
 	def build(self):
+		Window.on_request_close = self.confirm_exit
 
 		self.root = BoxLayout(orientation='horizontal', padding = 0, spacing = 0)
 
@@ -121,9 +125,10 @@ class TileEditor(App, KeyboardAccess):
 		return self.root
 
 if __name__ == '__main__':
-	TileEditor().run()
+	te = TileEditor()
 	try:
 		Window.maximize()
 	except:
 		# maximize may not be supported
 		pass
+	te.run()
