@@ -2,6 +2,7 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.graphics.vertex_instructions import Line
 #from kivy.graphics.fbo import Fbo
 from kivy.graphics import Color
+from kivy.core.window import Window
 
 from operator import itemgetter
 
@@ -225,7 +226,9 @@ class Scene:
 	def getLayout(self):
 		return self.__layout
 
-	def addObject(self, obj, relativeX, relaviveY):
+	def addObject(self, obj, relativeX = None, relaviveY = None, exactlyX = None, exactlyY = None):
+		assert (relativeX is not None and relaviveY is not None) or (exactlyX is not None and \
+			exactlyY is not None), "Invalid argument received."
 		sx, sy = obj.getSize()
 		if (sx > self.__maxX or sy > self.__maxY):
 			errorAlert = AlertPopUp(
@@ -236,7 +239,10 @@ class Scene:
 			errorAlert.open()
 			return
 
-		pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
+		if (relativeX is not None and relaviveY is not None):
+			pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
+		else:
+			pos = (exactlyX, exactlyY)
 		if (pos[0] + sx > self.__maxX):
 			finalX = self.__maxX - sx
 		else:
@@ -449,9 +455,17 @@ class SceneHandler (SpecialScrollControl):
 		self._scrollView.add_widget(self.__sceneList[self.__currentIndex].getLayout())
 
 	def draw(self, obj):
-		relativeX = self._scrollView.hbar[0]
-		relaviveY = self._scrollView.vbar[0]
-		self.__sceneList[self.__currentIndex].addObject(obj, relativeX, relaviveY)
+		mouse_pos = Window.mouse_pos
+		if (self._scrollView.collide_point(*mouse_pos) == True):
+			x, y = self._scrollView.to_widget(*mouse_pos)
+			sx, sy = obj.getSize()
+			exactlyX = int(x - (sx/2))
+			exactlyY = int(y - (sy/2))
+			self.__sceneList[self.__currentIndex].addObject(obj, exactlyX = exactlyX, exactlyY = exactlyY)
+		else:
+			relativeX = self._scrollView.hbar[0]
+			relaviveY = self._scrollView.vbar[0]
+			self.__sceneList[self.__currentIndex].addObject(obj, relativeX = relativeX, relaviveY = relaviveY)
 
 	def redraw(self):
 		self.__sceneList[self.__currentIndex].redraw()
