@@ -152,7 +152,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			i = xSkip
 			line = []
 			while i + xInc <= self.__layout.size[0]:
-				line.append(GridCell(self.__layout.canvas, i + xSkip, j - ySkip, xInc, yInc))
+				line.append(GridCell(self.__layout.canvas, i, j, xInc, yInc))
 				i += xInc
 			j -= yInc
 			self.__gridGraphics.append(line)
@@ -215,7 +215,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			self.__selectionStarted = False
 			self.__currentSelection = SpriteSelection(
 				(loopStartIndexI * self.__xSize) + self.__xSkip,
-				self.__layout.size[1] - ((loopFinalIndexJ + 1) * self.__ySize) + self.__ySkip,
+				self.__layout.size[1] - (((loopFinalIndexJ + 1) * self.__ySize) + self.__ySkip),
 				(loopFinalIndexI - loopStartIndexI + 1) * self.__xSize,
 				(loopFinalIndexJ - loopStartIndexJ + 1) * self.__ySize,
 				(loopFinalIndexI - loopStartIndexI + 1),
