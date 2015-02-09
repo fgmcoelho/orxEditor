@@ -454,13 +454,19 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 			try:
 				xSkip = int(self.__xSkipInput.text)
+				if (xSkip >= xSize):
+					xSkip = xSkip % xSize
+					self.__xSkipInput.text = str(xSkip)
 			except:
 				xSkip = 0
 			try:
 				ySkip = int(self.__ySkipInput.text)
+				if (ySkip >= ySize):
+					ySkip = ySkip % ySize
+					self.__ySkipInput.text = str(ySkip)
 			except:
 				ySkip = 0
-
+			
 			self.__display.drawGridBySize(xSize, ySize, xSkip, ySkip)
 
 	def __save(self):

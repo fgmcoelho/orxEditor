@@ -1,6 +1,6 @@
 #/usr/bin/python
 from kivy import require
-require('1.7.2')
+require('1.8.0')
 
 from kivy.app import App
 from kivy.clock import Clock
