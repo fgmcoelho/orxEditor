@@ -27,7 +27,6 @@ class BaseObjectDescriptor:
 	def __init__(self, accordionItem):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.2), multiline=False)
-		self.__pathLabel.text_size = (self.__pathLabel.width, None)
 		self.__sizeLabel = Label(text = 'Size: ', size_hint = (1.0, 0.2))
 		self.__layout.add_widget(self.__pathLabel)
 		self.__layout.add_widget(self.__sizeLabel)
@@ -59,9 +58,9 @@ class MultipleSelectionDescriptor:
 	def __init__(self, accordionItem):
 		self.__layout = BoxLayout (orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__selectedLabel = Label(text = 'Selected: 0', size_hint = (1.0, 0.1))
-		
+
 		self.__layerLabel = Label(text = 'Group info:', size_hint = (0.7, 1.0))
-		self.__layerButton = CancelableButton(text = 'Edit Group', size_hint = (0.3, 1.0), 
+		self.__layerButton = CancelableButton(text = 'Edit Group', size_hint = (0.3, 1.0),
 			on_release = LayerInformationPopup.Instance().showPopUp)
 		self.__layerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__layerBox.add_widget(self.__layerLabel)
@@ -69,7 +68,7 @@ class MultipleSelectionDescriptor:
 
 		self.__collisionBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__collisionInfoLabel = Label(text = 'Collision info:', size_hint = (0.7, 1.0))
-		self.__collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.3, 1.0), 
+		self.__collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.3, 1.0),
 			on_release = CollisionInformationPopup.Instance().showPopUp)
 		self.__collisionBox.add_widget(self.__collisionInfoLabel)
 		self.__collisionBox.add_widget(self.__collisionHandler)
@@ -117,19 +116,19 @@ class RenderedObjectDescriptor:
 
 		self.__sizeScaleBox.add_widget(self.__sizeLabel)
 		self.__sizeScaleBox.add_widget(self.__scaleLabel)
-		
+
 		self.__layerBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__layerLabel = Label(text = 'Group: ', size_hint = (0.7, 1.0))
-		self.__layerButton = CancelableButton(text = 'Edit Group', size_hint = (0.3, 1.0), 
+		self.__layerButton = CancelableButton(text = 'Edit Group', size_hint = (0.3, 1.0),
 			on_release = layerPopUpMethod)
-		
+
 		self.__layerBox.add_widget(self.__layerLabel)
 		self.__layerBox.add_widget(self.__layerButton)
-		
+
 
 		self.__collisionBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__collisionInfoLabel = Label(text = 'Has collision info: ', size_hint = (0.7, 1.0))
-		self.__collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.3, 1.0), 
+		self.__collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.3, 1.0),
 			on_release = collisionPopUpMethod)
 
 		self.__collisionBox.add_widget(self.__collisionInfoLabel)
@@ -182,7 +181,7 @@ class ObjectDescriptor:
 		CollisionInformationPopup.Instance().showPopUp()
 		if (self.__currentObject is not None):
 			self.setObject(self.__currentObject)
-	
+
 	def openLayerPopUp(self, *args):
 		LayerInformationPopup.Instance().showPopUp()
 		if (self.__currentObject is not None):
