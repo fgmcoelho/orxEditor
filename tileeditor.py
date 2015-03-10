@@ -28,7 +28,7 @@ class TileEditor(App, KeyboardAccess):
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
-		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcv') or 
+		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcv') or
 				keycode[1] in ['shift', 'ctrl', 'delete']):
 			self.__sceneHandler.processKeyDown(keyboard, keycode, text, modifiers)
 
@@ -108,9 +108,9 @@ class TileEditor(App, KeyboardAccess):
 		CollisionToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
 			self.__sceneHandler.getAllObjects)
 		SceneToObjectsMenu.Instance(self.__sceneHandler.draw)
-		SceneToFilesManager.Instance(self.__sceneHandler.getCurrentSceneObjects, 
+		SceneToFilesManager.Instance(self.__sceneHandler.getCurrentSceneObjects,
 			self.__sceneHandler.getCurrentSceneAttributes, self.__sceneHandler.newScene,
-			self.__sceneHandler.addObjectByInfo, self.__sceneHandler.setSceneObjectId, 
+			self.__sceneHandler.addObjectByInfo, self.__sceneHandler.setSceneObjectId,
 			self.__sceneHandler.getSceneObjectId)
 		CollisionToCollisionForm.Instance(CollisionInformationPopup.Instance().callPreview)
 		ObjectDescriptorToResourceLoarder.Instance(self.__resourcePopup.open)

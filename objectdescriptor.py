@@ -12,6 +12,13 @@ from layer import LayerInformationPopup
 
 @Singleton
 class BaseObjectDescriptor:
+
+	def set_on_size(self, obj, new_texture_size):
+		if (obj.width != 100 and obj.height != 100):
+			obj.text_size = obj.size
+		print obj.size
+		print new_texture_size
+
 	def __setValues(self, path, size, obj):
 		self.__pathLabel.text = 'Path: ' + str(path)
 		self.__sizeLabel.text = 'Size: ' + str(size)
@@ -26,7 +33,8 @@ class BaseObjectDescriptor:
 
 	def __init__(self, accordionItem):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.2), multiline=False)
+		self.__pathLabel = Label(text = 'Path: ', size_hint = (1.0, 0.2), multiline=False, halign='left')
+		self.__pathLabel.bind(texture_size = self.set_on_size)
 		self.__sizeLabel = Label(text = 'Size: ', size_hint = (1.0, 0.2))
 		self.__layout.add_widget(self.__pathLabel)
 		self.__layout.add_widget(self.__sizeLabel)
