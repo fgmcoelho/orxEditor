@@ -710,6 +710,7 @@ class CollisionInformationPopup:
 			i = int(self.__partsPanel.current_tab.id.split('#')[1])
 
 		part = self.__partsLayoutList[i].getPart()
+		self.__partsLayoutList[i].updateLayout(part, self.__objectsList[self.__objectsListIndex])
 		needOversize = self.__needToOversizePreview(part)
 		if (needOversize == True):
 			expandLevel = 2
