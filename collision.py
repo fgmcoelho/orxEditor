@@ -94,7 +94,6 @@ class CollisionFlagsEditor:
 
 		CollisionGuardian.Instance().removeFlag(self.__flagToRemove)
 		self.__flagToRemove = None
-		self.__flagRemoveWarning.dismiss()
 		self.__render()
 
 	def __processRemoveFlag(self, buttonPressed, touch):
@@ -444,7 +443,6 @@ class CollisionInformationPopup:
 		self.__copiesDict[currentId].removePart(part)
 		part = None
 		self.__extraPartsDict[currentId].append(CollisionPartInformation())
-		self.__warnDelete.dismiss()
 		self.__render()
 
 	def __deleteCurrentPart(self, *args):
@@ -470,7 +468,6 @@ class CollisionInformationPopup:
 					self.__extraPartsDict[obj.getIdentifier()].append(CollisionPartInformation())
 					numberOfExtraParts = len(self.__extraPartsDict[obj.getIdentifier()])
 
-		self.__warnApplyAll.dismiss()
 		self.__render()
 
 	def __applyChangesToAll(self, *args):
