@@ -37,7 +37,7 @@ class NumberInput(TextInput):
 	def selectNextInput(module, index):
 		nextIndex = (index + 1) % len(NumberInput.modulesDict[module])
 		NumberInput.selectInput(module, nextIndex)
-	
+
 	@staticmethod
 	def selectPreviousInput(module, index):
 		nextIndex = (index - 1) % len(NumberInput.modulesDict[module])
@@ -46,7 +46,7 @@ class NumberInput(TextInput):
 	def insert_text(self, substring, from_undo = False):
 		if (substring in "0123456789"):
 			super(NumberInput, self).insert_text(substring, from_undo = from_undo)
-			if (self.text[0] == '0'):
+			if (len(self.text) > 1 and self.text[0] == '0'):
 				self.text = self.text[1:]
 
 	def __init__(self, **kwargs):
@@ -101,6 +101,20 @@ class CancelableButton (Button):
 class EmptyScrollEffect(ScrollEffect):
 	pass
 
+class AlignedLabel(Label):
+	def __set_on_size(self, obj, new_texture_size):
+		if (obj.width != 100 and obj.height != 100):
+			obj.text_size = obj.size
+		#print obj.size
+		#print new_texture_size
+		#print obj.texture_size
+		#print obj.text_size
+
+	def __init__(self, **kwargs):
+		super(AlignedLabel, self).__init__(**kwargs)
+		self.bind(size = self.__set_on_size)
+
+
 class BaseWarnMethods(KeyboardAccess):
 	def open(self):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
@@ -133,7 +147,7 @@ class Dialog(BaseWarnMethods):
 		if (self.__afterOkAction is not None):
 			self.__afterOkAction()
 
-	def __init__(self, okMethod = None, dialogTitle = '', dialogText = '', dialogOkButtonText = '', 
+	def __init__(self, okMethod = None, dialogTitle = '', dialogText = '', dialogOkButtonText = '',
 			dialogCancelButtonText = '', afterOkAction = None, afterCancelAction = None):
 
 		self.mainPopUp = Popup(title = dialogTitle, auto_dismiss = False, size_hint = (0.7, 0.5))
