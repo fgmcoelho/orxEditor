@@ -441,7 +441,6 @@ class BaseObject:
 
 class RenderedObject (Scatter, SpaceLimitedObject):
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
-
 		if (self.__forceMove == False and self.__renderGuardian.isSelected(self) == False):
 			return
 
@@ -480,23 +479,27 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			self.__borderLine = None
 
 	def increaseScale(self):
+		self.__forceMove = True
 		self.setScale (self.__scale + 0.25, True)
+		self.__forceMove = False
 
 	def decreaseScale(self):
+		self.__forceMove = True
 		self.setScale (self.__scale - 0.25, True)
+		self.__forceMove = False
 
 	def setScale(self, newScale, preservePos = False):
 		if (newScale == 0.0):
 			return
-			
+
 		newLimitX = (self.__baseSize[0] * newScale) + self.bbox[0][0]
 		newLimitY = (self.__baseSize[1] * newScale) - self.bbox[0][1]
 		if (newLimitX > self.__maxX or newLimitY > self.__maxY):
 			return
-			
+
 		if (preservePos == True):
 			oldPos = self.bbox[0]
-	
+
 		mustRemark = False
 		if (self.__borderLine is not None):
 			self.unsetMarked()
