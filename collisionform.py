@@ -174,6 +174,20 @@ class CollisionPartDisplay(RelativeLayout):
 
 class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 	dotSize = 11
+	existingDots = []
+	keepRatio = [False]
+	moveAll = [ False ]
+
+	@staticmethod
+	def resetStartingState():
+		CollisionFormEditorPoints.existingDots = []
+		CollisionFormEditorPoints.keepRatio = [ False ]
+		CollisionFormEditorPoints.moveAll = [ False ]
+
+	@staticmethod
+	def setMoveAll(value):
+		CollisionFormEditorPoints.moveAll = [ value ]
+
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
 		xBefore, yBefore = self.bbox[0]
 
@@ -182,7 +196,40 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		if (xBefore == x and yBefore == y):
 			return
 
-		self._set_pos(self.ajustPositionByLimits(x, y, 11, 11, self.__maxX, self.__maxY))
+		self._set_pos(self.ajustPositionByLimits(x, y, CollisionFormEditorPoints.dotSize,
+			CollisionFormEditorPoints.dotSize, self.__maxX, self.__maxY))
+
+		if (CollisionFormEditorPoints.moveAll[0] == True and self.__propagateMovement == True):
+			for point in CollisionFormEditorPoints.existingDots:
+				if (point != self):
+					point.applyTransform(trans)
+
+		elif (CollisionFormEditorPoints.keepRatio[0] == True and self.__propagateMovement == True):
+			for point in CollisionFormEditorPoints.existingDots:
+				if (point != self):
+					point.applyTransform(trans.inverse())
+
+	def _updateOnMove(self, touch):
+		if (touch.button == 'right'):
+			CollisionFormEditorPoints.keepRatio[0] = True
+			self.setPropagateMovement(True)
+
+		if (CollisionFormEditorPoints.moveAll[0] == True):
+			self.setPropagateMovement(True)
+
+		self.__updateMethod(self)
+		self.__defaut_touch_move(touch)
+		self.setPropagateMovement(False)
+
+		if (touch.button == 'right'):
+			CollisionFormEditorPoints.keepRatio[0] = False
+			self.setPropagateMovement(False)
+
+		if (CollisionFormEditorPoints.moveAll[0] == True):
+			self.setPropagateMovement(False)
+
+	def applyTransform(self, trans):
+			self.__defaultApplyTransform(trans)
 
 	def getPos(self):
 		x, y = self.pos
@@ -196,26 +243,27 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		y -= ceil(CollisionFormEditorPoints.dotSize/2.)
 		self.pos = (x, y)
 
-	def __updateOnMove(self, touch):
-		self.__updateMethod(self)
-		self.__defaut_touch_move(touch)
+	def setPropagateMovement(self, value):
+		self.__propagateMovement = value
 
 	def __init__(self, updateMethod, limits):
 		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
 			size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize), size_hint = (None, None),
 			auto_bring_to_front = False)
 
+		self.__propagateMovement = False
 		self.__updateMethod = updateMethod
 		self.__defaut_touch_move = self.on_touch_move
-		self.on_touch_move = self.__updateOnMove
+		self.on_touch_move = self._updateOnMove
+
 		self.__maxX, self.__maxY = limits
 
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
 
-		img = Image (size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize))
+		img = Image(size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize))
 		self.add_widget(img)
-
+		CollisionFormEditorPoints.existingDots.append(self)
 
 class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 	# Overloaded method
@@ -225,6 +273,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 
 		elif (keycode[1] == 'ctrl'):
 			self.setIsCtrlPressed(False)
+			CollisionFormEditorPoints.setMoveAll(False)
 
 		if (keycode[1] == 'delete' and self.__lastPointPressed is not None):
 			form = self.__workingPart.getFormType()
@@ -244,6 +293,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 
 		elif (keycode[1] == 'ctrl'):
 			self.setIsCtrlPressed(True)
+			CollisionFormEditorPoints.setMoveAll(True)
 
 	def __updatePoints(self, point):
 		self.__lastPointPressed = point
@@ -264,7 +314,6 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		else:
 			return (imgPos, (imgPos[0] + imgSize[0], imgPos[1]), (imgPos[0] + imgSize[0], imgPos[1] + imgSize[1]),
 				(imgPos[0], imgPos[1] + imgSize[1]))
-
 
 	def savePoints(self):
 		newPoints = self.__workingPart.getPoints()
@@ -297,6 +346,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		return newPart
 
 	def render(self, part, obj):
+		CollisionFormEditorPoints.resetStartingState()
 		self._scrollView.clear_widgets()
 		self.__display = CollisionPartDisplay(obj, 2.0)
 		displaySize = self.__display.getSize()
