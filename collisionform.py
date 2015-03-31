@@ -11,7 +11,7 @@ from kivy.uix.label import Label
 
 from math import ceil
 
-from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, distance
+from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, distance, isConvexPolygon, AlertPopUp
 from editorheritage import SpecialScrollControl, SpaceLimitedObject
 from collisioninfo import CollisionPartInformation
 from keyboard import KeyboardAccess, KeyboardGuardian
@@ -131,8 +131,13 @@ class CollisionPartDisplay(RelativeLayout):
 		for point in points:
 			verticesList.extend([point[0], point[1], 0, 0])
 
+		if (isConvexPolygon(points) == True):
+			colorToUse = (0., 1.0, .0, 0.3)
+		else:
+			colorToUse = (1.0, .0, 0., 0.3)
+
 		with self.canvas:
-			Color(0., 1.0, .0, 0.3)
+			Color(*colorToUse)
 			self.__operation = Mesh(
 				vertices = verticesList,
 				indices = range(len(points)),
@@ -331,7 +336,12 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 					transformedPoint = self.__display.getImage().to_local(*point)
 					transformedPoints.append((int(transformedPoint[0]), int(transformedPoint[1])))
 
+				if (form == 'mesh' and isConvexPolygon(transformedPoints) == False):
+					return False
+
 				self.__originalPart.setPoints(transformedPoints)
+
+		return True
 
 	def __copyPartAndTransform(self, part):
 		newPart = CollisionPartInformation.copy(part)
@@ -453,9 +463,11 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 @Singleton
 class CollisionFlagFormEditorPopup:
 	def __saveAndClose(self, *args):
-		self.__mainScreen.savePoints()
-		CollisionToCollisionForm.Instance().preview()
-		self.dismissPopUp()
+		if (self.__mainScreen.savePoints() == False):
+			self.__meshErrorAlert.open()
+		else:
+			CollisionToCollisionForm.Instance().preview()
+			self.dismissPopUp()
 
 	def __init__(self):
 		self.__layout = BoxLayout(orientation = 'vertical')
@@ -467,6 +479,11 @@ class CollisionFlagFormEditorPopup:
 		self.__doneButton = CancelableButton(text = 'Done', size_hint = (0.15, 1.0),
 				on_release = self.__saveAndClose)
 		self.__tooltipLabel = Label(text='', size_hint = (0.6, 1.0))
+		self.__meshErrorAlert = AlertPopUp(
+			alertTitle = 'Error',
+			alertText = 'The mesh must be a convex polygon.\nThe mesh will be green when it is convex.',
+			closeButtonText = 'Ok.',
+		)
 
 		self.__bottomMenu.add_widget(self.__tooltipLabel)
 		self.__bottomMenu.add_widget(Label(text ='', size_hint = (0.1, 1.0)))

@@ -328,3 +328,24 @@ def createSpriteImage(baseImage, x, y, width, height):
 	newTexture = baseImage.texture.get_region(x, y, width, height)
 	return Image(texture = newTexture, size = (width, height), size_hint = (None, None))
 
+def isConvexPolygon(points):
+	assert type(points) is list or type(points) is tuple, 'Type is not supported.'
+	assert len(points) > 2, 'At least three points are needed.'
+	allPositive = True
+	allNegative = True
+	for i in range(len(points)):
+		dx1 = points[i-1][0] - points[i-2][0]
+		dy1 = points[i-1][1] - points[i-2][1]
+		dx2 = points[i][0] - points[i-1][0]
+		dy2 = points[i][1] - points[i-1][1]
+		product = dx1 * dy2 - dy1 * dx2
+		if (product > 0):
+			allNegative = False
+		if (product < 0):
+			allPositive = False
+
+	if (allNegative == True or allPositive == True):
+		return True
+	else:
+		return False
+
