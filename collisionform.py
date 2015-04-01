@@ -201,18 +201,35 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		if (xBefore == x and yBefore == y):
 			return
 
-		self._set_pos(self.ajustPositionByLimits(x, y, CollisionFormEditorPoints.dotSize,
-			CollisionFormEditorPoints.dotSize, self.__maxX, self.__maxY))
+		if (self.isOutOfLimits() == True):
+			self._set_pos(self.ajustPositionByLimits(x, y, CollisionFormEditorPoints.dotSize,
+				CollisionFormEditorPoints.dotSize, self.__maxX, self.__maxY))
+			return
 
 		if (CollisionFormEditorPoints.moveAll[0] == True and self.__propagateMovement == True):
+			outOfLimits = False
 			for point in CollisionFormEditorPoints.existingDots:
 				if (point != self):
 					point.applyTransform(trans)
+					outOfLimits |= point.isOutOfLimits()
+
+			if (outOfLimits == True):
+				for point in CollisionFormEditorPoints.existingDots:
+					point.applyTransform(trans.inverse())
 
 		elif (CollisionFormEditorPoints.keepRatio[0] == True and self.__propagateMovement == True):
+			outOfLimits = False
 			for point in CollisionFormEditorPoints.existingDots:
 				if (point != self):
 					point.applyTransform(trans.inverse())
+					outOfLimits |= point.isOutOfLimits()
+
+			if (outOfLimits == True):
+				for point in CollisionFormEditorPoints.existingDots:
+					if (point == self):
+						point.applyTransform(trans.inverse())
+					else:
+						point.applyTransform(trans)
 
 	def _updateOnMove(self, touch):
 		if (touch.button == 'right'):
@@ -232,6 +249,13 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 
 		if (CollisionFormEditorPoints.moveAll[0] == True):
 			self.setPropagateMovement(False)
+
+	def isOutOfLimits(self):
+		x, y = self.getPos()
+		if (x < 0 or x > self.__maxX or y < 0 or y > self.__maxY):
+			return True
+		else:
+			return False
 
 	def applyTransform(self, trans):
 			self.__defaultApplyTransform(trans)
