@@ -8,7 +8,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 
 
-from ui_sizes import main_layout_size
+from uisizes import main_layout_size
 from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler
 from optionsmenu import OptionsMenu
