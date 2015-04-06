@@ -12,7 +12,7 @@ class OptionsMenu:
 		self.__maxWidthProportion = maxWidthProportion
 		self.__maxHeightProportion = maxHeightProportion
 
-		self.__layout = Accordion(orientation = 'horizontal', size_hint = (maxWidthProportion, maxHeightProportion))
+		self.__layout = Accordion(orientation = 'horizontal', size_hint = (1.0, None), height = 200)
 		self.__accordionItems = {
 			'BaseObject' : AccordionItem(title = 'Base Object'),
 			'RenderedObject' : AccordionItem (title = 'Rendered Object'),

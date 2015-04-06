@@ -1,16 +1,37 @@
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics.vertex_instructions import Line
-#from kivy.graphics.fbo import Fbo
-from kivy.graphics import Color
+from kivy.graphics.fbo import Fbo
+from kivy.graphics import Color, Canvas, Rectangle, ClearColor, ClearBuffers, Scale, Translate
 from kivy.core.window import Window
+from kivy.uix.popup import Popup
+from kivy.uix.image import Image
+from kivy.uix.label import Label
+from kivy.properties import ObjectProperty, NumericProperty
 
 from operator import itemgetter
 
 from editorheritage import SpecialScrollControl
 from editorobjects import RenderObjectGuardian
-from editorutils import AlertPopUp
+from editorutils import AlertPopUp, AutoReloadTexture
 from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 from layerinfo import LayerGuardian
+
+class OrderSceneObjects:
+	def _order_objects(self, objectDict):
+		objectsList = []
+		nameToPriorityDict = LayerGuardian.Instance().getNameToPriorityDict()
+		for key in objectDict.keys():
+			objectsList.append(
+				(
+					objectDict[key], 
+					nameToPriorityDict[objectDict[key].getLayer()],
+					objectDict[key].getIdentifier()
+				)
+			)
+
+		objectsOrderedList = sorted(objectsList, key=itemgetter(1, 2))
+		return objectsOrderedList
 
 class SceneAttributes:
 	def __init__(self, tileSize, numberOfTilesX, numberOfTilesY):
@@ -29,7 +50,74 @@ class SceneAttributes:
 	def setValues(self, name, value):
 		self.__valuesDict[name] = value
 
-class Scene:
+class MiniMapScene(RelativeLayout, OrderSceneObjects):
+	texture = ObjectProperty(None, allownone=True)
+	alpha = NumericProperty(1)
+	def __init__(self, **kwargs):
+		self.canvas = Canvas()
+		with self.canvas:
+			self.fbo = Fbo(size=self.size)
+			self.fbo_color = Color(1, 1, 1, 1)
+			self.fbo_rect = Rectangle()
+
+		with self.fbo:
+			ClearColor(0, 0, 0, 0)
+			ClearBuffers()
+
+		# wait that all the instructions are in the canvas to set texture
+		self.texture = self.fbo.texture
+		super(MiniMapScene, self).__init__(**kwargs)
+
+	def add_widget(self, *largs):
+		# trick to attach graphics instruction to fbo instead of canvas
+		canvas = self.canvas
+		self.canvas = self.fbo
+		ret = super(MiniMapScene, self).add_widget(*largs)
+		self.canvas = canvas
+		print ret
+		return ret
+
+	def clear_widgets(self):
+		canvas = self.canvas
+		self.canvas = self.fbo
+		super(MiniMapScene, self).clear_widgets()
+		self.canvas = canvas
+
+	def remove_widget(self, *largs):
+		canvas = self.canvas
+		self.canvas = self.fbo
+		super(MiniMapScene, self).remove_widget(*largs)
+		self.canvas = canvas
+
+	def on_size(self, instance, value):
+		print "aaaa"
+		self.fbo.size = value
+		self.texture = self.fbo.texture
+		self.fbo_rect.size = value
+
+	def on_pos(self, instance, value):
+		print "bbbb"
+		self.fbo_rect.pos = value
+
+	def on_texture(self, instance, value):
+		print "cccc"
+		self.fbo_rect.texture = value
+
+	def on_alpha(self, instance, value):
+		self.fbo_color.rgba = (1, 1, 1, value)
+
+	def getTexture(self):
+		img = Image(texture = self.fbo.texture)
+		popup = Popup(title = 'testing', content = img, auto_dismiss = True)
+		popup.open()
+
+	def populateMap(self, objectDict):
+		objectsOrderedList = self._order_objects(objectDict)
+		self.clear_widgets()
+		for obj in objectsOrderedList:
+			self.add_widget(obj[0])
+
+class Scene(OrderSceneObjects):
 
 	def __init__(self, attributes = None):
 		self.__alignToGrid = False
@@ -37,7 +125,30 @@ class Scene:
 		self.__layout = RelativeLayout(size_hint = (None, None), on_resize = self.redraw)
 		self.__renderGuardian = RenderObjectGuardian()
 		self.loadValues(attributes)
-		#self.__fbo = Fbo(size = self.__layout.size)
+
+	def getMiniMapTexture(self):
+		#self.hideGrid()
+		if self.__layout.parent is not None:
+			canvas_parent_index = self.__layout.parent.canvas.indexof(self.__layout.canvas)
+			self.__layout.parent.canvas.remove(self.__layout.canvas)
+		
+		fbo = Fbo(size=self.__layout.size, with_stencilbuffer=True)
+		with fbo:
+			ClearColor(0, 0, 0, 1)
+			ClearBuffers()
+			Scale(1, -1, 1)
+			Translate(-self.__layout.x, -self.__layout.y - self.__layout.height, 0)
+
+		fbo.add(self.__layout.canvas)
+		fbo.draw()
+		img = Image(texture = fbo.texture, size = fbo.texture.size)
+		popup = Popup(auto_dismiss = True, content = img, title = 'aaa', size_hint = (0.5, 0.5))
+		popup.open()
+		fbo.remove(self.__layout.canvas)
+
+		if self.__layout.parent is not None:
+			self.__layout.parent.canvas.insert(canvas_parent_index, self.__layout.canvas)
+		#self.showGrid()
 
 	def showGrid(self):
 		with self.__layout.canvas:
@@ -56,6 +167,7 @@ class Scene:
 					self.__maxX, i], width = 2
 				)
 				i += self.__tileSize
+		self.__layout.canvas.ask_update()
 
 	def hideGrid(self):
 		with self.__layout.canvas:
@@ -74,14 +186,7 @@ class Scene:
 					self.__maxX, i], width = 2
 				)
 				i += self.__tileSize
-
-	#def getTexture(self):
-	#	self.__fbo.clear_color = (0, 0, 0, 0)
-	#	self.__fbo.clear_buffer()
-	#	self.__fbo.bind()
-	#	self.redraw()
-	#	self.__fbo.release()
-	#	return self.__fbo.texture
+		self.__layout.canvas.ask_update()
 
 	def toggleGrid(self):
 		if (self.__showGrid == True):
@@ -115,22 +220,12 @@ class Scene:
 				self.__objectDict[key].resetAllWidgets()
 			self.__objectDict = {}
 
-		self.showGrid()
+		#self.showGrid()
 
-	def redraw(self):
-		objectsList = []
-		nameToPriorityDict = LayerGuardian.Instance().getNameToPriorityDict()
-		for key in self.__objectDict.keys():
-			objectsList.append(
-				(
-					self.__objectDict[key], 
-					nameToPriorityDict[self.__objectDict[key].getLayer()],
-					self.__objectDict[key].getIdentifier()
-				)
-			)
-
-		self.__layout.clear_widgets()
-		objectsOrderedList = sorted(objectsList, key=itemgetter(1, 2))
+	def redraw(self, avoidClear = False):
+		objectsOrderedList = self._order_objects(self.__objectDict)
+		if (avoidClear == False):
+			self.__layout.clear_widgets()
 		for obj in objectsOrderedList:
 			self.__layout.add_widget(obj[0])
 			if (self.__alignToGrid == True):
@@ -188,7 +283,6 @@ class Scene:
 			MultipleSelectionDescriptor.Instance().setValues(numberOfFlippedObjects)
 
 	def removeObject(self):
-
 		deletedObjects = self.__renderGuardian.deleteSelection()
 		if (len(deletedObjects) != 0):
 			ObjectDescriptor.Instance().clearCurrentObject()
@@ -367,6 +461,9 @@ class SceneHandler (SpecialScrollControl):
 
 		elif (keycode[1] == '\\'):
 			self.__sceneList[self.__currentIndex].redo()
+
+		elif (keycode[1] == 'y'):
+			self.__sceneList[self.__currentIndex].getMiniMapTexture()
 
 	def __getSelectedObjectByClick(self, touch):
 		clickedObjectsList = []

@@ -7,6 +7,8 @@ from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 
+
+from ui_sizes import main_layout_size
 from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler
 from optionsmenu import OptionsMenu
@@ -28,7 +30,7 @@ class TileEditor(App, KeyboardAccess):
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
-		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcv') or
+		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcvy') or
 				keycode[1] in ['shift', 'ctrl', 'delete']):
 			self.__sceneHandler.processKeyDown(keyboard, keycode, text, modifiers)
 
@@ -61,14 +63,15 @@ class TileEditor(App, KeyboardAccess):
 			orientation='vertical',
 			padding = 0,
 			spacing = 0,
-			size_hint = (0.25, 1.0)
+			size_hint = main_layout_size['left_menu_size_hint'],
+			width = main_layout_size['left_menu_width'],
 		)
 
 		self.rightScreen = BoxLayout(
 			orientation = 'vertical',
 			padding = 0,
 			spacing = 0,
-			size_hint = (0.75, 1.0),
+			size_hint = (1.0, 1.0),
 		)
 
 		self.root.add_widget(self.leftMenuBase)
