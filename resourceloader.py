@@ -290,7 +290,7 @@ class ResourceLoaderList(SpecialScrollControl):
 		self.__defaultTouchDown(touch)
 
 	def __callShowMethod(self, label, touch):
-		if (label.collide_point(*touch.pos) == True and touch.is_mouse_scrolling == False and 
+		if (label.collide_point(*touch.pos) == True and touch.is_mouse_scrolling == False and
 				touch.is_double_tap == True and self.getSelection() is not None):
 			self.__showMethod(self.getSelection)
 
@@ -399,7 +399,7 @@ class ResourceLoaderList(SpecialScrollControl):
 			ResourceLoaderToObjectDescriptor.Instance().reloadResource(self.__resourceInfo)
 
 class ResourceLoaderPopup(KeyboardAccess):
-	
+
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
 
@@ -466,7 +466,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 					self.__ySkipInput.text = str(ySkip)
 			except:
 				ySkip = 0
-			
+
 			self.__display.drawGridBySize(xSize, ySize, xSkip, ySkip)
 
 	def __save(self):
@@ -529,7 +529,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 
 	def __createLeftMenuUi(self):
 		# x divisions
-		self.__xDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0', 
+		self.__xDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0',
 			module = 'divisions')
 		self.__yDivisionsInput = NumberInput(multiline = False, size_hint = (1.0, 0.05), text = '0',
 			module = 'divisions')
@@ -548,7 +548,7 @@ class ResourceLoaderPopup(KeyboardAccess):
 		self.__exportColorToAlphaLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		self.__exportColorToAlphaCheckbox = CheckBox(size_hint = (0.2, 1.0))
 		self.__exportColorToAlphaLine.add_widget(self.__exportColorToAlphaCheckbox)
-		self.__exportColorToAlphaLine.add_widget(Label(text = 'Export\ncolor to\nalpha [color=FF0000](NIY)[/color].', 
+		self.__exportColorToAlphaLine.add_widget(Label(text = 'Export\ncolor to\nalpha [color=FF0000](NIY)[/color].',
 			size_hint = (0.8, 1.0), markup = True))
 		self.__whiteImage = WhiteImage()
 		self.__whiteImage.getImage().size_hint = (1.0, 0.2)

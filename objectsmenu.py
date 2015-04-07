@@ -14,7 +14,6 @@ from communicationobjects import SceneToObjectsMenu
 from splittedimagemap import SplittedImageImporter
 
 class ObjectMenuItem:
-
 	def __handle(self, image, touch):
 		if (touch.is_mouse_scrolling == False and self.getDisplayImage().collide_point(*touch.pos) == True and
 				touch.is_double_tap == True):
@@ -39,7 +38,7 @@ class ShortcutHandler:
 		self.__shortcuts = {}
 		for i in range(10):
 			self.__shortcuts[str(i)] = None
-	
+
 	def setShortcut(self, obj, code):
 		assert code in '0123456789', 'Invalid code for shortcut: ' + str(code) + '.'
 		assert isinstance(obj, BaseObject) == True, 'Invalid object type for a shortcut, must be BaseObject.'
@@ -146,13 +145,13 @@ class ObjectsMenu:
 				if (startIndex is not None):
 					finalIndex = i
 					break
-			
+
 			i += 1
 
 		newObjectMenuItemList = []
 		for baseObject in self.__loadResourceInfoList(resourceInfo):
 			newObjectMenuItemList.append(ObjectMenuItem(baseObject, (64, 64)))
-			
+
 		if (startIndex is not None):
 			if (finalIndex is not None):
 				self.__menuObjectsList = self.__menuObjectsList[0:startIndex] + newObjectMenuItemList + \
@@ -163,7 +162,7 @@ class ObjectsMenu:
 			self.__menuObjectsList.extend(newObjectMenuItemList)
 
 		self.__reloadMenuList()
-		
+
 	def getLayout(self):
 		return self.__scrollView
 
@@ -189,4 +188,6 @@ class ObjectsMenu:
 				ObjectDescriptor.Instance().setObject(shortcutObject)
 		elif shortcutObject is not None:
 			ObjectDescriptor.Instance().setObject(shortcutObject)
+
+
 
