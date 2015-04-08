@@ -6,9 +6,10 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
+from kivy.core.window import Window
 
 
-from uisizes import main_layout_size
+from uisizes import mainLayoutSize
 from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler
 from optionsmenu import OptionsMenu
@@ -20,7 +21,9 @@ from layer import LayerInformationPopup
 from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
 from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder, LayerToSceneCommunication
 from communicationobjects import ResourceLoaderToObjectDescriptor, FileOptionsMenuToScene
-from kivy.core.window import Window
+
+from objectsmenu import NewBaseObjectDisplay, NewBaseObjectsMenu
+from modulesaccess import ModulesAccess
 
 class TileEditor(App, KeyboardAccess):
 
@@ -63,8 +66,8 @@ class TileEditor(App, KeyboardAccess):
 			orientation='vertical',
 			padding = 0,
 			spacing = 0,
-			size_hint = main_layout_size['left_menu_size_hint'],
-			width = main_layout_size['left_menu_width'],
+			size_hint = mainLayoutSize['leftMenuSizeHint'],
+			width = mainLayoutSize['leftMenuWidth'],
 		)
 
 		self.rightScreen = BoxLayout(
@@ -98,8 +101,13 @@ class TileEditor(App, KeyboardAccess):
 		OptionsMenu.Instance(self.rightScreen)
 
 		# Left Menu Handler
-		ObjectsMenu.Instance()
-		self.leftMenuBase.add_widget(ObjectsMenu.Instance().getLayout())
+		#ObjectsMenu.Instance()
+		#self.leftMenuBase.add_widget(ObjectsMenu.Instance().getLayout())
+		NewBaseObjectDisplay()
+		NewBaseObjectsMenu()
+
+		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
+		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())
 
 		# ResourceLoader
 		self.__resourcePopup = ResourceLoaderPopup()
@@ -117,15 +125,19 @@ class TileEditor(App, KeyboardAccess):
 			self.__sceneHandler.getSceneObjectId)
 		CollisionToCollisionForm.Instance(CollisionInformationPopup.Instance().callPreview)
 		ObjectDescriptorToResourceLoarder.Instance(self.__resourcePopup.open)
-		ResourceLoaderToObjectDescriptor.Instance(ObjectsMenu.Instance().reloadResource)
+		#ResourceLoaderToObjectDescriptor.Instance(ObjectsMenu.Instance().reloadResource)
 		LayerToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
 			self.__sceneHandler.getAllObjects, self.__sceneHandler.redraw)
 		FileOptionsMenuToScene.Instance(self.__sceneHandler.newScene)
 
 		# Periodic functions:
 		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)
+		Clock.schedule_interval(self.__printSize, 1)
 
 		return self.root
+
+	def __printSize(self, dt):
+		print ModulesAccess.get('BaseObjectsMenu').getLayout().size
 
 if __name__ == '__main__':
 	te = TileEditor()
@@ -134,4 +146,6 @@ if __name__ == '__main__':
 	except:
 		# maximize may not be supported
 		pass
+
 	te.run()
+

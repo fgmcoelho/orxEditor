@@ -9,4 +9,4 @@ class ModulesAccess:
 	@staticmethod
 	def get(moduleName):
 		assert moduleName in ModulesAccess.modulesDict, 'Module does not exist.'
-		return ModulesAccess[moduleName]
+		return ModulesAccess.modulesDict[moduleName]

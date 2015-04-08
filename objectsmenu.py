@@ -1,17 +1,22 @@
 from singleton import Singleton
 
-from os.path import join
+from os.path import join, relpath, split, sep as pathSeparator
 from os import listdir, getcwd
 
 from kivy.uix.image import Image
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.treeview import TreeView, TreeViewLabel
+from kivy.uix.boxlayout import BoxLayout
 
 from editorobjects import BaseObject
 from objectdescriptor import ObjectDescriptor
 from editorutils import EmptyScrollEffect, createSpriteImage
 from communicationobjects import SceneToObjectsMenu
 from splittedimagemap import SplittedImageImporter
+from modulesaccess import ModulesAccess
+from uisizes import mainLayoutSize
 
 class ObjectMenuItem:
 	def __handle(self, image, touch):
@@ -58,15 +63,9 @@ class ObjectsMenu:
 		for menuObjectItem in self.__menuObjectsList:
 			self.__objectListLayout.add_widget(menuObjectItem.getDisplayImage())
 
-	def __loadPng(self, item, pngsToIgnoreList):
-		fullPath = join(getcwd(), 'tiles', item)
-		if (fullPath in pngsToIgnoreList):
-			return
-
+	def __loadPng(self, item):
 		img = Image(source = fullPath)
-		obj = BaseObject(img, self.__baseObjectId)
-		self.__menuObjectsList.append(ObjectMenuItem(obj, (64, 64)))
-		self.__numberOfItems += 1
+		self.__menuObjectsList.append(BaseObject(img, self.__baseObjectId))
 		self.__baseObjectId += 1
 
 	def __loadResourceInfoList(self, resourceInfo):
@@ -91,18 +90,16 @@ class ObjectsMenu:
 
 	def __loadOpf(self, item, pngsToIgnoreList):
 		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles',item))
-
 		baseObjectList = self.__loadResourceInfoList(resourceInfo)
+
 		if baseObjectList != []:
 			for baseObject in baseObjectList:
 				self.__menuObjectsList.append(ObjectMenuItem(baseObject, (64, 64)))
-				self.__numberOfItems += 1
 			pngsToIgnoreList.append(baseObject.getPath())
 
 	def __loadItems(self):
 		l = listdir(join(getcwd(), 'tiles'))
 		self.__menuObjectsList = []
-		self.__numberOfItems = 0
 		self.__baseObjectId = 0
 		pngsToIgnoreList = []
 		for item in l:
@@ -111,19 +108,8 @@ class ObjectsMenu:
 
 		for item in l:
 			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
-				self.__loadPng(item, pngsToIgnoreList)
+				self.__loadPng(item)
 
-		if (self.__objectListLayout is None):
-			self.__objectListLayout = GridLayout(cols=1, rows = self.__numberOfItems, size_hint = (None, None),
-				spacing = (0, 3))
-		else:
-			self.__objectListLayout.rows = self.__numberOfItems
-
-		for menuObject in self.__menuObjectsList:
-			img = menuObject.getDisplayImage()
-			self.__objectListLayout.add_widget(img)
-
-		self.__objectListLayout.size = (100, self.__numberOfItems * 67)
 
 	def __init__(self):
 		self.__shortcutHandler = ShortcutHandler()
@@ -190,4 +176,114 @@ class ObjectsMenu:
 			ObjectDescriptor.Instance().setObject(shortcutObject)
 
 
+class NewBaseObjectDisplay:
+	def __init__(self):
+		ModulesAccess.add('BaseObjectDisplay', self)
+		self.__size = (mainLayoutSize['leftMenuWidth'], mainLayoutSize['leftMenuWidth'])
+		self.__layout = BoxLayout(orientation = 'horizontal', size = self.__size)
+
+	def setDisplay(self, obj):
+		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
+		self.__layout.clear_widgets()
+		self.__layout.add_widget(
+			Image(texture = obj.getBaseImage().texture, size = self.__size, size_hint = (None, None))
+		)
+
+	def getLayout(self):
+		return self.__layout
+
+class OptionMenuLabel(TreeViewLabel):
+	def __updateDisplay(self, touch):
+		if (self.collide_point(*touch.pos) == True and touch.is_double_tap and touch.button == 'left'):
+			ModulesAccess.get('BaseObjectDisplay').setDisplay(self.__baseObject)
+
+	def __init__(self, obj, **kwargs):
+		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
+		super(self.__class__, self).__init__(**kwargs)
+		self.__baseObject = obj
+		self.on_touch_up = self.__updateDisplay
+
+class NewBaseObjectsMenu:
+	#def __reloadMenuList(self):
+
+
+	#	self.__numberOfItems = len(self.__menuObjectsList)
+	#	self.__objectListLayout.clear_widgets()
+	#	self.__objectListLayout.rows = self.__numberOfItems
+	#	self.__objectListLayout.size[1] = (self.__numberOfItems * 67)
+	#	for menuObjectItem in self.__menuObjectsList:
+	#		self.__objectListLayout.add_widget(menuObjectItem.getDisplayImage())
+
+	def __loadPng(self, item):
+		img = Image(source = join(getcwd(), 'tiles', item))
+		self.__baseObjectsList.append(BaseObject(img, self.__baseObjectId))
+		self.__baseObjectId += 1
+
+	def __loadResourceInfoList(self, resourceInfo):
+		l = []
+		mainImage = Image (source = resourceInfo.getPath())
+		l.append(BaseObject(mainImage, self.__baseObjectId))
+		self.__baseObjectId += 1
+
+		spriteSize = tuple(mainImage.texture.size)
+		for selection in resourceInfo.getSelectionList():
+			x = selection.getX()
+			y = selection.getY()
+			width = selection.getSizeX()
+			height = selection.getSizeY()
+			image = createSpriteImage(mainImage, x, y, width, height)
+			obj = BaseObject(image, self.__baseObjectId, resourceInfo.getPath(), (x, y), spriteSize)
+			l.append(obj)
+			self.__baseObjectId += 1
+
+		return l
+
+	def __loadOpf(self, item, pngsToIgnoreList):
+		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles',item))
+		baseObjectList = self.__loadResourceInfoList(resourceInfo)
+		if baseObjectList != []:
+			first = True
+			for baseObject in baseObjectList:
+				path = baseObject.getPath()
+				relativePath = relpath(path, getcwd())
+				dirs, filename = split(relativePath)
+				dirParts = []
+				for name in dirs.split(pathSeparator):
+					dirParts.append(name[0])
+				dirParts.append(filename)
+				finalFilename = pathSeparator.join(dirParts)
+				if (first):
+					newNode = self.__tree.add_node(OptionMenuLabel(baseObject, text = finalFilename))
+					first = False
+				else:
+					self.__tree.add_node(OptionMenuLabel(baseObject, text = finalFilename), newNode)
+
+			self.__baseObjectsList.extend(baseObjectList)
+			pngsToIgnoreList.append(baseObjectList[0].getPath())
+
+	def __loadItems(self):
+		l = listdir(join(getcwd(), 'tiles'))
+		self.__baseObjectsList = []
+		self.__baseObjectId = 0
+		pngsToIgnoreList = []
+		for item in l:
+			if (item[-4:] == '.opf'):
+				self.__loadOpf(item, pngsToIgnoreList)
+
+		for item in l:
+			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
+				self.__loadPng(item)
+
+	def __init__(self):
+		ModulesAccess.add('BaseObjectsMenu', self)
+		self.__tree = TreeView(root_options = { 'text' : 'Resources'})
+		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
+		self.__loadItems()
+		self.__layout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], height = self.__tree.minimum_height)
+		self.__layout.add_widget(self.__tree)
+		self.__scrollView.add_widget(self.__layout)
+		print self.__scrollView.size
+
+	def getLayout(self):
+		return self.__scrollView
 
