@@ -256,20 +256,32 @@ class NewBaseObjectsMenu(IgnoreTouch):
 
 	def __loadOpf(self, item, pngsToIgnoreList):
 		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles',item))
-		baseObjectList = self.__loadResourceInfoList(resourceInfo)
-		if baseObjectList != []:
-			first = True
-			for baseObject in baseObjectList:
-				path = baseObject.getPath()
-				finalFilename = self.__createTruncateFilename(path)
-				if (first):
-					newNode = self.__tree.add_node(OptionMenuLabel(baseObject, text = finalFilename))
-					first = False
-				else:
-					self.__tree.add_node(OptionMenuLabel(baseObject, text = finalFilename), newNode)
 
-			self.__baseObjectsList.extend(baseObjectList)
-			pngsToIgnoreList.append(split(resourceInfo.getPath())[1])
+		# Main object
+		mainImage = Image (source = resourceInfo.getPath())
+		mainBaseObject = BaseObject(mainImage, self.__baseObjectId)
+		self.__baseObjectId += 1
+		self.__baseObjectsList.append(mainBaseObject)
+		newNode = self.__tree.add_node(
+			OptionMenuLabel(mainBaseObject, text = self.__createTruncateFilename(mainBaseObject.getPath()))
+		)
+
+		# Sprites
+		spriteSize = tuple(mainImage.texture.size)
+		for selection in resourceInfo.getSelectionList():
+			x = selection.getX()
+			y = selection.getY()
+			width = selection.getSizeX()
+			height = selection.getSizeY()
+			image = createSpriteImage(mainImage, x, y, width, height)
+			baseObject = BaseObject(image, self.__baseObjectId, resourceInfo.getPath(), (x, y), spriteSize)
+			self.__baseObjectId += 1
+			self.__baseObjectsList.append(baseObject)
+			finalFilename = 'Pos: (' + str(x) + ', '  + str(y) + ') | Size: (' + str(width) + ', ' + str(height) + ')'
+			self.__tree.add_node(OptionMenuLabel(baseObject, text = finalFilename, shorten = True,
+				shorten_from = 'left', split_str = '('), newNode)
+
+		pngsToIgnoreList.append(split(resourceInfo.getPath())[1])
 
 	def __loadItems(self):
 		l = listdir(join(getcwd(), 'tiles'))
@@ -282,7 +294,6 @@ class NewBaseObjectsMenu(IgnoreTouch):
 
 		for item in l:
 			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
-				print item
 				self.__loadPng(item)
 
 	def __adjustTreeSize(self, *args):
