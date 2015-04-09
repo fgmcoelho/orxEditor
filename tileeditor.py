@@ -132,12 +132,8 @@ class TileEditor(App, KeyboardAccess):
 
 		# Periodic functions:
 		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)
-		Clock.schedule_interval(self.__printSize, 1)
 
 		return self.root
-
-	def __printSize(self, dt):
-		print ModulesAccess.get('BaseObjectsMenu').getLayout().size
 
 if __name__ == '__main__':
 	te = TileEditor()

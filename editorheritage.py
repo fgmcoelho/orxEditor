@@ -85,3 +85,8 @@ class SpaceLimitedObject (object):
 
 		return (int(x), int(y))
 
+class IgnoreTouch(object):
+	def _ignoreTouch(self, *args):
+		pass
+
+

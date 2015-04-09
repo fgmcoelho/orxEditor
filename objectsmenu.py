@@ -17,6 +17,7 @@ from communicationobjects import SceneToObjectsMenu
 from splittedimagemap import SplittedImageImporter
 from modulesaccess import ModulesAccess
 from uisizes import mainLayoutSize
+from editorheritage import IgnoreTouch
 
 class ObjectMenuItem:
 	def __handle(self, image, touch):
@@ -95,7 +96,8 @@ class ObjectsMenu:
 		if baseObjectList != []:
 			for baseObject in baseObjectList:
 				self.__menuObjectsList.append(ObjectMenuItem(baseObject, (64, 64)))
-			pngsToIgnoreList.append(baseObject.getPath())
+			pngsToIgnoreList.append(item)
+			print 'Png to ignore: ', item
 
 	def __loadItems(self):
 		l = listdir(join(getcwd(), 'tiles'))
@@ -180,7 +182,7 @@ class NewBaseObjectDisplay:
 	def __init__(self):
 		ModulesAccess.add('BaseObjectDisplay', self)
 		self.__size = (mainLayoutSize['leftMenuWidth'], mainLayoutSize['leftMenuWidth'])
-		self.__layout = BoxLayout(orientation = 'horizontal', size = self.__size)
+		self.__layout = BoxLayout(orientation = 'horizontal', size = self.__size, size_hint = (1.0, None))
 
 	def setDisplay(self, obj):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
@@ -192,21 +194,23 @@ class NewBaseObjectDisplay:
 	def getLayout(self):
 		return self.__layout
 
-class OptionMenuLabel(TreeViewLabel):
+class OptionMenuLabel(TreeViewLabel, IgnoreTouch):
 	def __updateDisplay(self, touch):
-		if (self.collide_point(*touch.pos) == True and touch.is_double_tap and touch.button == 'left'):
-			ModulesAccess.get('BaseObjectDisplay').setDisplay(self.__baseObject)
+		if (self.collide_point(*touch.pos) == True):
+			if(touch.is_double_tap == True and touch.button == 'left'):
+				ModulesAccess.get('BaseObjectDisplay').setDisplay(self.__baseObject)
 
 	def __init__(self, obj, **kwargs):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
 		super(self.__class__, self).__init__(**kwargs)
 		self.__baseObject = obj
 		self.on_touch_up = self.__updateDisplay
+		self.on_touch_down = self._ignoreTouch
+		self.on_touch_move = self._ignoreTouch
 
-class NewBaseObjectsMenu:
+
+class NewBaseObjectsMenu(IgnoreTouch):
 	#def __reloadMenuList(self):
-
-
 	#	self.__numberOfItems = len(self.__menuObjectsList)
 	#	self.__objectListLayout.clear_widgets()
 	#	self.__objectListLayout.rows = self.__numberOfItems
@@ -214,9 +218,21 @@ class NewBaseObjectsMenu:
 	#	for menuObjectItem in self.__menuObjectsList:
 	#		self.__objectListLayout.add_widget(menuObjectItem.getDisplayImage())
 
+	def __createTruncateFilename(self, fullname):
+		relativePath = relpath(fullname, getcwd())
+		dirs, filename = split(relativePath)
+		dirParts = []
+		for name in dirs.split(pathSeparator):
+			dirParts.append(name[0])
+		dirParts.append(filename)
+		return pathSeparator.join(dirParts)
+
 	def __loadPng(self, item):
-		img = Image(source = join(getcwd(), 'tiles', item))
-		self.__baseObjectsList.append(BaseObject(img, self.__baseObjectId))
+		path = join(getcwd(), 'tiles', item)
+		img = Image(source = path)
+		baseObject = BaseObject(img, self.__baseObjectId)
+		self.__baseObjectsList.append(baseObject)
+		self.__tree.add_node(OptionMenuLabel(baseObject, text = self.__createTruncateFilename(path)))
 		self.__baseObjectId += 1
 
 	def __loadResourceInfoList(self, resourceInfo):
@@ -245,13 +261,7 @@ class NewBaseObjectsMenu:
 			first = True
 			for baseObject in baseObjectList:
 				path = baseObject.getPath()
-				relativePath = relpath(path, getcwd())
-				dirs, filename = split(relativePath)
-				dirParts = []
-				for name in dirs.split(pathSeparator):
-					dirParts.append(name[0])
-				dirParts.append(filename)
-				finalFilename = pathSeparator.join(dirParts)
+				finalFilename = self.__createTruncateFilename(path)
 				if (first):
 					newNode = self.__tree.add_node(OptionMenuLabel(baseObject, text = finalFilename))
 					first = False
@@ -259,7 +269,7 @@ class NewBaseObjectsMenu:
 					self.__tree.add_node(OptionMenuLabel(baseObject, text = finalFilename), newNode)
 
 			self.__baseObjectsList.extend(baseObjectList)
-			pngsToIgnoreList.append(baseObjectList[0].getPath())
+			pngsToIgnoreList.append(split(resourceInfo.getPath())[1])
 
 	def __loadItems(self):
 		l = listdir(join(getcwd(), 'tiles'))
@@ -272,17 +282,21 @@ class NewBaseObjectsMenu:
 
 		for item in l:
 			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
+				print item
 				self.__loadPng(item)
+
+	def __adjustTreeSize(self, *args):
+		self.__layout.size[1] = self.__tree.minimum_height
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)
 		self.__tree = TreeView(root_options = { 'text' : 'Resources'})
 		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
 		self.__loadItems()
-		self.__layout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], height = self.__tree.minimum_height)
+		self.__layout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], size_hint = (1.0, None))
 		self.__layout.add_widget(self.__tree)
 		self.__scrollView.add_widget(self.__layout)
-		print self.__scrollView.size
+		self.__tree.bind(minimum_height=self.__adjustTreeSize)
 
 	def getLayout(self):
 		return self.__scrollView
