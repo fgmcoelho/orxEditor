@@ -1,16 +1,16 @@
 from singleton import Singleton
 
 from kivy.uix.accordion import Accordion, AccordionItem
+from kivy.uix.boxlayout import BoxLayout
 
 from filesoptionsmenu import FilesOptionsMenu
 from objectdescriptor import MultipleSelectionDescriptor, ObjectDescriptor
 
+from modulesaccess import ModulesAccess
+
 @Singleton
 class OptionsMenu:
-	def __init__(self, rightScreen, maxWidthProportion = 1.0, maxHeightProportion = 0.333):
-
-		self.__maxWidthProportion = maxWidthProportion
-		self.__maxHeightProportion = maxHeightProportion
+	def __init__(self, rightScreen):
 
 		self.__layout = Accordion(orientation = 'horizontal', size_hint = (1.0, None), height = 200)
 		self.__accordionItems = {
@@ -24,10 +24,18 @@ class OptionsMenu:
 		self.__layout.add_widget(self.__accordionItems['RenderedObject'])
 		self.__layout.add_widget(self.__accordionItems['MultipleSelectionDescriptor'])
 		self.__layout.add_widget(self.__accordionItems['Options'])
-		
+
 		FilesOptionsMenu.Instance(self.__accordionItems['Options'])
 		MultipleSelectionDescriptor.Instance(self.__accordionItems['MultipleSelectionDescriptor'])
 		ObjectDescriptor.Instance(self.__accordionItems['BaseObject'], self.__accordionItems['RenderedObject'])
 
 		rightScreen.add_widget(self.__layout)
+
+
+class NewOptionMenu:
+	def __init__(self):
+		ModulesAccess.add('BottomMenu', self)
+		self.__layout = BoxLayout(orientation = 'vertical', height = 200)
+
+
 

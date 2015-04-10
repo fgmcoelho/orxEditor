@@ -17,7 +17,7 @@ from communicationobjects import SceneToObjectsMenu
 from splittedimagemap import SplittedImageImporter
 from modulesaccess import ModulesAccess
 from uisizes import mainLayoutSize
-from editorheritage import IgnoreTouch
+from editorheritage import IgnoreTouch, LayoutGetter
 
 class ObjectMenuItem:
 	def __handle(self, image, touch):
@@ -177,22 +177,48 @@ class ObjectsMenu:
 		elif shortcutObject is not None:
 			ObjectDescriptor.Instance().setObject(shortcutObject)
 
-
-class NewBaseObjectDisplay:
+class NewBaseObjectDisplay(LayoutGetter):
 	def __init__(self):
 		ModulesAccess.add('BaseObjectDisplay', self)
 		self.__size = (mainLayoutSize['leftMenuWidth'], mainLayoutSize['leftMenuWidth'])
 		self.__layout = BoxLayout(orientation = 'horizontal', size = self.__size, size_hint = (1.0, None))
+		self.__currentObject = None
 
 	def setDisplay(self, obj):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
-		self.__layout.clear_widgets()
-		self.__layout.add_widget(
-			Image(texture = obj.getBaseImage().texture, size = self.__size, size_hint = (None, None))
-		)
+		if (self.__currentObject != obj):
+			self.__layout.clear_widgets()
+			self.__layout.add_widget(
+				Image(texture = obj.getBaseImage().texture, size = self.__size, size_hint = (None, None))
+			)
+			self.__currentObject = obj
+			# TODO: Add the descriptor update here!
+		else:
+			# TODO: Add drawning here!
+			pass
 
-	def getLayout(self):
-		return self.__layout
+class OptionMenuTree(TreeView):
+	def __processTouchDown(self, touch):
+		if (self.collide_point(*touch.pos) == True and touch.button == 'left'):
+			self.__defaultTouchDown(touch)
+
+	def __processTouchUp(self, touch):
+		if (self.collide_point(*touch.pos) == True and touch.button == 'left'):
+			self.__defaultTouchUp(touch)
+
+	def __processTouchMove(self, touch):
+		if (self.collide_point(*touch.pos) == True and touch.button == 'left'):
+			self.__defaultTouchMove(touch)
+
+	def __init__(self, **kwargs):
+		super(OptionMenuTree, self).__init__(**kwargs)
+		self.__defaultTouchDown = self.on_touch_down
+		self.__defaultTouchUp = self.on_touch_up
+		self.__defaultTouchMove = self.on_touch_move
+
+		self.on_touch_down = self.__processTouchDown
+		self.on_touch_up = self.__processTouchUp
+		self.on_touch_move = self.__processTouchMove
 
 class OptionMenuLabel(TreeViewLabel, IgnoreTouch):
 	def __updateDisplay(self, touch):
@@ -208,8 +234,7 @@ class OptionMenuLabel(TreeViewLabel, IgnoreTouch):
 		self.on_touch_down = self._ignoreTouch
 		self.on_touch_move = self._ignoreTouch
 
-
-class NewBaseObjectsMenu(IgnoreTouch):
+class NewBaseObjectsMenu(LayoutGetter):
 	#def __reloadMenuList(self):
 	#	self.__numberOfItems = len(self.__menuObjectsList)
 	#	self.__objectListLayout.clear_widgets()
@@ -301,14 +326,11 @@ class NewBaseObjectsMenu(IgnoreTouch):
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)
-		self.__tree = TreeView(root_options = { 'text' : 'Resources'})
-		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
+		self.__tree = OptionMenuTree(root_options = { 'text' : 'Resources'})
+		self.__layout = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
 		self.__loadItems()
-		self.__layout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], size_hint = (1.0, None))
-		self.__layout.add_widget(self.__tree)
-		self.__scrollView.add_widget(self.__layout)
+		self.__scrollLayout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], size_hint = (1.0, None))
+		self.__scrollLayout.add_widget(self.__tree)
+		self.__layout.add_widget(self.__scrollLayout)
 		self.__tree.bind(minimum_height=self.__adjustTreeSize)
-
-	def getLayout(self):
-		return self.__scrollView
 
