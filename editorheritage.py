@@ -90,7 +90,7 @@ class IgnoreTouch(object):
 		pass
 
 
-class LayoutGetter(self):
+class LayoutGetter(object):
 	def getLayout(self):
-		return self.__layout
+		return self._layout
 

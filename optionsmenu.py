@@ -7,6 +7,7 @@ from filesoptionsmenu import FilesOptionsMenu
 from objectdescriptor import MultipleSelectionDescriptor, ObjectDescriptor
 
 from modulesaccess import ModulesAccess
+from editorheritage import LayoutGetter
 
 @Singleton
 class OptionsMenu:
@@ -32,10 +33,9 @@ class OptionsMenu:
 		rightScreen.add_widget(self.__layout)
 
 
-class NewOptionMenu:
+class NewOptionMenu(LayoutGetter):
 	def __init__(self):
 		ModulesAccess.add('BottomMenu', self)
-		self.__layout = BoxLayout(orientation = 'vertical', height = 200)
-
+		self._layout = BoxLayout(orientation = 'vertical', height = 200)
 
 

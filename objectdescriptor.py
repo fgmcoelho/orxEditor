@@ -9,6 +9,7 @@ from collision import CollisionInformationPopup
 from editorutils import CancelableButton, AlertPopUp
 from communicationobjects import ObjectDescriptorToResourceLoarder
 from layer import LayerInformationPopup
+from modulesaccess import ModulesAccess
 
 @Singleton
 class BaseObjectDescriptor:
