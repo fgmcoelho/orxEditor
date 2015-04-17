@@ -16,6 +16,7 @@ from editorobjects import RenderObjectGuardian
 from editorutils import AlertPopUp, AutoReloadTexture
 from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 from layerinfo import LayerGuardian
+from modulesaccess import ModulesAccess
 
 class OrderSceneObjects:
 	def _order_objects(self, objectDict):
@@ -550,6 +551,8 @@ class SceneHandler (SpecialScrollControl):
 		self.__currentIndex = 0
 
 		self._scrollView.add_widget(self.__sceneList[self.__currentIndex].getLayout())
+		
+		ModulesAccess.add('SceneHandler', self)
 
 	def draw(self, obj):
 		mouse_pos = Window.mouse_pos
