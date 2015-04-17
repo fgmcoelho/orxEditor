@@ -180,21 +180,21 @@ class ObjectsMenu:
 class NewBaseObjectDisplay(LayoutGetter):
 	def __init__(self):
 		ModulesAccess.add('BaseObjectDisplay', self)
-		self.__size = (mainLayoutSize['leftMenuWidth'], mainLayoutSize['leftMenuWidth'])
-		self._layout = BoxLayout(orientation = 'horizontal', size = self.__size, size_hint = (1.0, None))
-		self.__currentObject = None
+		self._size = (mainLayoutSize['leftMenuWidth'], mainLayoutSize['leftMenuWidth'])
+		self._layout = BoxLayout(orientation = 'horizontal', size = self._size, size_hint = (1.0, None))
+		self._currentObject = None
 
 	def setDisplay(self, obj):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
-		if (self.__currentObject != obj):
+		if (self._currentObject != obj):
 			self._layout.clear_widgets()
 			self._layout.add_widget(
-				Image(texture = obj.getBaseImage().texture, size = self.__size, size_hint = (None, None))
+				Image(texture = obj.getBaseImage().texture, size = self._size, size_hint = (None, None))
 			)
-			self.__currentObject = obj
+			self._currentObject = obj
 			# TODO: Add the descriptor update here!
 		else:
-			ModulesAccess.get('SceneHandler').draw(self.__currentObject)
+			ModulesAccess.get('SceneHandler').draw(self._currentObject)
 
 class OptionMenuTree(TreeView):
 	def __processTouchDown(self, touch):
@@ -240,7 +240,7 @@ class NewBaseObjectsMenu(LayoutGetter):
 	#	for menuObjectItem in self.__menuObjectsList:
 	#		self.__objectListLayout.add_widget(menuObjectItem.getDisplayImage())
 
-	def __createTruncateFilename(self, fullname):
+	def _createTruncateFilename(self, fullname):
 		relativePath = relpath(fullname, getcwd())
 		dirs, filename = split(relativePath)
 		dirParts = []
@@ -249,19 +249,19 @@ class NewBaseObjectsMenu(LayoutGetter):
 		dirParts.append(filename)
 		return pathSeparator.join(dirParts)
 
-	def __loadPng(self, item):
+	def _loadPng(self, item):
 		path = join(getcwd(), 'tiles', item)
 		img = Image(source = path)
-		baseObject = BaseObject(img, self.__baseObjectId)
-		self.__baseObjectsList.append(baseObject)
-		self.__tree.add_node(OptionMenuLabel(baseObject, text = self.__createTruncateFilename(path)))
-		self.__baseObjectId += 1
+		baseObject = BaseObject(img, self._baseObjectId)
+		self._baseObjectsList.append(baseObject)
+		self._tree.add_node(OptionMenuLabel(baseObject, text = self._createTruncateFilename(path)))
+		self._baseObjectId += 1
 
-	def __loadResourceInfoList(self, resourceInfo):
+	def _loadResourceInfoList(self, resourceInfo):
 		l = []
 		mainImage = Image (source = resourceInfo.getPath())
-		l.append(BaseObject(mainImage, self.__baseObjectId))
-		self.__baseObjectId += 1
+		l.append(BaseObject(mainImage, self._baseObjectId))
+		self._baseObjectId += 1
 
 		spriteSize = tuple(mainImage.texture.size)
 		for selection in resourceInfo.getSelectionList():
@@ -270,22 +270,22 @@ class NewBaseObjectsMenu(LayoutGetter):
 			width = selection.getSizeX()
 			height = selection.getSizeY()
 			image = createSpriteImage(mainImage, x, y, width, height)
-			obj = BaseObject(image, self.__baseObjectId, resourceInfo.getPath(), (x, y), spriteSize)
+			obj = BaseObject(image, self._baseObjectId, resourceInfo.getPath(), (x, y), spriteSize)
 			l.append(obj)
-			self.__baseObjectId += 1
+			self._baseObjectId += 1
 
 		return l
 
-	def __loadOpf(self, item, pngsToIgnoreList):
+	def _loadOpf(self, item, pngsToIgnoreList):
 		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles',item))
 
 		# Main object
 		mainImage = Image (source = resourceInfo.getPath())
-		mainBaseObject = BaseObject(mainImage, self.__baseObjectId)
-		self.__baseObjectId += 1
-		self.__baseObjectsList.append(mainBaseObject)
-		newNode = self.__tree.add_node(
-			OptionMenuLabel(mainBaseObject, text = self.__createTruncateFilename(mainBaseObject.getPath()))
+		mainBaseObject = BaseObject(mainImage, self._baseObjectId)
+		self._baseObjectId += 1
+		self._baseObjectsList.append(mainBaseObject)
+		newNode = self._tree.add_node(
+			OptionMenuLabel(mainBaseObject, text = self._createTruncateFilename(mainBaseObject.getPath()))
 		)
 
 		# Sprites
@@ -296,38 +296,37 @@ class NewBaseObjectsMenu(LayoutGetter):
 			width = selection.getSizeX()
 			height = selection.getSizeY()
 			image = createSpriteImage(mainImage, x, y, width, height)
-			baseObject = BaseObject(image, self.__baseObjectId, resourceInfo.getPath(), (x, y), spriteSize)
-			self.__baseObjectId += 1
-			self.__baseObjectsList.append(baseObject)
+			baseObject = BaseObject(image, self._baseObjectId, resourceInfo.getPath(), (x, y), spriteSize)
+			self._baseObjectId += 1
+			self._baseObjectsList.append(baseObject)
 			finalFilename = 'Pos: (' + str(x) + ', '  + str(y) + ') | Size: (' + str(width) + ', ' + str(height) + ')'
-			self.__tree.add_node(OptionMenuLabel(baseObject, text = finalFilename, shorten = True,
+			self._tree.add_node(OptionMenuLabel(baseObject, text = finalFilename, shorten = True,
 				shorten_from = 'left', split_str = '('), newNode)
 
 		pngsToIgnoreList.append(split(resourceInfo.getPath())[1])
 
-	def __loadItems(self):
+	def _loadItems(self):
 		l = listdir(join(getcwd(), 'tiles'))
-		self.__baseObjectsList = []
-		self.__baseObjectId = 0
+		self._baseObjectsList = []
+		self._baseObjectId = 0
 		pngsToIgnoreList = []
 		for item in l:
 			if (item[-4:] == '.opf'):
-				self.__loadOpf(item, pngsToIgnoreList)
+				self._loadOpf(item, pngsToIgnoreList)
 
 		for item in l:
 			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
-				self.__loadPng(item)
+				self._loadPng(item)
 
-	def __adjustTreeSize(self, *args):
-		self.__scrollLayout.size[1] = self.__tree.minimum_height
+	def _adjustTreeSize(self, *args):
+		self._layout.size[1] = self._tree.minimum_height
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)
-		self.__tree = OptionMenuTree(root_options = { 'text' : 'Resources'})
+		self._tree = OptionMenuTree(root_options = { 'text' : 'Resources'})
 		self._layout = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
-		self.__loadItems()
-		self.__scrollLayout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], size_hint = (1.0, None))
-		self.__scrollLayout.add_widget(self.__tree)
-		self._layout.add_widget(self.__scrollLayout)
-		self.__tree.bind(minimum_height=self.__adjustTreeSize)
-
+		self._loadItems()
+		self._scrollLayout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], size_hint = (1.0, None))
+		self._scrollLayout.add_widget(self._tree)
+		self._layout.add_widget(self._scrollLayout)
+		self._tree.bind(minimum_height=self._adjustTreeSize)
