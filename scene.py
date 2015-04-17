@@ -78,20 +78,16 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			i += self._tileSize
 
 	def getMiniMapTexture(self):
+		parent = self._layout.parent
+		self._layout.parent.remove_widget(self._layout)
+
 		if (self._showGrid == True):
 			self.hideGrid()
-
-		# TODO: Investigate this code!
-		if self._layout.parent is not None:
-			canvas_parent_index = self._layout.parent.canvas.indexof(self._layout.canvas)
-			self._layout.parent.canvas.remove(self._layout.canvas)
 
 		fbo = Fbo(size=self._layout.size, with_stencilbuffer=True)
 		with fbo:
 			ClearColor(0, 0, 0, 1)
 			ClearBuffers()
-			#Scale(1, -1, 1)
-			#Translate(-self._layout.x, -self._layout.y - self._layout.height, 0)
 
 		fbo.add(self._layout.canvas)
 		fbo.draw()
@@ -100,12 +96,11 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		popup.open()
 		fbo.remove(self._layout.canvas)
 
-		if self._layout.parent is not None:
-			self._layout.parent.canvas.insert(canvas_parent_index, self._layout.canvas)
-
 		if (self._showGrid == True):
 			self.showGrid()
 			self.redraw()
+
+		parent.add_widget(self._layout)
 
 	def showGrid(self):
 		self._layout.canvas.add(self._gridGroup)
@@ -324,6 +319,9 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		assert self._id <= newId
 		self._id = newId
 
+	def getMaxSize(self):
+		return (self._maxX, self._maxY)
+
 class SceneHandler (SpecialScrollControl):
 	# Overloaded method
 	def processKeyUp(self, keyboard, keycode):
@@ -474,8 +472,19 @@ class SceneHandler (SpecialScrollControl):
 		if (self._scrollView.collide_point(*mouse_pos) == True):
 			x, y = self._scrollView.to_widget(*mouse_pos)
 			sx, sy = obj.getSize()
+			mx, my = self.__sceneList[self.__currentIndex].getMaxSize()
 			exactlyX = int(x - (sx/2))
 			exactlyY = int(y - (sy/2))
+			if (exactlyX < 0):
+				exactlyX = 0
+			elif (exactlyX + sx > mx):
+				exactlyX = mx - sx
+
+			if (exactlyY < 0):
+				exactlyY = 0
+			elif (exactlyY + sy > my):
+				exactlyY = my - sy
+
 			self.__sceneList[self.__currentIndex].addObject(obj, exactlyX = exactlyX, exactlyY = exactlyY)
 		else:
 			relativeX = self._scrollView.hbar[0]

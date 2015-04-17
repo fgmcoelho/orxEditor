@@ -6,10 +6,11 @@ from kivy.uix.boxlayout import BoxLayout
 from os import getcwd
 from editorobjects import ObjectTypes
 from collision import CollisionInformationPopup
-from editorutils import CancelableButton, AlertPopUp
+from editorutils import CancelableButton, AlertPopUp, AlignedLabel
 from communicationobjects import ObjectDescriptorToResourceLoarder
 from layer import LayerInformationPopup
 from modulesaccess import ModulesAccess
+from editorheritage import LayoutGetter
 
 @Singleton
 class BaseObjectDescriptor:
@@ -234,11 +235,43 @@ class ObjectDescriptor:
 
 		self.__currentObject = None
 
-
 class NewBaseObjectDescriptor:
+	def __setValues(self, path, size, obj):
+		self.__pathLabel.text = 'Path: ' + str(path)
+		self.__sizeLabel.text = 'Size: ' + str(size)
+
+	def set(self, layout, obj = None):
+		layout.clear_widgets()
+		layout.add_widget(self.__pathLabel)
+		layout.add_widget(self.__sizeLabel)
+		layout.add_widget(Label(text = '', size_hint = (1.0, 0.4)))
+		layout.add_widget(self.__loaderLine)
+		if (obj is not None):
+			# TODO: fix this
+			self.__describedObject = obj
+			self.__setValues('', '', obj)
+
+	def __openResourceLoader(self, *args):
+		if (self.__objRef is None or self.__objRef.getType() != ObjectTypes.baseObject):
+			AlertPopUp('Error', 'No compatible object selected.', 'Ok').open()
+		else:
+			# TODO: Add the modules access here
+			ObjectDescriptorToResourceLoarder.Instance().openPopUp(self.__objRef.getPath())
+
 	def __init__(self):
-		pass
+		self.__pathLabel = AlignedLabel(text = 'Path: ', size_hint = (1.0, 0.2), multiline=False, halign='left')
+		self.__sizeLabel = AlignedLabel(text = 'Size: ', size_hint = (1.0, 0.2))
+		self.__loaderLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		self.__loaderLine.add_widget(AlignedLabel(text = 'Resource loader:', size_hint = (0.8, 1.0)))
+		self.__loaderLine.add_widget(CancelableButton(text = 'Load', on_release = self.__openResourceLoader,
+			size_hint = (0.2, 1.0)))
+		self.__describedObject = None
 
+class NewObjectDescriptor(LayoutGetter):
+	def __init__(self):
+		self._layout = BoxLayout(orientation = 'vertical')
+		ModulesAccess.add('ObjectDescriptor', self)
+		self._baseObjectDescriptor = NewBaseObjectDescriptor()
 
-
+		self._baseObjectDescriptor.set(self._layout, None)
 
