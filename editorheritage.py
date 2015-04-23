@@ -1,7 +1,34 @@
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.scatter import Scatter
 
-class SpecialScrollControl (object):
+
+class SpaceLimitedObject (object):
+	def ajustPositionByLimits(self, x, y, sx, sy, maxX, maxY):
+		if (x < 0):
+			x = 0
+		elif (x + sx > maxX):
+			x = maxX - sx
+
+		if (y < 0):
+			y = 0
+		elif (y + sy > maxY):
+			y = maxY - sy
+
+		return (int(x), int(y))
+
+class IgnoreTouch(object):
+	def _ignoreTouch(self, *args):
+		pass
+
+class LayoutGetter(object):
+	def getLayout(self):
+		return self._layout
+
+class KeyboardModifiers(object):
+	def __init__(self, **kwargs):
+		super(KeyboardModifiers, self).__init__()
+		self._isShiftPressed = False
+		self._isCtrlPressed = False
 
 	def setIsShiftPressed(self, value):
 		self._isShiftPressed = value
@@ -9,6 +36,28 @@ class SpecialScrollControl (object):
 	def setIsCtrlPressed(self, value):
 		self._isCtrlPressed = value
 
+class MouseModifiers(object):
+	def __init__(self, **kwargs):
+		super(MouseModifiers, self).__init__()
+		self._isLeftPressed = False
+		self._isRightPressed = False
+		self._isMiddlePressed = False
+
+	def __updateMouseStatus(self, touch, status):
+		if (touch.button == "left"):
+			self._isLeftPressed = status
+		elif (touch.button == "right"):
+			self._isRightPressed = status
+		elif (touch.button == "middle"):
+			self._isMiddlePressed = status
+
+	def updateMouseUp(self, touch):
+		self.__updateMouseStatus(touch, False)
+
+	def updateMouseDown(self, touch):
+		self.__updateMouseStatus(touch, True)
+
+class SpecialScrollControl (KeyboardModifiers):
 	def __applyZoom(self, magnitude):
 		self._zoom *= magnitude
 		for obj in self._zoomList:
@@ -52,8 +101,7 @@ class SpecialScrollControl (object):
 						self._scrollView.scroll_x += 0.05
 
 	def __init__(self, **kwargs):
-		self._isShiftPressed = False
-		self._isCtrlPressed = False
+		super(SpecialScrollControl, self).__init__(**kwargs)
 
 		if ('scroll_timeout' in kwargs):
 			del kwargs['scroll_timeout']
@@ -69,28 +117,4 @@ class SpecialScrollControl (object):
 
 	def getLayout(self):
 		return self._scrollView
-
-class SpaceLimitedObject (object):
-
-	def ajustPositionByLimits(self, x, y, sx, sy, maxX, maxY):
-		if (x < 0):
-			x = 0
-		elif (x + sx > maxX):
-			x = maxX - sx
-
-		if (y < 0):
-			y = 0
-		elif (y + sy > maxY):
-			y = maxY - sy
-
-		return (int(x), int(y))
-
-class IgnoreTouch(object):
-	def _ignoreTouch(self, *args):
-		pass
-
-
-class LayoutGetter(object):
-	def getLayout(self):
-		return self._layout
 

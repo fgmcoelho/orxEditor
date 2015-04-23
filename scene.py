@@ -7,13 +7,14 @@ from kivy.core.window import Window
 from kivy.uix.popup import Popup
 from kivy.uix.image import Image
 from kivy.uix.label import Label
+from kivy.uix.scrollview import ScrollView
 from kivy.properties import ObjectProperty, NumericProperty
 
 from operator import itemgetter
 
-from editorheritage import SpecialScrollControl, LayoutGetter
+from editorheritage import LayoutGetter, KeyboardModifiers, MouseModifiers
 from editorobjects import RenderObjectGuardian
-from editorutils import AlertPopUp, AutoReloadTexture
+from editorutils import AlertPopUp, AutoReloadTexture, EmptyScrollEffect
 from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 from layerinfo import LayerGuardian
 from modulesaccess import ModulesAccess
@@ -322,7 +323,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 	def getMaxSize(self):
 		return (self._maxX, self._maxY)
 
-class SceneHandler (SpecialScrollControl):
+class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 	# Overloaded method
 	def processKeyUp(self, keyboard, keycode):
 
@@ -431,17 +432,22 @@ class SceneHandler (SpecialScrollControl):
 			MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		self.__sceneList[self.__currentIndex].redraw()
+		self.updateMouseUp(touch)
+		if (self._isRightPressed == True or self._isLeftPressed == False):
+			self._layout.do_scroll = True
+
+		if (touch.button == "left"):
+			self.__sceneList[self.__currentIndex].redraw()
+
 		self.__defaultTouchUp(touch)
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
-		if (self._scrollView.collide_point(*touch.pos) == False):
-			return
+		self.updateMouseDown(touch)
 
-		if (touch.is_mouse_scrolling == True):
-			return self.specialScroll(touch)
+		if (self._isLeftPressed == True and self._isRightPressed == False):
+			self._layout.do_scroll = False
 
-		else:
+		if (touch.button == "left"):
 			selectedObject = self.__getSelectedObjectByClick(touch)
 			if (selectedObject is not None):
 				if (touch.is_double_tap == False):
@@ -451,26 +457,32 @@ class SceneHandler (SpecialScrollControl):
 
 		self.__defaultTouchDown(touch)
 
+	def __handleScrollAndPassMoveToChildren(self, touch):
+		if (touch.button == "right"):
+			self.__defaultTouchMove(touch)
+
 	def __init__(self):
 		super(SceneHandler, self).__init__()
-		self._scrollView.on_touch_move = self._ignoreMoves
-		self.__defaultTouchDown = self._scrollView.on_touch_down
-		self.__defaultTouchUp = self._scrollView.on_touch_up
+		self._layout = ScrollView(effect_cls = EmptyScrollEffect)
+		self.__defaultTouchMove = self._layout.on_touch_move
+		self.__defaultTouchDown = self._layout.on_touch_down
+		self.__defaultTouchUp = self._layout.on_touch_up
 
-		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
-		self._scrollView.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
+		self._layout.on_touch_move = self.__handleScrollAndPassMoveToChildren
+		self._layout.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+		self._layout.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
 
 		self.__sceneList = []
 		self.__sceneList.append(Scene())
 		self.__currentIndex = 0
 
-		self._scrollView.add_widget(self.__sceneList[self.__currentIndex].getLayout())
+		self._layout.add_widget(self.__sceneList[self.__currentIndex].getLayout())
 		ModulesAccess.add('SceneHandler', self)
 
 	def draw(self, obj):
 		mouse_pos = Window.mouse_pos
-		if (self._scrollView.collide_point(*mouse_pos) == True):
-			x, y = self._scrollView.to_widget(*mouse_pos)
+		if (self._layout.collide_point(*mouse_pos) == True):
+			x, y = self._layout.to_widget(*mouse_pos)
 			sx, sy = obj.getSize()
 			mx, my = self.__sceneList[self.__currentIndex].getMaxSize()
 			exactlyX = int(x - (sx/2))
@@ -487,8 +499,8 @@ class SceneHandler (SpecialScrollControl):
 
 			self.__sceneList[self.__currentIndex].addObject(obj, exactlyX = exactlyX, exactlyY = exactlyY)
 		else:
-			relativeX = self._scrollView.hbar[0]
-			relaviveY = self._scrollView.vbar[0]
+			relativeX = self._layout.hbar[0]
+			relaviveY = self._layout.vbar[0]
 			self.__sceneList[self.__currentIndex].addObject(obj, relativeX = relativeX, relaviveY = relaviveY)
 
 	def redraw(self):
@@ -514,8 +526,8 @@ class SceneHandler (SpecialScrollControl):
 	# TODO: This method still considers a single scene condition.
 	def newScene(self, attributes):
 		newScene = Scene(attributes)
-		self._scrollView.clear_widgets()
-		self._scrollView.add_widget(newScene.getLayout())
+		self._layout.clear_widgets()
+		self._layout.add_widget(newScene.getLayout())
 
 		self.__sceneList[self.__currentIndex] = newScene
 

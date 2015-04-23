@@ -319,7 +319,7 @@ class NewBaseObjectsMenu(LayoutGetter):
 				self._loadPng(item)
 
 	def _adjustTreeSize(self, *args):
-		self._layout.size[1] = self._tree.minimum_height
+		self._scrollLayout.size[1] = self._tree.minimum_height
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)
