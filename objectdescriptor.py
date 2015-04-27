@@ -4,7 +4,7 @@ from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 
 from os import getcwd
-from editorobjects import ObjectTypes
+from editorobjects import ObjectTypes, BaseObject, RenderedObject
 from collision import CollisionInformationPopup
 from editorutils import CancelableButton, AlertPopUp, AlignedLabel
 from communicationobjects import ObjectDescriptorToResourceLoarder
@@ -236,20 +236,21 @@ class ObjectDescriptor:
 		self.__currentObject = None
 
 class NewBaseObjectDescriptor:
-	def __setValues(self, path, size, obj):
+	def __setValues(self, path, size):
 		self.__pathLabel.text = 'Path: ' + str(path)
 		self.__sizeLabel.text = 'Size: ' + str(size)
 
-	def set(self, layout, obj = None):
+	def set(self, obj = None):
+		layout = ModulesAccess.get('ObjectDescriptor').getLayout()
 		layout.clear_widgets()
 		layout.add_widget(self.__pathLabel)
 		layout.add_widget(self.__sizeLabel)
+		layout.add_widget(self.__separator)
 		layout.add_widget(Label(text = '', size_hint = (1.0, 0.4)))
 		layout.add_widget(self.__loaderLine)
 		if (obj is not None):
-			# TODO: fix this
 			self.__describedObject = obj
-			self.__setValues('', '', obj)
+			self.__setValues(obj.getPath(), obj.getSize())
 
 	def __openResourceLoader(self, *args):
 		if (self.__objRef is None or self.__objRef.getType() != ObjectTypes.baseObject):
@@ -259,9 +260,11 @@ class NewBaseObjectDescriptor:
 			ObjectDescriptorToResourceLoarder.Instance().openPopUp(self.__objRef.getPath())
 
 	def __init__(self):
-		self.__pathLabel = AlignedLabel(text = 'Path: ', size_hint = (1.0, 0.2), multiline=False, halign='left')
-		self.__sizeLabel = AlignedLabel(text = 'Size: ', size_hint = (1.0, 0.2))
-		self.__loaderLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
+		extraArgs = {'height' : 40, 'shorten' : True, 'shorten_from' : 'left', 'size_hint' : (1.0, None)}
+		self.__pathLabel = AlignedLabel(text = 'Path: ', **extraArgs)
+		self.__sizeLabel = AlignedLabel(text = 'Size: ', **extraArgs)
+		self.__separator = Label(text = '', size_hint = (1.0, None))
+		self.__loaderLine = BoxLayout(orientation = 'horizontal', height = 40)
 		self.__loaderLine.add_widget(AlignedLabel(text = 'Resource loader:', size_hint = (0.8, 1.0)))
 		self.__loaderLine.add_widget(CancelableButton(text = 'Load', on_release = self.__openResourceLoader,
 			size_hint = (0.2, 1.0)))
@@ -269,9 +272,20 @@ class NewBaseObjectDescriptor:
 
 class NewObjectDescriptor(LayoutGetter):
 	def __init__(self):
-		self._layout = BoxLayout(orientation = 'vertical')
+		self._layout = BoxLayout(orientation = 'vertical', height = 200)
 		ModulesAccess.add('ObjectDescriptor', self)
 		self._baseObjectDescriptor = NewBaseObjectDescriptor()
 
-		self._baseObjectDescriptor.set(self._layout, None)
+		self._baseObjectDescriptor.set()
+
+	def set(self, objectOrList):
+		if (type(objectOrList) is list):
+			self._multipleObjectsDescritor.set(objectOrList)
+		else:
+			if (isinstance(objectOrList, BaseObject) ==True):
+				self._baseObjectDescriptor.set(objectOrList)
+			elif (isinstance(objectOrList, RenderObjectGuardian) == True):
+				self._renderedObjectDescriptor.set(objectOrList)
+			else:
+				raise Exception('Unsuported object received.')
 

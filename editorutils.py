@@ -105,10 +105,6 @@ class AlignedLabel(Label):
 	def __set_on_size(self, obj, new_texture_size):
 		if (obj.width != 100 and obj.height != 100):
 			obj.text_size = obj.size
-		#print obj.size
-		#print new_texture_size
-		#print obj.texture_size
-		#print obj.text_size
 
 	def __init__(self, **kwargs):
 		super(AlignedLabel, self).__init__(**kwargs)

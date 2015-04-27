@@ -11,7 +11,7 @@ from kivy.core.window import Window
 
 from uisizes import mainLayoutSize
 from keyboard import KeyboardGuardian, KeyboardAccess
-from scene import SceneHandler
+from scene import SceneHandler, SceneMiniMap
 from optionsmenu import OptionsMenu
 from objectsmenu import ObjectsMenu
 from tilemapfiles import FilesManager
@@ -23,6 +23,7 @@ from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToRes
 from communicationobjects import ResourceLoaderToObjectDescriptor, FileOptionsMenuToScene
 
 from objectsmenu import NewBaseObjectDisplay, NewBaseObjectsMenu
+from objectdescriptor import NewObjectDescriptor
 from modulesaccess import ModulesAccess
 
 class TileEditor(App, KeyboardAccess):
@@ -87,6 +88,8 @@ class TileEditor(App, KeyboardAccess):
 		FilesManager.Instance()
 
 		# Scene Editor handlers:
+		SceneMiniMap()
+
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
 		KeyboardGuardian.Instance().acquireKeyboard(self)
@@ -98,16 +101,21 @@ class TileEditor(App, KeyboardAccess):
 		CollisionFlagsEditor.Instance()
 
 		# Bottom Menu Handler
-		OptionsMenu.Instance(self.rightScreen)
+		#OptionsMenu.Instance(self.rightScreen)
 
 		# Left Menu Handler
 		#ObjectsMenu.Instance()
 		#self.leftMenuBase.add_widget(ObjectsMenu.Instance().getLayout())
 		NewBaseObjectDisplay()
 		NewBaseObjectsMenu()
+		NewObjectDescriptor()
 
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())
+		bottomMenu = BoxLayout(orientation = 'horizontal', height = 200, size_hint = (1.0, None))
+		self.rightScreen.add_widget(bottomMenu)
+		bottomMenu.add_widget(ModulesAccess.get('ObjectDescriptor').getLayout())
+		bottomMenu.add_widget(ModulesAccess.get('MiniMap').getLayout())
 
 		# ResourceLoader
 		self.__resourcePopup = ResourceLoaderPopup()

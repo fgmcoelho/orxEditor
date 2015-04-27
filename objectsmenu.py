@@ -192,7 +192,7 @@ class NewBaseObjectDisplay(LayoutGetter):
 				Image(texture = obj.getBaseImage().texture, size = self._size, size_hint = (None, None))
 			)
 			self._currentObject = obj
-			# TODO: Add the descriptor update here!
+			ModulesAccess.get('ObjectDescriptor').set(obj)
 		else:
 			ModulesAccess.get('SceneHandler').draw(self._currentObject)
 
@@ -330,3 +330,4 @@ class NewBaseObjectsMenu(LayoutGetter):
 		self._scrollLayout.add_widget(self._tree)
 		self._layout.add_widget(self._scrollLayout)
 		self._tree.bind(minimum_height=self._adjustTreeSize)
+

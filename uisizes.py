@@ -8,3 +8,8 @@ options_menu_size = {
 	'padding' : 3,
 
 }
+
+sceneMiniMapSize = {
+	'size' : (200, 200),
+
+}
