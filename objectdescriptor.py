@@ -11,6 +11,7 @@ from communicationobjects import ObjectDescriptorToResourceLoarder
 from layer import LayerInformationPopup
 from modulesaccess import ModulesAccess
 from editorheritage import LayoutGetter
+from uisizes import descriptorSize, descriptorLabelDefault
 
 @Singleton
 class BaseObjectDescriptor:
@@ -235,46 +236,167 @@ class ObjectDescriptor:
 
 		self.__currentObject = None
 
-class NewBaseObjectDescriptor:
-	def __setValues(self, path, size):
-		self.__pathLabel.text = 'Path: ' + str(path)
-		self.__sizeLabel.text = 'Size: ' + str(size)
-
-	def set(self, obj = None):
+class CleanDescriptorLayoutGetter(object):
+	def _getParentLayout(self):
 		layout = ModulesAccess.get('ObjectDescriptor').getLayout()
 		layout.clear_widgets()
-		layout.add_widget(self.__pathLabel)
-		layout.add_widget(self.__sizeLabel)
-		layout.add_widget(self.__separator)
-		layout.add_widget(Label(text = '', size_hint = (1.0, 0.4)))
-		layout.add_widget(self.__loaderLine)
-		if (obj is not None):
-			self.__describedObject = obj
-			self.__setValues(obj.getPath(), obj.getSize())
+		return layout
 
-	def __openResourceLoader(self, *args):
-		if (self.__objRef is None or self.__objRef.getType() != ObjectTypes.baseObject):
+class ObjectDescriptGeneric(object):
+	def _setValues(self, path = '', size = ''):
+		self._pathLabel.text = 'Path: ' + str(path)
+		self._sizeLabel.text = 'Size: ' + str(size)
+
+	def __init__(self):
+		super(ObjectDescriptGeneric, self).__init__()
+		self._pathLabel = AlignedLabel(text = 'Path: ', **descriptorLabelDefault)
+		self._describedObject = None
+
+class DescriptorSeparator(object):
+	def __init__(self):
+		super(DescriptorSeparator, self).__init__()
+		self._separator = Label(text = '', size_hint = (1.0, None))
+
+class NewMultipleSelectionDescriptor(CleanDescriptorLayoutGetter, DescriptorSeparator):
+	def __setValues(self, count = 0):
+		self._selectedLabel.text = 'Selected: ' + str(count)
+
+	def __init__(self):
+		super(NewMultipleSelectionDescriptor, self).__init__()
+		self._selectedLabel = AlignedLabel(text = 'Selected: 0', **descriptorLabelDefault)
+		self._layerLabel = AlignedLabel(text = 'Group info:', **descriptorLabelDefault)
+		self._layerButton = CancelableButton(text = 'Edit Group', size_hint = (0.3, 1.0),
+			on_release = LayerInformationPopup.Instance().showPopUp)
+		self._layerBox = BoxLayout(orientation = 'horizontal', height = descriptorLabelDefault['height'])
+		self._layerBox.add_widget(self._layerLabel)
+		self._layerBox.add_widget(self._layerButton)
+
+		self._collisionBox = BoxLayout(orientation = 'horizontal', height = descriptorLabelDefault['height'])
+		self._collisionInfoLabel = AlignedLabel(text = 'Collision info:', **descriptorLabelDefault)
+		self._collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.3, 1.0),
+			on_release = CollisionInformationPopup.Instance().showPopUp)
+		self._collisionBox.add_widget(self.__collisionInfoLabel)
+		self._collisionBox.add_widget(self.__collisionHandler)
+
+	def set(self, objects = None):
+		layout = self._getParentLayout()
+		layout.add_widget(self._selectedLabel)
+		layout.add_widget(self._separator)
+		layout.add_widget(self._layerBox)
+		layout.add_widget(self._collisionBox)
+		if (objects is None):
+			self._setValues()
+		else:
+			self._setValues(len(objects))
+
+class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, DescriptorSeparator):
+	def _setValues(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '',
+			collisionInfo = None):
+		super(NewRenderedObjectDescriptor, self)._setValues(path, size)
+		self._scaleLabel.text = 'Scale: ' + str(scale)
+		self._layerLabel.text = 'Group: ' + str(layer)
+		self._nameLabel.text = 'Name: ' + str(name)
+		self._flipxLabel.text = 'Flipped on X: ' + str(flipX)
+		self._flipyLabel.text = 'Flipped on Y: ' + str(flipY)
+		if (collisionInfo is None):
+			self._collisionInfoLabel.text = 'Has collision info: None'
+		else:
+			self._collisionInfoLabel.text = 'Has collision info: Available'
+
+	def __init__(self):
+		super(NewRenderedObjectDescriptor, self).__init__()
+
+		halfLineLabel = descriptorLabelDefault.copy()
+		halfLineLabel['size_hint'] = (0.5, None)
+		halfLineLayout = {
+			'orientation' : 'horizontal',
+			'size_hint' : (1.0, None),
+			'height' : descriptorLabelDefault['height'],
+		}
+
+		self._nameLabel = AlignedLabel(text = 'Name: ', **descriptorLabelDefault)
+
+		self._flipBox = BoxLayout(**halfLineLayout)
+		self._flipxLabel = AlignedLabel(text = 'Flipped on X: ', **halfLineLabel)
+		self._flipyLabel = AlignedLabel(text = 'Flipped on Y: ', **halfLineLabel)
+		self._flipBox.add_widget(self._flipxLabel)
+		self._flipBox.add_widget(self._flipyLabel)
+
+		self._sizeScaleBox = BoxLayout(**halfLineLayout)
+		self._sizeLabel = AlignedLabel(text = 'Size: ', **halfLineLabel)
+		self._scaleLabel = AlignedLabel(text = 'Scale: ', **halfLineLabel)
+
+		self._sizeScaleBox.add_widget(self._sizeLabel)
+		self._sizeScaleBox.add_widget(self._scaleLabel)
+
+		self._layerBox = BoxLayout(**halfLineLayout)
+		self._layerLabel = AlignedLabel(text = 'Group: ', **halfLineLabel)
+		self._layerButton = CancelableButton(text = 'Edit Group', size_hint = (0.3, 1.0),
+			on_release = None)
+
+		self._layerBox.add_widget(self._layerLabel)
+		self._layerBox.add_widget(self._layerButton)
+
+		self._collisionBox = BoxLayout(**halfLineLayout)
+		self._collisionInfoLabel = AlignedLabel(text = 'Has collision info: ', **halfLineLabel)
+		self._collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.3, 1.0),
+			on_release = None)
+
+		self._collisionBox.add_widget(self._collisionInfoLabel)
+		self._collisionBox.add_widget(self._collisionHandler)
+
+	def set(self, obj = None):
+		layout = self._getParentLayout()
+		layout.add_widget(self._pathLabel)
+		layout.add_widget(self._nameLabel)
+		layout.add_widget(self._flipBox)
+		layout.add_widget(self._sizeScaleBox)
+		layout.add_widget(self._separator)
+		layout.add_widget(self._layerBox)
+		layout.add_widget(self._collisionBox)
+		self._describedObject = obj
+		if (self._describedObject is not None):
+			self._setValues(obj.getPath(), obj.getSize(), obj.getScale(), obj.getLayer(), obj.getName(),
+				obj.getFlipX(), obj.getFlipY(),	obj.getCollisionInfo())
+		else:
+			self._setValues()
+
+class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, DescriptorSeparator):
+	def _openResourceLoader(self, *args):
+		if (self._objRef is None or self._objRef.getType() != ObjectTypes.baseObject):
 			AlertPopUp('Error', 'No compatible object selected.', 'Ok').open()
 		else:
 			# TODO: Add the modules access here
-			ObjectDescriptorToResourceLoarder.Instance().openPopUp(self.__objRef.getPath())
+			ObjectDescriptorToResourceLoarder.Instance().openPopUp(self._objRef.getPath())
 
 	def __init__(self):
-		extraArgs = {'height' : 40, 'shorten' : True, 'shorten_from' : 'left', 'size_hint' : (1.0, None)}
-		self.__pathLabel = AlignedLabel(text = 'Path: ', **extraArgs)
-		self.__sizeLabel = AlignedLabel(text = 'Size: ', **extraArgs)
-		self.__separator = Label(text = '', size_hint = (1.0, None))
-		self.__loaderLine = BoxLayout(orientation = 'horizontal', height = 40)
-		self.__loaderLine.add_widget(AlignedLabel(text = 'Resource loader:', size_hint = (0.8, 1.0)))
-		self.__loaderLine.add_widget(CancelableButton(text = 'Load', on_release = self.__openResourceLoader,
+		super(NewBaseObjectDescriptor, self).__init__()
+		self._sizeLabel = AlignedLabel(text = 'Size: ', **descriptorLabelDefault)
+		self._loaderLine = BoxLayout(orientation = 'horizontal', height = descriptorLabelDefault['height'])
+		self._loaderLine.add_widget(AlignedLabel(text = 'Resource loader:', size_hint = (0.8, 1.0)))
+		self._loaderLine.add_widget(CancelableButton(text = 'Load', on_release = self._openResourceLoader,
 			size_hint = (0.2, 1.0)))
-		self.__describedObject = None
+
+	def set(self, obj = None):
+		layout = self._getParentLayout()
+		layout.add_widget(self._pathLabel)
+		layout.add_widget(self._sizeLabel)
+		layout.add_widget(self._separator)
+		layout.add_widget(self._loaderLine)
+		self._describedObject = obj
+		if (obj is not None):
+			self._setValues(obj.getPath(), obj.getSize())
+		else:
+			self._setValues()
+
 
 class NewObjectDescriptor(LayoutGetter):
 	def __init__(self):
-		self._layout = BoxLayout(orientation = 'vertical', height = 200)
 		ModulesAccess.add('ObjectDescriptor', self)
+		self._layout = BoxLayout(orientation = 'vertical', height = descriptorSize['height'])
+
 		self._baseObjectDescriptor = NewBaseObjectDescriptor()
+		self._renderedObjectDescriptor = NewRenderedObjectDescriptor()
 
 		self._baseObjectDescriptor.set()
 
@@ -284,7 +406,7 @@ class NewObjectDescriptor(LayoutGetter):
 		else:
 			if (isinstance(objectOrList, BaseObject) ==True):
 				self._baseObjectDescriptor.set(objectOrList)
-			elif (isinstance(objectOrList, RenderObjectGuardian) == True):
+			elif (isinstance(objectOrList, RenderedObject) == True):
 				self._renderedObjectDescriptor.set(objectOrList)
 			else:
 				raise Exception('Unsuported object received.')

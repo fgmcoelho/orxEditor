@@ -29,7 +29,7 @@ class SceneMiniMap(LayoutGetter):
 		self._layout.add_widget(self._image)
 		ModulesAccess.add('MiniMap', self)
 		self._image.on_touch_move = self._image.on_touch_down = self._image.on_touch_up = self.processTouch
-	
+
 	def updateMinimap(self, newTexture):
 		self._image.texture = newTexture
 
@@ -38,7 +38,6 @@ class SceneMiniMap(LayoutGetter):
 			posToScroll = self._image.to_local(touch.pos[0], touch.pos[1], True)
 			args = [posToScroll[0], posToScroll[1], self._size[0], self._size[1]]
 			ModulesAccess.get('SceneHandler').scrollFromMiniMap(*args)
-			
 
 class OrderSceneObjects:
 	def _order_objects(self, objectDict):
@@ -291,6 +290,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		self._objectDict[self._id] = newRenderedObject
 		self._id += 1
 
+		ModulesAccess.get('ObjectDescriptor').set(newRenderedObject)
 		#ObjectDescriptor.Instance().setObject(newRenderedObject)
 
 	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo):

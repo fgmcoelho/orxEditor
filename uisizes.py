@@ -13,3 +13,7 @@ sceneMiniMapSize = {
 	'size' : (200, 200),
 
 }
+
+
+descriptorSize = {'height' : 200 }
+descriptorLabelDefault = {'height' : 20, 'shorten' : True, 'shorten_from' : 'left', 'size_hint' : (1.0, None)}
