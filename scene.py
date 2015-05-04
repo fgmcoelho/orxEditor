@@ -10,6 +10,7 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import ObjectProperty, NumericProperty
+from kivy.input.factory import MotionEventFactory
 
 from operator import itemgetter
 
@@ -483,7 +484,9 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 	def __init__(self):
 		super(SceneHandler, self).__init__()
-		self._layout = ScrollView(effect_cls = EmptyScrollEffect)
+		self._layout = ScrollView(
+			effect_cls = EmptyScrollEffect,
+		)
 		self.__defaultTouchMove = self._layout.on_touch_move
 		self.__defaultTouchDown = self._layout.on_touch_down
 		self.__defaultTouchUp = self._layout.on_touch_up
@@ -510,21 +513,10 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		else:
 			relativeY = 0
 
-		print self._layout.hbar, self._layout.vbar
-		self._layout.scroll_x = relativeX - 0.00001
-		self._layout.scroll_y = relativeY - 0.00001
-		self._layout.update_from_scroll()
 		self._layout.scroll_x = relativeX
 		self._layout.scroll_y = relativeY
-		self._layout.update_from_scroll()
-		self._touch = False
-		print self._layout.hbar, self._layout.vbar
-
-	def scrollToPosition(self, x, y):
-		relativeX = x / self._layout.width
-		relativeY = y / self._layout.height
-		self._layout.scroll_x = relativeX
-		self._layout.scroll_y = relativeY
+		self._layout._update_effect_x_bounds()
+		self._layout._update_effect_y_bounds()
 
 	def draw(self, obj):
 		mouse_pos = Window.mouse_pos

@@ -99,7 +99,8 @@ class CancelableButton (Button):
 			self.on_touch_down = self.__startButtonSelection
 
 class EmptyScrollEffect(ScrollEffect):
-	pass
+	def __init__(self, **kwargs):
+		super(EmptyScrollEffect, self).__init__(**kwargs)
 
 class AlignedLabel(Label):
 	def __set_on_size(self, obj, new_texture_size):

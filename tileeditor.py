@@ -46,7 +46,11 @@ class TileEditor(App, KeyboardAccess):
 
 	def confirm_exit(self, *args):
 		# TODO:  exit confirmation here!
+		print "Exiting! ", args
 		return False
+
+	def test_dropfile(self, *args):
+		print "File dropped: ", args
 
 	def build_config(self, c):
 		Config.set('graphics', 'width', 800)
@@ -60,6 +64,7 @@ class TileEditor(App, KeyboardAccess):
 
 	def build(self):
 		Window.on_request_close = self.confirm_exit
+		Window.on_dropfile = self.test_dropfile
 
 		self.root = BoxLayout(orientation='horizontal', padding = 0, spacing = 0)
 
