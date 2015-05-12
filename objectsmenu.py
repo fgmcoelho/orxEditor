@@ -324,8 +324,7 @@ class NewBaseObjectsMenu(LayoutGetter):
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)
 		self._tree = OptionMenuTree(root_options = { 'text' : 'Resources'})
-		self._layout = BoxLayout(orientation = 'vertical')
-		#self._layout = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
+		self._layout = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
 		self._loadItems()
 		self._scrollLayout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], size_hint = (1.0, None))
 		self._scrollLayout.add_widget(self._tree)
