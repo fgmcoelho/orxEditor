@@ -255,7 +255,7 @@ class ObjectDescriptGeneric(object):
 class DescriptorSeparator(object):
 	def __init__(self):
 		super(DescriptorSeparator, self).__init__()
-		self._separator = Label(text = '', size_hint = (1.0, None))
+		self._separator = Label(text = '', size_hint = (1.0, 1.0))
 
 class NewMultipleSelectionDescriptor(CleanDescriptorLayoutGetter, DescriptorSeparator):
 	def __setValues(self, count = 0):
@@ -299,15 +299,15 @@ class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGe
 		self._flipxLabel.text = 'Flipped on X: ' + str(flipX)
 		self._flipyLabel.text = 'Flipped on Y: ' + str(flipY)
 		if (collisionInfo is None):
-			self._collisionInfoLabel.text = 'Has collision info: None'
+			self._collisionInfoLabel.text = 'Has collision info: No'
 		else:
-			self._collisionInfoLabel.text = 'Has collision info: Available'
+			self._collisionInfoLabel.text = 'Has collision info: Yes'
 
 	def __init__(self):
 		super(NewRenderedObjectDescriptor, self).__init__()
 
 		halfLineLabel = descriptorLabelDefault.copy()
-		halfLineLabel['size_hint'] = (0.5, None)
+		halfLineLabel['size_hint'] = (0.5, 1.0)
 		halfLineLayout = {
 			'orientation' : 'horizontal',
 			'size_hint' : (1.0, None),
@@ -331,24 +331,26 @@ class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGe
 
 		self._layerBox = BoxLayout(**halfLineLayout)
 		self._layerLabel = AlignedLabel(text = 'Group: ', **halfLineLabel)
-		self._layerButton = CancelableButton(text = 'Edit Group', size_hint = (0.3, 1.0),
-			on_release = None)
+		self._layerButton = CancelableButton(text = 'Edit Group', size_hint = (0.5, 1.0),
+			on_release = None, height = descriptorLabelDefault['height'])
 
 		self._layerBox.add_widget(self._layerLabel)
 		self._layerBox.add_widget(self._layerButton)
 
 		self._collisionBox = BoxLayout(**halfLineLayout)
 		self._collisionInfoLabel = AlignedLabel(text = 'Has collision info: ', **halfLineLabel)
-		self._collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.3, 1.0),
-			on_release = None)
+		self._collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.5, 1.0),
+			on_release = None, height = descriptorLabelDefault['height'])
 
 		self._collisionBox.add_widget(self._collisionInfoLabel)
 		self._collisionBox.add_widget(self._collisionHandler)
 
 	def set(self, obj = None):
 		layout = self._getParentLayout()
-		layout.add_widget(self._pathLabel)
+		print self._nameLabel.size_hint, self._pathLabel.size_hint, self._flipBox.size_hint, self._sizeScaleBox.size_hint, self._separator.size_hint, self._layerBox.size_hint, self._collisionBox.size_hint
+		print self._nameLabel.size, self._pathLabel.size, self._flipBox.size, self._sizeScaleBox.size, self._separator.size, self._layerBox.size, self._collisionBox.size
 		layout.add_widget(self._nameLabel)
+		layout.add_widget(self._pathLabel)
 		layout.add_widget(self._flipBox)
 		layout.add_widget(self._sizeScaleBox)
 		layout.add_widget(self._separator)
@@ -373,9 +375,10 @@ class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter
 		super(NewBaseObjectDescriptor, self).__init__()
 		self._sizeLabel = AlignedLabel(text = 'Size: ', **descriptorLabelDefault)
 		self._loaderLine = BoxLayout(orientation = 'horizontal', height = descriptorLabelDefault['height'])
-		self._loaderLine.add_widget(AlignedLabel(text = 'Resource loader:', size_hint = (0.8, 1.0)))
+		self._loaderLine.add_widget(AlignedLabel(text = 'Resource loader:', size_hint = (0.8, None), 
+			height = descriptorLabelDefault['height']))
 		self._loaderLine.add_widget(CancelableButton(text = 'Load', on_release = self._openResourceLoader,
-			size_hint = (0.2, 1.0)))
+			size_hint = (0.2, None), height = descriptorLabelDefault['height']))
 
 	def set(self, obj = None):
 		layout = self._getParentLayout()
@@ -388,7 +391,6 @@ class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter
 			self._setValues(obj.getPath(), obj.getSize())
 		else:
 			self._setValues()
-
 
 class NewObjectDescriptor(LayoutGetter):
 	def __init__(self):

@@ -9,7 +9,7 @@ from kivy.config import Config
 from kivy.core.window import Window
 
 
-from uisizes import mainLayoutSize
+from uisizes import mainLayoutSize, descriptorLabelDefault, sceneMiniMapSize
 from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler, SceneMiniMap
 from optionsmenu import OptionsMenu
@@ -25,6 +25,7 @@ from communicationobjects import ResourceLoaderToObjectDescriptor, FileOptionsMe
 from objectsmenu import NewBaseObjectDisplay, NewBaseObjectsMenu
 from objectdescriptor import NewObjectDescriptor
 from modulesaccess import ModulesAccess
+from editorutils import AlignedLabel
 
 class TileEditor(App, KeyboardAccess):
 
@@ -46,8 +47,11 @@ class TileEditor(App, KeyboardAccess):
 
 	def confirm_exit(self, *args):
 		# TODO:  exit confirmation here!
-		print "Exiting! ", args
+		print 'We got exit confirmation: ', args
 		return False
+	
+	def test_dropfile(self, *args):
+		print 'Files dropped: ', args
 
 	def test_dropfile(self, *args):
 		print "File dropped: ", args
@@ -117,10 +121,19 @@ class TileEditor(App, KeyboardAccess):
 
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())
-		bottomMenu = BoxLayout(orientation = 'horizontal', height = 200, size_hint = (1.0, None))
+		bottomMenu = BoxLayout(orientation = 'horizontal', height = mainLayoutSize['bottomMenuHeight'], 
+			size_hint = (1.0, None))
 		self.rightScreen.add_widget(bottomMenu)
-		bottomMenu.add_widget(ModulesAccess.get('ObjectDescriptor').getLayout())
-		bottomMenu.add_widget(ModulesAccess.get('MiniMap').getLayout())
+		
+		leftBottomMenu = BoxLayout(orientation = 'vertical')
+		leftBottomMenu.add_widget(AlignedLabel(text = 'Object descriptor', **descriptorLabelDefault))
+		leftBottomMenu.add_widget(ModulesAccess.get('ObjectDescriptor').getLayout())
+		bottomMenu.add_widget(leftBottomMenu)
+
+		rightBottomMenu = BoxLayout(orientation = 'vertical', width = sceneMiniMapSize['size'][0], size_hint_x = None)
+		rightBottomMenu.add_widget(AlignedLabel(text = 'MiniMap', **descriptorLabelDefault))
+		rightBottomMenu.add_widget(ModulesAccess.get('MiniMap').getLayout())
+		bottomMenu.add_widget(rightBottomMenu)
 
 		# ResourceLoader
 		self.__resourcePopup = ResourceLoaderPopup()

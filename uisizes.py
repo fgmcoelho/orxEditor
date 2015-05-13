@@ -1,6 +1,7 @@
 mainLayoutSize = {
 	'leftMenuWidth' : 200,
 	'leftMenuSizeHint' : (None, 1.0),
+	'bottomMenuHeight' : 220
 }
 
 options_menu_size = {
@@ -9,11 +10,11 @@ options_menu_size = {
 
 }
 
+descriptorSize = {'height' : 200 }
+descriptorLabelDefault = {'height' : 20, 'shorten' : True, 'shorten_from' : 'left', 'size_hint' : (1.0, None)}
+
 sceneMiniMapSize = {
 	'size' : (200, 200),
-
 }
 
 
-descriptorSize = {'height' : 200 }
-descriptorLabelDefault = {'height' : 20, 'shorten' : True, 'shorten_from' : 'left', 'size_hint' : (1.0, None)}

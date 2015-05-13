@@ -21,6 +21,7 @@ from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 from layerinfo import LayerGuardian
 from modulesaccess import ModulesAccess
 from uisizes import sceneMiniMapSize
+from kivy.input.factory import MotionEventFactory
 
 class SceneMiniMap(LayoutGetter):
 	def updateQuad(self, *args):
@@ -33,21 +34,21 @@ class SceneMiniMap(LayoutGetter):
 			if (self._rectangle is not None):
 				self._layout.canvas.remove(self._rectangle)
 
-			print list(self._layout.to_local(self._layout.pos[0], self._layout.pos[1], False))
-			print list(self._layout.to_local(self._layout.pos[0], self._layout.pos[1], True))
-			print list(self._layout.to_parent(self._layout.pos[0], self._layout.pos[1], False))
-			print list(self._layout.to_parent(self._layout.pos[0], self._layout.pos[1], True))
-			print list(self._layout.to_window(self._layout.pos[0], self._layout.pos[1], False))
-			print list(self._layout.to_window(self._layout.pos[0], self._layout.pos[1], True))
-			print list(self._layout.to_widget(self._layout.pos[0], self._layout.pos[1], False))
-			print list(self._layout.to_widget(self._layout.pos[0], self._layout.pos[1], True))
-			print self._layout.pos
-			pos = list(self._layout.to_local(self._layout.pos[0], self._layout.pos[1], False))
+			#print list(self._layout.to_local(self._layout.pos[0], self._layout.pos[1], False))
+			#print list(self._layout.to_local(self._layout.pos[0], self._layout.pos[1], True))
+			#print list(self._layout.to_parent(self._layout.pos[0], self._layout.pos[1], False))
+			#print list(self._layout.to_parent(self._layout.pos[0], self._layout.pos[1], True))
+			#print list(self._layout.to_window(self._layout.pos[0], self._layout.pos[1], False))
+			#print list(self._layout.to_window(self._layout.pos[0], self._layout.pos[1], True))
+			#print list(self._layout.to_widget(self._layout.pos[0], self._layout.pos[1], False))
+			#print list(self._layout.to_widget(self._layout.pos[0], self._layout.pos[1], True))
+			#print self._layout.pos
+			#pos = list(self._layout.to_local(self._layout.pos[0], self._layout.pos[1], False))
 			#print self._image.to_local(0, 0, True)
 			#print pos
-			with self._layout.canvas:
-				Color(1., 0., 0.)
-				self._rectangle = Rectangle(size = (sx, sy), pos = (600, 200))
+			#with self._layout.canvas:
+			#	Color(1., 0., 0.)
+			#	self._rectangle = Rectangle(size = (sx, sy), pos = (600, 200))
 
 				#self._rectangle = Rectangle(size = (sx, sy), pos = pos)
 				#self._image.canvas.add(Color(1., 0., 0.))
@@ -61,8 +62,12 @@ class SceneMiniMap(LayoutGetter):
 		self._rectangle = None
 		self._representedId = None
 		self._representedSize = None
+		self._moving = True
 		ModulesAccess.add('MiniMap', self)
-		self._image.on_touch_move = self._image.on_touch_down = self._image.on_touch_up = self.processTouch
+		self._image.on_touch_move = self.processTouchMove
+		self._image.on_touch_down = self.processTouchDown
+		self._image.on_touch_up = self.processTouchUp
+		print MotionEventFactory.list()
 
 	def updateMinimap(self, newTexture):
 		self._image.texture = newTexture
@@ -70,9 +75,17 @@ class SceneMiniMap(LayoutGetter):
 			self._representedId = newTexture.id
 			self._representedSize = tuple(newTexture.size)
 			self.updateQuad()
+	
+	def processTouchUp(self, touch):
+		if (self._moving == True):
+			self._moving = False
 
-	def processTouch(self, touch):
+	def processTouchDown(self, touch):
 		if (self._image.collide_point(*touch.pos) == True):
+			self._moving = True
+
+	def processTouchMove(self, touch):
+		if (self._image.collide_point(*touch.pos) == True and self._moving == True):
 			posToScroll = self._image.to_local(touch.pos[0], touch.pos[1], True)
 			args = [posToScroll[0], posToScroll[1], self._size[0], self._size[1]]
 			ModulesAccess.get('SceneHandler').scrollFromMiniMap(*args)
@@ -140,6 +153,10 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			i += self._tileSize
 
 	def getMiniMapTexture(self):
+		selectedObjects = self._renderGuardian.getSelection()
+		for obj in selectedObjects:
+			obj.unsetMarked()
+
 		parent = self._layout.parent
 		parent.remove_widget(self._layout)
 
@@ -160,6 +177,10 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			self.redraw()
 
 		parent.add_widget(self._layout)
+		
+		for obj in selectedObjects:
+			obj.setMarked()
+
 		return texture
 
 	def showGrid(self):
@@ -180,7 +201,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 	def loadValues(self, attributes = None):
 		self._layout.canvas.clear()
 		if (attributes is None):
-			self._sceneAttr = SceneAttributes(40, 50, 50)
+			self._sceneAttr = SceneAttributes(32, 50, 50)
 		else:
 			self._sceneAttr = attributes
 
@@ -322,7 +343,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			finalY = pos[1]
 
 		newRenderedObject = self._renderGuardian.createNewObject(self._id, obj, (finalX, finalY),
-				self._tileSize, self._maxX, self._maxY)
+			self._tileSize, self._maxX, self._maxY)
 
 		self._layout.add_widget(newRenderedObject)
 		self._objectDict[self._id] = newRenderedObject
@@ -443,6 +464,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 		elif (keycode[1] == 'y'):
 			print self._layout.size
+		
+		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
 
 	def __getSelectedObjectByClick(self, touch):
 		clickedObjectsList = []
@@ -467,7 +490,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 	def __selectObject(self, objectToSelect):
 		if (self._isCtrlPressed == False):
-			#ObjectDescriptor.Instance().setObject(objectToSelect)
+			ModulesAccess.get('ObjectDescriptor').set(objectToSelect)
 			self.__sceneList[self.__currentIndex].getRenderGuardian().setSingleSelectionObject(objectToSelect)
 		else:
 			selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().addObjectToSelection(
@@ -514,7 +537,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 					else:
 						self.__unselectObject(selectedObject)
 
-			self.__defaultTouchDown(touch)
+			return self.__defaultTouchDown(touch)
 
 	def __handleScrollAndPassMoveToChildren(self, touch):
 		if (touch.button == "right"):
@@ -583,6 +606,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			relativeY = self._layout.vbar[0]
 			self.__sceneList[self.__currentIndex].addObject(obj, relativeX = relativeX, relativeY = relativeY)
 
+		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
+
 	def redraw(self):
 		self.__sceneList[self.__currentIndex].redraw()
 
@@ -608,7 +633,6 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		newScene = Scene(attributes)
 		self._layout.clear_widgets()
 		self._layout.add_widget(newScene.getLayout())
-
 		self.__sceneList[self.__currentIndex] = newScene
 
 	def getCurrentSceneAttributes(self):

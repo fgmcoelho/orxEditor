@@ -12,11 +12,11 @@ from kivy.uix.boxlayout import BoxLayout
 
 from editorobjects import BaseObject
 from objectdescriptor import ObjectDescriptor
-from editorutils import EmptyScrollEffect, createSpriteImage
+from editorutils import EmptyScrollEffect, createSpriteImage, AlignedLabel
 from communicationobjects import SceneToObjectsMenu
 from splittedimagemap import SplittedImageImporter
 from modulesaccess import ModulesAccess
-from uisizes import mainLayoutSize
+from uisizes import mainLayoutSize, descriptorLabelDefault
 from editorheritage import IgnoreTouch, LayoutGetter
 
 class ObjectMenuItem:
@@ -180,16 +180,21 @@ class ObjectsMenu:
 class NewBaseObjectDisplay(LayoutGetter):
 	def __init__(self):
 		ModulesAccess.add('BaseObjectDisplay', self)
-		self._size = (mainLayoutSize['leftMenuWidth'], mainLayoutSize['leftMenuWidth'])
-		self._layout = BoxLayout(orientation = 'horizontal', size = self._size, size_hint = (1.0, None))
+		self._displaySize = (mainLayoutSize['leftMenuWidth'], mainLayoutSize['leftMenuWidth'])
+		totalSize = (self._displaySize[0], self._displaySize[1] + descriptorLabelDefault['height'])
+		self._layout = BoxLayout(orientation = 'vertical', size = totalSize, size_hint = (1.0, None))
+		self._nameLabel =  AlignedLabel(text = 'Preview', **descriptorLabelDefault)
 		self._currentObject = None
+		self._layout.add_widget(self._nameLabel)
+		self._layout.add_widget(Image(size = self._displaySize))
 
 	def setDisplay(self, obj):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
 		if (self._currentObject != obj):
 			self._layout.clear_widgets()
+			self._layout.add_widget(self._nameLabel)
 			self._layout.add_widget(
-				Image(texture = obj.getBaseImage().texture, size = self._size, size_hint = (None, None))
+				Image(texture = obj.getBaseImage().texture, size = self._displaySize, size_hint = (None, None))
 			)
 			self._currentObject = obj
 			ModulesAccess.get('ObjectDescriptor').set(obj)
@@ -221,9 +226,8 @@ class OptionMenuTree(TreeView):
 
 class OptionMenuLabel(TreeViewLabel, IgnoreTouch):
 	def __updateDisplay(self, touch):
-		if (self.collide_point(*touch.pos) == True):
-			if(touch.is_double_tap == True and touch.button == 'left'):
-				ModulesAccess.get('BaseObjectDisplay').setDisplay(self.__baseObject)
+		if (self.collide_point(*touch.pos) == True and touch.button == 'left'):
+			ModulesAccess.get('BaseObjectDisplay').setDisplay(self.__baseObject)
 
 	def __init__(self, obj, **kwargs):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
