@@ -10,7 +10,6 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import ObjectProperty, NumericProperty
-from kivy.input.factory import MotionEventFactory
 
 from operator import itemgetter
 
@@ -21,7 +20,6 @@ from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 from layerinfo import LayerGuardian
 from modulesaccess import ModulesAccess
 from uisizes import sceneMiniMapSize
-from kivy.input.factory import MotionEventFactory
 
 class SceneMiniMap(LayoutGetter):
 	def updateQuad(self, *args):
@@ -67,7 +65,6 @@ class SceneMiniMap(LayoutGetter):
 		self._image.on_touch_move = self.processTouchMove
 		self._image.on_touch_down = self.processTouchDown
 		self._image.on_touch_up = self.processTouchUp
-		print MotionEventFactory.list()
 
 	def updateMinimap(self, newTexture):
 		self._image.texture = newTexture
@@ -75,7 +72,7 @@ class SceneMiniMap(LayoutGetter):
 			self._representedId = newTexture.id
 			self._representedSize = tuple(newTexture.size)
 			self.updateQuad()
-	
+
 	def processTouchUp(self, touch):
 		if (self._moving == True):
 			self._moving = False
@@ -177,7 +174,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			self.redraw()
 
 		parent.add_widget(self._layout)
-		
+
 		for obj in selectedObjects:
 			obj.setMarked()
 
@@ -464,7 +461,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 		elif (keycode[1] == 'y'):
 			print self._layout.size
-		
+
 		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
 
 	def __getSelectedObjectByClick(self, touch):

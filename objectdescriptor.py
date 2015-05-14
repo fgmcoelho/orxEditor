@@ -10,7 +10,7 @@ from editorutils import CancelableButton, AlertPopUp, AlignedLabel
 from communicationobjects import ObjectDescriptorToResourceLoarder
 from layer import LayerInformationPopup
 from modulesaccess import ModulesAccess
-from editorheritage import LayoutGetter
+from editorheritage import LayoutGetter, SeparatorLabel
 from uisizes import descriptorSize, descriptorLabelDefault
 
 @Singleton
@@ -252,12 +252,7 @@ class ObjectDescriptGeneric(object):
 		self._pathLabel = AlignedLabel(text = 'Path: ', **descriptorLabelDefault)
 		self._describedObject = None
 
-class DescriptorSeparator(object):
-	def __init__(self):
-		super(DescriptorSeparator, self).__init__()
-		self._separator = Label(text = '', size_hint = (1.0, 1.0))
-
-class NewMultipleSelectionDescriptor(CleanDescriptorLayoutGetter, DescriptorSeparator):
+class NewMultipleSelectionDescriptor(CleanDescriptorLayoutGetter, SeparatorLabel):
 	def __setValues(self, count = 0):
 		self._selectedLabel.text = 'Selected: ' + str(count)
 
@@ -289,7 +284,7 @@ class NewMultipleSelectionDescriptor(CleanDescriptorLayoutGetter, DescriptorSepa
 		else:
 			self._setValues(len(objects))
 
-class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, DescriptorSeparator):
+class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, SeparatorLabel):
 	def _setValues(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '',
 			collisionInfo = None):
 		super(NewRenderedObjectDescriptor, self)._setValues(path, size)
@@ -347,8 +342,6 @@ class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGe
 
 	def set(self, obj = None):
 		layout = self._getParentLayout()
-		print self._nameLabel.size_hint, self._pathLabel.size_hint, self._flipBox.size_hint, self._sizeScaleBox.size_hint, self._separator.size_hint, self._layerBox.size_hint, self._collisionBox.size_hint
-		print self._nameLabel.size, self._pathLabel.size, self._flipBox.size, self._sizeScaleBox.size, self._separator.size, self._layerBox.size, self._collisionBox.size
 		layout.add_widget(self._nameLabel)
 		layout.add_widget(self._pathLabel)
 		layout.add_widget(self._flipBox)
@@ -363,19 +356,20 @@ class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGe
 		else:
 			self._setValues()
 
-class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, DescriptorSeparator):
+class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, SeparatorLabel):
 	def _openResourceLoader(self, *args):
-		if (self._objRef is None or self._objRef.getType() != ObjectTypes.baseObject):
+		if (self._describedObject is None or isinstance(self._describedObject, BaseObject) == False):
 			AlertPopUp('Error', 'No compatible object selected.', 'Ok').open()
 		else:
 			# TODO: Add the modules access here
-			ObjectDescriptorToResourceLoarder.Instance().openPopUp(self._objRef.getPath())
+			#ObjectDescriptorToResourceLoarder.Instance().openPopUp(self._objRef.getPath())
+			ModulesAccess.get('ResourceLoader').open(self._describedObject.getPath())
 
 	def __init__(self):
 		super(NewBaseObjectDescriptor, self).__init__()
 		self._sizeLabel = AlignedLabel(text = 'Size: ', **descriptorLabelDefault)
 		self._loaderLine = BoxLayout(orientation = 'horizontal', height = descriptorLabelDefault['height'])
-		self._loaderLine.add_widget(AlignedLabel(text = 'Resource loader:', size_hint = (0.8, None), 
+		self._loaderLine.add_widget(AlignedLabel(text = 'Resource loader:', size_hint = (0.8, None),
 			height = descriptorLabelDefault['height']))
 		self._loaderLine.add_widget(CancelableButton(text = 'Load', on_release = self._openResourceLoader,
 			size_hint = (0.2, None), height = descriptorLabelDefault['height']))

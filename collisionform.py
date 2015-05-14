@@ -11,7 +11,7 @@ from kivy.uix.label import Label
 
 from math import ceil
 
-from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, distance
+from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, distance, isConvexPolygon, AlertPopUp
 from editorheritage import SpecialScrollControl, SpaceLimitedObject
 from collisioninfo import CollisionPartInformation
 from keyboard import KeyboardAccess, KeyboardGuardian
@@ -131,8 +131,13 @@ class CollisionPartDisplay(RelativeLayout):
 		for point in points:
 			verticesList.extend([point[0], point[1], 0, 0])
 
+		if (isConvexPolygon(points) == True):
+			colorToUse = (0., 1.0, .0, 0.3)
+		else:
+			colorToUse = (1.0, .0, 0., 0.3)
+
 		with self.canvas:
-			Color(0., 1.0, .0, 0.3)
+			Color(*colorToUse)
 			self.__operation = Mesh(
 				vertices = verticesList,
 				indices = range(len(points)),
@@ -174,6 +179,20 @@ class CollisionPartDisplay(RelativeLayout):
 
 class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 	dotSize = 11
+	existingDots = []
+	keepRatio = [False]
+	moveAll = [ False ]
+
+	@staticmethod
+	def resetStartingState():
+		CollisionFormEditorPoints.existingDots = []
+		CollisionFormEditorPoints.keepRatio = [ False ]
+		CollisionFormEditorPoints.moveAll = [ False ]
+
+	@staticmethod
+	def setMoveAll(value):
+		CollisionFormEditorPoints.moveAll = [ value ]
+
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
 		xBefore, yBefore = self.bbox[0]
 
@@ -182,7 +201,64 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		if (xBefore == x and yBefore == y):
 			return
 
-		self._set_pos(self.ajustPositionByLimits(x, y, 11, 11, self.__maxX, self.__maxY))
+		if (self.isOutOfLimits() == True):
+			self._set_pos(self.ajustPositionByLimits(x, y, CollisionFormEditorPoints.dotSize,
+				CollisionFormEditorPoints.dotSize, self.__maxX, self.__maxY))
+			return
+
+		if (CollisionFormEditorPoints.moveAll[0] == True and self.__propagateMovement == True):
+			outOfLimits = False
+			for point in CollisionFormEditorPoints.existingDots:
+				if (point != self):
+					point.applyTransform(trans)
+					outOfLimits |= point.isOutOfLimits()
+
+			if (outOfLimits == True):
+				for point in CollisionFormEditorPoints.existingDots:
+					point.applyTransform(trans.inverse())
+
+		elif (CollisionFormEditorPoints.keepRatio[0] == True and self.__propagateMovement == True):
+			outOfLimits = False
+			for point in CollisionFormEditorPoints.existingDots:
+				if (point != self):
+					point.applyTransform(trans.inverse())
+					outOfLimits |= point.isOutOfLimits()
+
+			if (outOfLimits == True):
+				for point in CollisionFormEditorPoints.existingDots:
+					if (point == self):
+						point.applyTransform(trans.inverse())
+					else:
+						point.applyTransform(trans)
+
+	def _updateOnMove(self, touch):
+		if (touch.button == 'right'):
+			CollisionFormEditorPoints.keepRatio[0] = True
+			self.setPropagateMovement(True)
+
+		if (CollisionFormEditorPoints.moveAll[0] == True):
+			self.setPropagateMovement(True)
+
+		self.__updateMethod(self)
+		self.__defaut_touch_move(touch)
+		self.setPropagateMovement(False)
+
+		if (touch.button == 'right'):
+			CollisionFormEditorPoints.keepRatio[0] = False
+			self.setPropagateMovement(False)
+
+		if (CollisionFormEditorPoints.moveAll[0] == True):
+			self.setPropagateMovement(False)
+
+	def isOutOfLimits(self):
+		x, y = self.getPos()
+		if (x < 0 or x > self.__maxX or y < 0 or y > self.__maxY):
+			return True
+		else:
+			return False
+
+	def applyTransform(self, trans):
+			self.__defaultApplyTransform(trans)
 
 	def getPos(self):
 		x, y = self.pos
@@ -196,26 +272,27 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		y -= ceil(CollisionFormEditorPoints.dotSize/2.)
 		self.pos = (x, y)
 
-	def __updateOnMove(self, touch):
-		self.__updateMethod(self)
-		self.__defaut_touch_move(touch)
+	def setPropagateMovement(self, value):
+		self.__propagateMovement = value
 
 	def __init__(self, updateMethod, limits):
 		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
 			size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize), size_hint = (None, None),
 			auto_bring_to_front = False)
 
+		self.__propagateMovement = False
 		self.__updateMethod = updateMethod
 		self.__defaut_touch_move = self.on_touch_move
-		self.on_touch_move = self.__updateOnMove
+		self.on_touch_move = self._updateOnMove
+
 		self.__maxX, self.__maxY = limits
 
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
 
-		img = Image (size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize))
+		img = Image(size = (CollisionFormEditorPoints.dotSize, CollisionFormEditorPoints.dotSize))
 		self.add_widget(img)
-
+		CollisionFormEditorPoints.existingDots.append(self)
 
 class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 	# Overloaded method
@@ -225,6 +302,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 
 		elif (keycode[1] == 'ctrl'):
 			self.setIsCtrlPressed(False)
+			CollisionFormEditorPoints.setMoveAll(False)
 
 		if (keycode[1] == 'delete' and self.__lastPointPressed is not None):
 			form = self.__workingPart.getFormType()
@@ -244,6 +322,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 
 		elif (keycode[1] == 'ctrl'):
 			self.setIsCtrlPressed(True)
+			CollisionFormEditorPoints.setMoveAll(True)
 
 	def __updatePoints(self, point):
 		self.__lastPointPressed = point
@@ -265,7 +344,6 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 			return (imgPos, (imgPos[0] + imgSize[0], imgPos[1]), (imgPos[0] + imgSize[0], imgPos[1] + imgSize[1]),
 				(imgPos[0], imgPos[1] + imgSize[1]))
 
-
 	def savePoints(self):
 		newPoints = self.__workingPart.getPoints()
 		if (newPoints is not None):
@@ -282,7 +360,12 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 					transformedPoint = self.__display.getImage().to_local(*point)
 					transformedPoints.append((int(transformedPoint[0]), int(transformedPoint[1])))
 
+				if (form == 'mesh' and isConvexPolygon(transformedPoints) == False):
+					return False
+
 				self.__originalPart.setPoints(transformedPoints)
+
+		return True
 
 	def __copyPartAndTransform(self, part):
 		newPart = CollisionPartInformation.copy(part)
@@ -297,6 +380,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		return newPart
 
 	def render(self, part, obj):
+		CollisionFormEditorPoints.resetStartingState()
 		self._scrollView.clear_widgets()
 		self.__display = CollisionPartDisplay(obj, 2.0)
 		displaySize = self.__display.getSize()
@@ -403,9 +487,11 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 @Singleton
 class CollisionFlagFormEditorPopup:
 	def __saveAndClose(self, *args):
-		self.__mainScreen.savePoints()
-		CollisionToCollisionForm.Instance().preview()
-		self.dismissPopUp()
+		if (self.__mainScreen.savePoints() == False):
+			self.__meshErrorAlert.open()
+		else:
+			CollisionToCollisionForm.Instance().preview()
+			self.dismissPopUp()
 
 	def __init__(self):
 		self.__layout = BoxLayout(orientation = 'vertical')
@@ -417,6 +503,11 @@ class CollisionFlagFormEditorPopup:
 		self.__doneButton = CancelableButton(text = 'Done', size_hint = (0.15, 1.0),
 				on_release = self.__saveAndClose)
 		self.__tooltipLabel = Label(text='', size_hint = (0.6, 1.0))
+		self.__meshErrorAlert = AlertPopUp(
+			alertTitle = 'Error',
+			alertText = 'The mesh must be a convex polygon.\nThe mesh will be green when it is convex.',
+			closeButtonText = 'Ok.',
+		)
 
 		self.__bottomMenu.add_widget(self.__tooltipLabel)
 		self.__bottomMenu.add_widget(Label(text ='', size_hint = (0.1, 1.0)))

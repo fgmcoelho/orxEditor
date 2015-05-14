@@ -1,6 +1,6 @@
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.scatter import Scatter
-
+from kivy.uix.label import Label
 
 class SpaceLimitedObject (object):
 	def ajustPositionByLimits(self, x, y, sx, sy, maxX, maxY):
@@ -23,6 +23,11 @@ class IgnoreTouch(object):
 class LayoutGetter(object):
 	def getLayout(self):
 		return self._layout
+
+class SeparatorLabel(object):
+	def __init__(self):
+		super(SeparatorLabel, self).__init__()
+		self._separator = Label(text = '', size_hint = (1.0, 1.0))
 
 class KeyboardModifiers(object):
 	def __init__(self, **kwargs):

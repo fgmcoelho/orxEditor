@@ -60,6 +60,11 @@ class NumberInput(TextInput):
 		else:
 			self.__module = None
 
+class AutoAlign(object):
+	def _set_on_size(self, obj, new_texture_size):
+		if (obj.width != 100 and obj.height != 100):
+			obj.text_size = obj.size
+
 class CancelableButton (Button):
 	def __getActionByEntry(self, key, dictToLook):
 		if (key in dictToLook):
@@ -86,7 +91,8 @@ class CancelableButton (Button):
 	def __init__(self, **kwargs):
 		assert (not ('on_release' in kwargs and 'on_touch_up' in kwargs))
 
-		if (self.__getActionByEntry('on_release', kwargs) == False and self.__getActionByEntry('on_touch_up', kwargs) == False):
+		if (self.__getActionByEntry('on_release', kwargs) == False and
+				self.__getActionByEntry('on_touch_up', kwargs) == False):
 			self.__action = None
 
 		super(CancelableButton, self).__init__(**kwargs)
@@ -102,14 +108,10 @@ class EmptyScrollEffect(ScrollEffect):
 	def __init__(self, **kwargs):
 		super(EmptyScrollEffect, self).__init__(**kwargs)
 
-class AlignedLabel(Label):
-	def __set_on_size(self, obj, new_texture_size):
-		if (obj.width != 100 and obj.height != 100):
-			obj.text_size = obj.size
-
+class AlignedLabel(Label, AutoAlign):
 	def __init__(self, **kwargs):
 		super(AlignedLabel, self).__init__(**kwargs)
-		self.bind(size = self.__set_on_size)
+		self.bind(size = self._set_on_size)
 
 
 class BaseWarnMethods(KeyboardAccess):
@@ -324,4 +326,26 @@ def distance(pos1, pos2):
 def createSpriteImage(baseImage, x, y, width, height):
 	newTexture = baseImage.texture.get_region(x, y, width, height)
 	return Image(texture = newTexture, size = (width, height), size_hint = (None, None))
+
+def isConvexPolygon(points):
+	assert type(points) is list or type(points) is tuple, 'Type is not supported.'
+	assert len(points) > 2, 'At least three points are needed.'
+	allPositive = True
+	allNegative = True
+	for i in range(len(points)):
+		dx1 = points[i-1][0] - points[i-2][0]
+		dy1 = points[i-1][1] - points[i-2][1]
+		dx2 = points[i][0] - points[i-1][0]
+		dy2 = points[i][1] - points[i-1][1]
+		product = dx1 * dy2 - dy1 * dx2
+		if (product > 0):
+			allNegative = False
+		if (product < 0):
+			allPositive = False
+
+	if (allNegative == True or allPositive == True):
+		return True
+	else:
+		return False
+
 
