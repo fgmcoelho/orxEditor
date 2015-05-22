@@ -10,6 +10,7 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import ObjectProperty, NumericProperty
+from kivy.clock import Clock
 
 from operator import itemgetter
 
@@ -402,11 +403,10 @@ class Scene(OrderSceneObjects, LayoutGetter):
 class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 	# Overloaded method
 	def processKeyUp(self, keyboard, keycode):
-
 		if (keycode[1] == 'shift'):
 			self.setIsShiftPressed(False)
 
-		elif (keycode[1] == 'ctrl'):
+		elif (keycode[1] in ['ctrl', 'lctrl', 'rctrl']):
 			self.setIsCtrlPressed(False)
 
 	# Overloaded method
@@ -432,7 +432,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		elif (keycode[1] == 'shift'):
 			self.setIsShiftPressed(True)
 
-		elif (keycode[1] == 'ctrl'):
+		elif (keycode[1] in ['ctrl', 'lctrl', 'rctrl']):
 			self.setIsCtrlPressed(True)
 
 		elif (keycode[1] == 'delete'):
@@ -462,6 +462,9 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		elif (keycode[1] == 'y'):
 			print self._layout.size
 
+		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
+
+	def __scheduleTextureUpdate(self, *args):
 		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
 
 	def __getSelectedObjectByClick(self, touch):
@@ -603,7 +606,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			relativeY = self._layout.vbar[0]
 			self.__sceneList[self.__currentIndex].addObject(obj, relativeX = relativeX, relativeY = relativeY)
 
-		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
+		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def redraw(self):
 		self.__sceneList[self.__currentIndex].redraw()

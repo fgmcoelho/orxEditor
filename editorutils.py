@@ -108,6 +108,9 @@ class EmptyScrollEffect(ScrollEffect):
 	def __init__(self, **kwargs):
 		super(EmptyScrollEffect, self).__init__(**kwargs)
 
+	def stop(*args):
+		pass
+
 class AlignedLabel(Label, AutoAlign):
 	def __init__(self, **kwargs):
 		super(AlignedLabel, self).__init__(**kwargs)

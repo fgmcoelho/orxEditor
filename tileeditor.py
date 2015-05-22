@@ -30,13 +30,13 @@ from editorutils import AlignedLabel
 class TileEditor(App, KeyboardAccess):
 
 	def _processKeyUp(self, keyboard, keycode):
-		if (keycode[1] in ['shift', 'ctrl']):
+		if (keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl']):
 			self.__sceneHandler.processKeyUp(keyboard, keycode)
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
 		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcvy') or
-				keycode[1] in ['shift', 'ctrl', 'delete']):
+				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete']):
 			self.__sceneHandler.processKeyDown(keyboard, keycode, text, modifiers)
 
 		elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):
@@ -49,7 +49,7 @@ class TileEditor(App, KeyboardAccess):
 		# TODO:  exit confirmation here!
 		print 'We got exit confirmation: ', args
 		return False
-	
+
 	def test_dropfile(self, *args):
 		print 'Files dropped: ', args
 
@@ -121,10 +121,10 @@ class TileEditor(App, KeyboardAccess):
 
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())
-		bottomMenu = BoxLayout(orientation = 'horizontal', height = mainLayoutSize['bottomMenuHeight'], 
+		bottomMenu = BoxLayout(orientation = 'horizontal', height = mainLayoutSize['bottomMenuHeight'],
 			size_hint = (1.0, None))
 		self.rightScreen.add_widget(bottomMenu)
-		
+
 		leftBottomMenu = BoxLayout(orientation = 'vertical')
 		leftBottomMenu.add_widget(AlignedLabel(text = 'Object descriptor', **descriptorLabelDefault))
 		leftBottomMenu.add_widget(ModulesAccess.get('ObjectDescriptor').getLayout())
