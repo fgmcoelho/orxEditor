@@ -33,21 +33,16 @@ class SceneMiniMap(LayoutGetter):
 			if (self._rectangle is not None):
 				self._layout.canvas.remove(self._rectangle)
 
-			#print list(self._layout.to_local(self._layout.pos[0], self._layout.pos[1], False))
-			#print list(self._layout.to_local(self._layout.pos[0], self._layout.pos[1], True))
-			#print list(self._layout.to_parent(self._layout.pos[0], self._layout.pos[1], False))
-			#print list(self._layout.to_parent(self._layout.pos[0], self._layout.pos[1], True))
-			#print list(self._layout.to_window(self._layout.pos[0], self._layout.pos[1], False))
-			#print list(self._layout.to_window(self._layout.pos[0], self._layout.pos[1], True))
-			#print list(self._layout.to_widget(self._layout.pos[0], self._layout.pos[1], False))
-			#print list(self._layout.to_widget(self._layout.pos[0], self._layout.pos[1], True))
-			#print self._layout.pos
-			#pos = list(self._layout.to_local(self._layout.pos[0], self._layout.pos[1], False))
-			#print self._image.to_local(0, 0, True)
-			#print pos
-			#with self._layout.canvas:
-			#	Color(1., 0., 0.)
-			#	self._rectangle = Rectangle(size = (sx, sy), pos = (600, 200))
+			hbar = ModulesAccess.get('SceneHandler').getLayout().hbar
+			vbar = ModulesAccess.get('SceneHandler').getLayout().vbar
+			print 'Hbar: ',hbar, 'vbar: ', vbar
+			print ModulesAccess.get('SceneHandler').getLayout().scroll_x, ModulesAccess.get('SceneHandler').getLayout().scroll_y
+			px = 200 - sx
+			py = 200 - sy
+
+			with self._layout.canvas:
+				Color(1., 0., 0., 0.1)
+				self._rectangle = Rectangle(size = (sx, sy), pos = (0, 100))
 
 				#self._rectangle = Rectangle(size = (sx, sy), pos = pos)
 				#self._image.canvas.add(Color(1., 0., 0.))
@@ -55,7 +50,7 @@ class SceneMiniMap(LayoutGetter):
 
 	def __init__(self):
 		self._size = sceneMiniMapSize['size']
-		self._layout = BoxLayout(orientation = 'vertical', size = self._size, size_hint = (None, None))
+		self._layout = RelativeLayout(size = self._size, size_hint = (None, None))
 		self._image = Image(size = self._size)
 		self._layout.add_widget(self._image)
 		self._rectangle = None

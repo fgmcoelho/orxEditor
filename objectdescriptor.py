@@ -11,7 +11,7 @@ from communicationobjects import ObjectDescriptorToResourceLoarder
 from layer import LayerInformationPopup
 from modulesaccess import ModulesAccess
 from editorheritage import LayoutGetter, SeparatorLabel
-from uisizes import descriptorSize, descriptorLabelDefault
+from uisizes import descriptorSize, descriptorLabelDefault, descriptorButtonDefault
 
 @Singleton
 class BaseObjectDescriptor:
@@ -235,6 +235,22 @@ class ObjectDescriptor:
 			self.__baseObjectDescriptor.setValues()
 
 		self.__currentObject = None
+
+class DescriptorButtons(object):
+	def __init__(self):
+		super(DescriptorButtons, self).__init__()
+		self._copyLeftButton = CancelableButton(text = 'Copy left (a)', **descriptorButtonDefault)
+		self._copyRightButton = CancelableButton(text = 'Copy right (d)', **descriptorButtonDefault)
+		self._copyUpButton = CancelableButton(text = 'Copy up (w)', **descriptorButtonDefault)
+		self._copyDownButton = CancelableButton(text = 'Copy down (s)', **descriptorButtonDefault)
+		self._unselectButton = CancelableButton(text = 'Unselect (e)', **descriptorButtonDefault)
+		self._alignButton = CancelableButton(text = 'Align (q)', **descriptorButtonDefault)
+		self._editCollisionButton = CancelableButton(text = 'Edit collision', **descriptorButtonDefault)
+		self._editGroupButton = CancelableButton(text = 'Edit Group', **descriptorButtonDefault)
+		self._flipXButton = CancelableButton(text = 'Flip X (f)', **descriptorButtonDefault)
+		self._flipYButton = CancelableButton(text = 'Flip Y (g)', **descriptorButtonDefault)
+		self._undoButton = CancelableButton(text = 'Undo (z)', **descriptorButtonDefault)
+		self._redoButton = CancelableButton(text = 'Redo (y)', **descriptorButtonDefault)
 
 class CleanDescriptorLayoutGetter(object):
 	def _getParentLayout(self):
