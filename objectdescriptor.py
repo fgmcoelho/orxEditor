@@ -11,7 +11,7 @@ from communicationobjects import ObjectDescriptorToResourceLoarder
 from layer import LayerInformationPopup
 from modulesaccess import ModulesAccess
 from editorheritage import LayoutGetter, SeparatorLabel
-from uisizes import descriptorSize, descriptorLabelDefault, descriptorButtonDefault
+from uisizes import descriptorSize, descriptorLabelDefault, descriptorButtonDefault, descriptorButtonDoubleSize
 
 @Singleton
 class BaseObjectDescriptor:
@@ -239,13 +239,14 @@ class ObjectDescriptor:
 class DescriptorButtons(object):
 	def __init__(self):
 		super(DescriptorButtons, self).__init__()
-		self._copyLeftButton = CancelableButton(text = 'Copy left (a)', **descriptorButtonDefault)
-		self._copyRightButton = CancelableButton(text = 'Copy right (d)', **descriptorButtonDefault)
-		self._copyUpButton = CancelableButton(text = 'Copy up (w)', **descriptorButtonDefault)
-		self._copyDownButton = CancelableButton(text = 'Copy down (s)', **descriptorButtonDefault)
-		self._unselectButton = CancelableButton(text = 'Unselect (e)', **descriptorButtonDefault)
+		self._linesList = []
+		self._copyLeftButton = CancelableButton(text = 'Copy left (a)', **descriptorButtonDoubleSize)
+		self._copyRightButton = CancelableButton(text = 'Copy right (d)', **descriptorButtonDoubleSize)
+		self._copyUpButton = CancelableButton(text = 'Copy up (w)', **descriptorButtonDoubleSize)
+		self._copyDownButton = CancelableButton(text = 'Copy down (s)', **descriptorButtonDoubleSize)
+		self._unselectButton = CancelableButton(text = 'Unselect (e)', **descriptorButtonDoubleSize)
 		self._alignButton = CancelableButton(text = 'Align (q)', **descriptorButtonDefault)
-		self._editCollisionButton = CancelableButton(text = 'Edit collision', **descriptorButtonDefault)
+		self._editCollisionButton = CancelableButton(text = 'Edit collision', **descriptorButtonDoubleSize)
 		self._editGroupButton = CancelableButton(text = 'Edit Group', **descriptorButtonDefault)
 		self._flipXButton = CancelableButton(text = 'Flip X (f)', **descriptorButtonDefault)
 		self._flipYButton = CancelableButton(text = 'Flip Y (g)', **descriptorButtonDefault)
@@ -300,7 +301,8 @@ class NewMultipleSelectionDescriptor(CleanDescriptorLayoutGetter, SeparatorLabel
 		else:
 			self._setValues(len(objects))
 
-class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, SeparatorLabel):
+class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, SeparatorLabel,
+		DescriptorButtons):
 	def _setValues(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '',
 			collisionInfo = None):
 		super(NewRenderedObjectDescriptor, self)._setValues(path, size)
@@ -340,21 +342,29 @@ class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGe
 		self._sizeScaleBox.add_widget(self._sizeLabel)
 		self._sizeScaleBox.add_widget(self._scaleLabel)
 
-		self._layerBox = BoxLayout(**halfLineLayout)
+		self._layerScaleBox = BoxLayout(**halfLineLayout)
 		self._layerLabel = AlignedLabel(text = 'Group: ', **halfLineLabel)
-		self._layerButton = CancelableButton(text = 'Edit Group', size_hint = (0.5, 1.0),
-			on_release = None, height = descriptorLabelDefault['height'])
-
-		self._layerBox.add_widget(self._layerLabel)
-		self._layerBox.add_widget(self._layerButton)
-
-		self._collisionBox = BoxLayout(**halfLineLayout)
 		self._collisionInfoLabel = AlignedLabel(text = 'Has collision info: ', **halfLineLabel)
-		self._collisionHandler = CancelableButton(text = 'Edit Collision', size_hint = (0.5, 1.0),
-			on_release = None, height = descriptorLabelDefault['height'])
+		self._layerScaleBox.add_widget(self._layerLabel)
+		self._layerScaleBox.add_widget(self._collisionInfoLabel)
 
-		self._collisionBox.add_widget(self._collisionInfoLabel)
-		self._collisionBox.add_widget(self._collisionHandler)
+		# Lines:
+		self._linesList.append(BoxLayout(**halfLineLabel))
+		self._linesList[-1].add_widget(self._copyLeftButton)
+		self._linesList[-1].add_widget(self._copyRightButton)
+		self._linesList[-1].add_widget(self._flipXButton)
+		self._linesList.append(BoxLayout(**halfLineLabel))
+		self._linesList[-1].add_widget(self._copyUpButton)
+		self._linesList[-1].add_widget(self._copyDownButton)
+		self._linesList[-1].add_widget(self._flipYButton)
+		self._linesList.append(BoxLayout(**halfLineLabel))
+		self._linesList[-1].add_widget(self._editCollisionButton)
+		self._linesList[-1].add_widget(self._editGroupButton)
+		self._linesList[-1].add_widget(self._alignButton)
+		self._linesList.append(BoxLayout(**halfLineLabel))
+		self._linesList[-1].add_widget(self._unselectButton)
+		self._linesList[-1].add_widget(self._undoButton)
+		self._linesList[-1].add_widget(self._redoButton)
 
 	def set(self, obj = None):
 		layout = self._getParentLayout()
@@ -362,9 +372,11 @@ class NewRenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGe
 		layout.add_widget(self._pathLabel)
 		layout.add_widget(self._flipBox)
 		layout.add_widget(self._sizeScaleBox)
+		layout.add_widget(self._layerScaleBox)
 		layout.add_widget(self._separator)
-		layout.add_widget(self._layerBox)
-		layout.add_widget(self._collisionBox)
+		for line in self._linesList:
+			layout.add_widget(line)
+
 		self._describedObject = obj
 		if (self._describedObject is not None):
 			self._setValues(obj.getPath(), obj.getSize(), obj.getScale(), obj.getLayer(), obj.getName(),
@@ -381,14 +393,18 @@ class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter
 			#ObjectDescriptorToResourceLoarder.Instance().openPopUp(self._objRef.getPath())
 			ModulesAccess.get('ResourceLoader').open(self._describedObject.getPath())
 
+	def __draw(self, *args):
+		if (self._describedObject is not None):
+			ModulesAccess.get('SceneHandler').draw(self._describedObject)
+
 	def __init__(self):
 		super(NewBaseObjectDescriptor, self).__init__()
 		self._sizeLabel = AlignedLabel(text = 'Size: ', **descriptorLabelDefault)
 		self._loaderLine = BoxLayout(orientation = 'horizontal', height = descriptorLabelDefault['height'])
-		self._loaderLine.add_widget(AlignedLabel(text = 'Resource loader:', size_hint = (0.8, None),
-			height = descriptorLabelDefault['height']))
-		self._loaderLine.add_widget(CancelableButton(text = 'Load', on_release = self._openResourceLoader,
-			size_hint = (0.2, None), height = descriptorLabelDefault['height']))
+		self._loaderLine.add_widget(CancelableButton(text = 'Resource Loader', on_release = self._openResourceLoader,
+			**descriptorButtonDoubleSize))
+		self._loaderLine.add_widget(CancelableButton(text = 'Draw', on_release = self.__draw,
+			**descriptorButtonDefault))
 
 	def set(self, obj = None):
 		layout = self._getParentLayout()

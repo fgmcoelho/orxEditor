@@ -15,6 +15,10 @@ descriptorLabelDefault = {'height' : 20, 'shorten' : True, 'shorten_from' : 'lef
 descriptorButtonDefault = {
 	'height' : 20, 'width' : 80, 'shorten' : True, 'shorten_from' : 'left', 'size_hint' : (None, None)
 }
+descriptorButtonDoubleSize = {
+	'height' : 20, 'width' : 160, 'shorten' : True, 'shorten_from' : 'left', 'size_hint' : (None, None)
+}
+
 buttonDefault = {'height' : 20, 'size_hint' : (1.0, None)}
 inputDefault = {'height' : 30, 'size_hint' : (1.0, None), 'multiline' : False}
 
