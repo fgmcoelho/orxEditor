@@ -31,13 +31,13 @@ class TileEditor(App, KeyboardAccess):
 
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl']):
-			self.__sceneHandler.processKeyUp(keyboard, keycode)
+			self.__sceneHandler.processKeyUp(keycode)
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
 		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcvy') or
 				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete']):
-			self.__sceneHandler.processKeyDown(keyboard, keycode, text, modifiers)
+			self.__sceneHandler.processKeyDown(keycode)
 
 		elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):
 			if ('ctrl' in modifiers):

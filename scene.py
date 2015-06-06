@@ -226,13 +226,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 	def _updateDesctriptorBySelection(self):
 		newObjects = self._renderGuardian.getSelection()
-		numberOfNewObjects = len(newObjects)
-		#if (numberOfNewObjects == 1):
-		#	ObjectDescriptor.Instance().setObject(newObjects[0])
-		#elif (numberOfNewObjects > 1):
-		#	MultipleSelectionDescriptor.Instance().setValues(numberOfNewObjects)
-		#else:
-		#	ObjectDescriptor.Instance().clearCurrentObject()
+		ModulesAccess.get('ObjectDescriptor').set(newObjects)
 
 	def undo(self):
 		self._renderGuardian.undo()
@@ -251,34 +245,25 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 	def increaseScale(self):
 		obj = self._renderGuardian.increaseScale()
-		#if (obj is not None):
-		#	ObjectDescriptor.Instance().setObject(obj)
+		if (obj is not None):
+			ModulesAccess.get('ObjectDescriptor').set(obj)
 
 	def decreaseScale(self):
 		obj = self._renderGuardian.decreaseScale()
-		#if (obj is not None):
-		#	ObjectDescriptor.Instance().setObject(obj)
+		if (obj is not None):
+			ModulesAccess.get('ObjectDescriptor').set(obj)
 
 	def flipOnX(self):
 		flippedObjects = self._renderGuardian.flipSelectionOnX()
-		numberOfFlippedObjects = len(flippedObjects)
-		#if (numberOfFlippedObjects == 1):
-		#	ObjectDescriptor.Instance().setObject(flippedObjects[0])
-		#elif (numberOfFlippedObjects > 1):
-		#	MultipleSelectionDescriptor.Instance().setValues(numberOfFlippedObjects)
+		ModulesAccess.get('ObjectDescriptor').set(flippedObjects)
 
 	def flipOnY(self):
 		flippedObjects = self._renderGuardian.flipSelectionOnY()
-		numberOfFlippedObjects = len(flippedObjects)
-		#if (numberOfFlippedObjects == 1):
-		#	ObjectDescriptor.Instance().setObject(flippedObjects[0])
-		#elif (numberOfFlippedObjects > 1):
-		#	MultipleSelectionDescriptor.Instance().setValues(numberOfFlippedObjects)
+		ModulesAccess.get('ObjectDescriptor').set(flippedObjects)
 
 	def removeObject(self):
 		deletedObjects = self._renderGuardian.deleteSelection()
-		#if (len(deletedObjects) != 0):
-		#	ObjectDescriptor.Instance().clearCurrentObject()
+		ModulesAccess.get('ObjectDescriptor').set(None)
 
 	def alignToGrid(self):
 		self._renderGuardian.alignSelectionToGrid()
@@ -290,15 +275,11 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			self._objectDict[self._id] = renderedObject
 			self._id += 1
 
-		numberOfNewObjects = len(newObjects)
-		#if (numberOfNewObjects == 1):
-		#	ObjectDescriptor.Instance().setObject(newObjects[0])
-		#elif (numberOfNewObjects > 1):
-		#	MultipleSelectionDescriptor.Instance().setValues(numberOfNewObjects)
+		ModulesAccess.get('ObjectDescriptor').set(newObjects)
 
 	def unselectAll(self):
 		self._renderGuardian.unsetSelection()
-		#ObjectDescriptor.Instance().clearCurrentObject()
+		ModulesAccess.get('ObjectDescriptor').set(None)
 
 	def resetAllWidgets(self):
 		for objectId in self._objectDict.keys():
@@ -343,7 +324,6 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		self._id += 1
 
 		ModulesAccess.get('ObjectDescriptor').set(newRenderedObject)
-		#ObjectDescriptor.Instance().setObject(newRenderedObject)
 
 	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo):
 		newRenderedObject = self._renderGuardian.createNewObject(identifier, baseObject, pos, self._tileSize,
@@ -396,16 +376,14 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		return (self._maxX, self._maxY)
 
 class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
-	# Overloaded method
-	def processKeyUp(self, keyboard, keycode):
+	def processKeyUp(self, keycode):
 		if (keycode[1] == 'shift'):
 			self.setIsShiftPressed(False)
 
 		elif (keycode[1] in ['ctrl', 'lctrl', 'rctrl']):
 			self.setIsCtrlPressed(False)
 
-	# Overloaded method
-	def processKeyDown(self, keyboard, keycode, text, modifiers):
+	def processKeyDown(self, keycode):
 		if (keycode[1] == 'q'):
 			self.__sceneList[self.__currentIndex].alignToGrid()
 
@@ -491,21 +469,11 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().addObjectToSelection(
 				objectToSelect
 			)
-			numberOfSelectedObjects = len(selectedObjectsList)
-			#if (numberOfSelectedObjects == 1):
-			#	ObjectDescriptor.Instance().setObject(selectedObjectsList[0])
-			#elif(numberOfSelectedObjects > 1):
-			#	MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
+			ModulesAccess.get('ObjectDescriptor').set(selectedObjectsList)
 
 	def __unselectObject(self, objectToUnselect):
 		selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().unselectObject(objectToUnselect)
-		numberOfSelectedObjects = len(selectedObjectsList)
-		#if (numberOfSelectedObjects == 0):
-		#	ObjectDescriptor.Instance().clearCurrentObject()
-		#elif(numberOfSelectedObjects == 1):
-		#	ObjectDescriptor.Instance().setObject(selectedObjectsList[0])
-		#else:
-		#	MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
+		ModulesAccess.get('ObjectDescriptor').set(selectedObjectsList)
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
 		self.updateMouseUp(touch)
