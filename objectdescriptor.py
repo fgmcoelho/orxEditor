@@ -465,14 +465,17 @@ class NewObjectDescriptor(LayoutGetter):
 		self._renderedObjectDescriptor = NewRenderedObjectDescriptor()
 		self._multipleObjectsDescritor = NewMultipleSelectionDescriptor()
 		self._baseObjectDescriptor.set()
+		self._currentSelected = None
 
 	def set(self, objectOrList):
 		if (type(objectOrList) is list):
 			if (len(objectOrList) == 0):
 				self._baseObjectDescriptor.set()
+				self._currentSelected = objectOrList
 				return
 			elif (len(objectOrList) > 1):
 				self._multipleObjectsDescritor.set(objectOrList)
+				self._currentSelected = objectOrList
 				return
 			else:
 				objectOrList = objectOrList[0]
@@ -485,4 +488,9 @@ class NewObjectDescriptor(LayoutGetter):
 			self._renderedObjectDescriptor.set(objectOrList)
 		else:
 			raise Exception('Unsuported object received: ' + str(objectOrList))
+
+		self._currentSelected = objectOrList
+
+	def getCurrentObject(self):
+		return self._currentSelected
 

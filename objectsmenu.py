@@ -188,7 +188,7 @@ class NewBaseObjectDisplay(LayoutGetter):
 		self._layout.add_widget(self._nameLabel)
 		self._layout.add_widget(Image(size = self._displaySize))
 
-	def setDisplay(self, obj):
+	def setDisplay(self, obj, draw = True):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
 		if (self._currentObject != obj):
 			self._layout.clear_widgets()
@@ -198,7 +198,7 @@ class NewBaseObjectDisplay(LayoutGetter):
 			)
 			self._currentObject = obj
 			ModulesAccess.get('ObjectDescriptor').set(obj)
-		else:
+		elif (draw == True):
 			ModulesAccess.get('SceneHandler').draw(self._currentObject)
 
 class OptionMenuTree(TreeView):
@@ -225,9 +225,12 @@ class OptionMenuTree(TreeView):
 		self.on_touch_move = self.__processTouchMove
 
 class OptionMenuLabel(TreeViewLabel, IgnoreTouch):
+	def setDisplay(self, draw = True):
+		ModulesAccess.get('BaseObjectDisplay').setDisplay(self.__baseObject, draw)
+
 	def __updateDisplay(self, touch):
 		if (self.collide_point(*touch.pos) == True and touch.button == 'left'):
-			ModulesAccess.get('BaseObjectDisplay').setDisplay(self.__baseObject)
+			self.setDisplay()
 
 	def __init__(self, obj, **kwargs):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
@@ -324,6 +327,30 @@ class NewBaseObjectsMenu(LayoutGetter):
 
 	def _adjustTreeSize(self, *args):
 		self._scrollLayout.size[1] = self._tree.minimum_height
+
+	def updateSelection(self, command):
+		assert command in ('up', 'down', 'left', 'right', 'leftright')
+		if (self._tree.selected_node is None and len(self._tree.children) > 0):
+			if (command == 'up'):
+				self._tree.select_node(self._tree.children[0])
+			elif (command == 'down'):
+				self._tree.select_node(self._tree.children[-1])
+		else:
+			if (command in ('up', 'down')):
+				if (command == 'up'):
+					op = 1
+				else:
+					op = -1
+				index = (self._tree.children.index(self._tree.selected_node) + op) % len(self._tree.children)
+				self._tree.select_node(self._tree.children[index])
+			else:
+				if ('right' in command and self._tree.selected_node.is_open == False):
+					self._tree.toggle_node(self._tree.selected_node)
+				elif ('left' in command and self._tree.selected_node.is_open == True):
+					self._tree.toggle_node(self._tree.selected_node)
+
+		if (isinstance(self._tree.selected_node, OptionMenuLabel)):
+			self._tree.selected_node.setDisplay(draw = False)
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)

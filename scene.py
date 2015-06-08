@@ -281,6 +281,12 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		self._renderGuardian.unsetSelection()
 		ModulesAccess.get('ObjectDescriptor').set(None)
 
+	def selectAll(self):
+		self._renderGuardian.unsetSelection()
+		for obj in self._objectDict.values():
+			self._renderGuardian.addObjectToSelection(obj)
+		ModulesAccess.get('ObjectDescriptor').set(self._objectDict.values())
+
 	def resetAllWidgets(self):
 		for objectId in self._objectDict.keys():
 			self._objectDict[objectId].resetAllWidgets()
@@ -383,8 +389,11 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		elif (keycode[1] in ['ctrl', 'lctrl', 'rctrl']):
 			self.setIsCtrlPressed(False)
 
-	def processKeyDown(self, keycode):
-		if (keycode[1] == 'q'):
+	def processKeyDown(self, keycode, modifiers = None):
+		if ('ctrl' in modifiers and keycode[1] == 'a'):
+			self.__sceneList[self.__currentIndex].selectAll()
+
+		elif (keycode[1] == 'q'):
 			self.__sceneList[self.__currentIndex].alignToGrid()
 
 		elif (keycode[1] == 'a'):
@@ -487,6 +496,16 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		self.__defaultTouchUp(touch)
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
+		if (touch.button == 'scrollup' and self._isCtrlPressed):
+			ModulesAccess.get('BaseObjectsMenu').updateSelection('down')
+			return
+		elif (touch.button == 'scrolldown' and self._isCtrlPressed):
+			ModulesAccess.get('BaseObjectsMenu').updateSelection('up')
+			return
+		elif (touch.button == 'middle'):
+			ModulesAccess.get('BaseObjectsMenu').updateSelection('leftright')
+			return
+
 		if (self._layout.collide_point(*touch.pos) == True):
 			self.updateMouseDown(touch)
 			if (self._isLeftPressed == True and self._isRightPressed == False):

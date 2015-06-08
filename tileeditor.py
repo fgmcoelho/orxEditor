@@ -18,6 +18,7 @@ from tilemapfiles import FilesManager
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
 from resourceloader import ResourceLoaderPopup
 from layer import LayerInformationPopup
+from editorobjects import BaseObject
 from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
 from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder, LayerToSceneCommunication
 from communicationobjects import ResourceLoaderToObjectDescriptor, FileOptionsMenuToScene
@@ -37,13 +38,22 @@ class TileEditor(App, KeyboardAccess):
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
 		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcvy') or
 				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete']):
-			self.__sceneHandler.processKeyDown(keycode)
+			self.__sceneHandler.processKeyDown(keycode, modifiers)
 
 		elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):
 			if ('ctrl' in modifiers):
 				ObjectsMenu.Instance().setShortcut(keycode[1])
 			else:
 				ObjectsMenu.Instance().processShortcut(keycode[1])
+
+		elif (keycode[1] == 'spacebar'):
+			obj = ModulesAccess.get('ObjectDescriptor').getCurrentObject()
+			if (isinstance(obj, BaseObject) == True):
+				ModulesAccess.get('SceneHandler').draw(obj)
+
+		elif (keycode[1] in ['up', 'down', 'left', 'right']):
+			if ('ctrl' in modifiers):
+				ModulesAccess.get('BaseObjectsMenu').updateSelection(keycode[1])
 
 	def confirm_exit(self, *args):
 		# TODO:  exit confirmation here!
