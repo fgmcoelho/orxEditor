@@ -24,7 +24,7 @@ from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToRes
 from communicationobjects import ResourceLoaderToObjectDescriptor, FileOptionsMenuToScene
 
 from objectsmenu import NewBaseObjectDisplay, NewBaseObjectsMenu
-from objectdescriptor import NewObjectDescriptor
+from objectdescriptor import ObjectDescriptor
 from modulesaccess import ModulesAccess
 from editorutils import AlignedLabel
 
@@ -127,7 +127,7 @@ class TileEditor(App, KeyboardAccess):
 		#self.leftMenuBase.add_widget(ObjectsMenu.Instance().getLayout())
 		NewBaseObjectDisplay()
 		NewBaseObjectsMenu()
-		NewObjectDescriptor()
+		ObjectDescriptor()
 
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())

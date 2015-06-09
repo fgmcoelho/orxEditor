@@ -4,7 +4,6 @@ from kivy.uix.accordion import Accordion, AccordionItem
 from kivy.uix.boxlayout import BoxLayout
 
 from filesoptionsmenu import FilesOptionsMenu
-from objectdescriptor import MultipleSelectionDescriptor, ObjectDescriptor
 
 from modulesaccess import ModulesAccess
 from editorheritage import LayoutGetter

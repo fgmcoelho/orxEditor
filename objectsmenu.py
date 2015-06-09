@@ -7,11 +7,11 @@ from kivy.uix.image import Image
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.uix.treeview import TreeView, TreeViewLabel
+from kivy.uix.treeview import TreeView, TreeViewLabel, TreeViewNode
 from kivy.uix.boxlayout import BoxLayout
+from kivy.clock import Clock
 
 from editorobjects import BaseObject
-from objectdescriptor import ObjectDescriptor
 from editorutils import EmptyScrollEffect, createSpriteImage, AlignedLabel
 from communicationobjects import SceneToObjectsMenu
 from splittedimagemap import SplittedImageImporter
@@ -97,7 +97,6 @@ class ObjectsMenu:
 			for baseObject in baseObjectList:
 				self.__menuObjectsList.append(ObjectMenuItem(baseObject, (64, 64)))
 			pngsToIgnoreList.append(item)
-			print 'Png to ignore: ', item
 
 	def __loadItems(self):
 		l = listdir(join(getcwd(), 'tiles'))
@@ -224,7 +223,7 @@ class OptionMenuTree(TreeView):
 		self.on_touch_up = self.__processTouchUp
 		self.on_touch_move = self.__processTouchMove
 
-class OptionMenuLabel(TreeViewLabel, IgnoreTouch):
+class OptionMenuImage(TreeViewNode, Image):
 	def setDisplay(self, draw = True):
 		ModulesAccess.get('BaseObjectDisplay').setDisplay(self.__baseObject, draw)
 
@@ -232,13 +231,13 @@ class OptionMenuLabel(TreeViewLabel, IgnoreTouch):
 		if (self.collide_point(*touch.pos) == True and touch.button == 'left'):
 			self.setDisplay()
 
-	def __init__(self, obj, **kwargs):
+	def __init__(self, obj):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
-		super(self.__class__, self).__init__(**kwargs)
+		super(self.__class__, self).__init__(texture = obj.getBaseImage().texture, size = (32, 32))
 		self.__baseObject = obj
 		self.on_touch_up = self.__updateDisplay
 
-class NewBaseObjectsMenu(LayoutGetter):
+class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 	#def __reloadMenuList(self):
 	#	self.__numberOfItems = len(self.__menuObjectsList)
 	#	self.__objectListLayout.clear_widgets()
@@ -261,7 +260,7 @@ class NewBaseObjectsMenu(LayoutGetter):
 		img = Image(source = path)
 		baseObject = BaseObject(img, self._baseObjectId)
 		self._baseObjectsList.append(baseObject)
-		self._tree.add_node(OptionMenuLabel(baseObject, text = self._createTruncateFilename(path)))
+		self._tree.add_node(OptionMenuImage(baseObject))
 		self._baseObjectId += 1
 
 	def _loadResourceInfoList(self, resourceInfo):
@@ -291,9 +290,7 @@ class NewBaseObjectsMenu(LayoutGetter):
 		mainBaseObject = BaseObject(mainImage, self._baseObjectId)
 		self._baseObjectId += 1
 		self._baseObjectsList.append(mainBaseObject)
-		newNode = self._tree.add_node(
-			OptionMenuLabel(mainBaseObject, text = self._createTruncateFilename(mainBaseObject.getPath()))
-		)
+		newNode = self._tree.add_node(OptionMenuImage(mainBaseObject))
 
 		# Sprites
 		spriteSize = tuple(mainImage.texture.size)
@@ -307,8 +304,7 @@ class NewBaseObjectsMenu(LayoutGetter):
 			self._baseObjectId += 1
 			self._baseObjectsList.append(baseObject)
 			finalFilename = 'Pos: (' + str(x) + ', '  + str(y) + ') | Size: (' + str(width) + ', ' + str(height) + ')'
-			self._tree.add_node(OptionMenuLabel(baseObject, text = finalFilename, shorten = True,
-				shorten_from = 'left', split_str = '('), newNode)
+			self._tree.add_node(OptionMenuImage(baseObject), newNode)
 
 		pngsToIgnoreList.append(split(resourceInfo.getPath())[1])
 
@@ -325,16 +321,23 @@ class NewBaseObjectsMenu(LayoutGetter):
 			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
 				self._loadPng(item)
 
+	def __scrollUpdate(self, dt):
+		self._layout.scroll_to(self._tree.selected_node)
+
 	def _adjustTreeSize(self, *args):
 		self._scrollLayout.size[1] = self._tree.minimum_height
+		if (self._tree.selected_node is not None):
+			Clock.schedule_once(self.__scrollUpdate, 0)
 
 	def updateSelection(self, command):
 		assert command in ('up', 'down', 'left', 'right', 'leftright')
 		if (self._tree.selected_node is None and len(self._tree.children) > 0):
 			if (command == 'up'):
 				self._tree.select_node(self._tree.children[0])
+				self._layout.scroll_to(self._tree.children[0])
 			elif (command == 'down'):
 				self._tree.select_node(self._tree.children[-1])
+				self._layout.scroll_to(self._tree.children[-1])
 		else:
 			if (command in ('up', 'down')):
 				if (command == 'up'):
@@ -343,14 +346,29 @@ class NewBaseObjectsMenu(LayoutGetter):
 					op = -1
 				index = (self._tree.children.index(self._tree.selected_node) + op) % len(self._tree.children)
 				self._tree.select_node(self._tree.children[index])
+				self._layout.scroll_to(self._tree.children[index])
 			else:
 				if ('right' in command and self._tree.selected_node.is_open == False):
 					self._tree.toggle_node(self._tree.selected_node)
+					self._layout.scroll_to(self._tree.selected_node)
 				elif ('left' in command and self._tree.selected_node.is_open == True):
 					self._tree.toggle_node(self._tree.selected_node)
+					self._layout.scroll_to(self._tree.selected_node)
 
-		if (isinstance(self._tree.selected_node, OptionMenuLabel)):
+		if (isinstance(self._tree.selected_node, OptionMenuImage)):
 			self._tree.selected_node.setDisplay(draw = False)
+
+	def __processTouchDown(self, touch):
+		if (touch.button != 'scrollup' and touch.button != 'scrolldown'):
+			return self.__defaultTouchDown(touch)
+
+	def __processTouchUp(self, touch):
+		if (touch.button != 'scrollup' and touch.button != 'scrolldown'):
+			return self.__defaultTouchUp(touch)
+
+	def __processTouchMove(self, touch):
+		if (touch.button != 'scrollup' and touch.button != 'scrolldown'):
+			return self.__defaultTouchMove(touch)
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)
@@ -361,4 +379,11 @@ class NewBaseObjectsMenu(LayoutGetter):
 		self._scrollLayout.add_widget(self._tree)
 		self._layout.add_widget(self._scrollLayout)
 		self._tree.bind(minimum_height=self._adjustTreeSize)
+
+		self.__defaultTouchDown = self._layout.on_touch_down
+		self.__defaultTouchUp = self._layout.on_touch_up
+		self.__defaultTouchMove = self._layout.on_touch_move
+		self._layout.on_touch_down = self.__processTouchDown
+		self._layout.on_touch_up = self.__processTouchUp
+		self._layout.on_touch_move = self.__processTouchMove
 

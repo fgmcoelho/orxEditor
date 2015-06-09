@@ -17,7 +17,6 @@ from operator import itemgetter
 from editorheritage import LayoutGetter, KeyboardModifiers, MouseModifiers
 from editorobjects import RenderObjectGuardian
 from editorutils import AlertPopUp, AutoReloadTexture, EmptyScrollEffect
-from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
 from layerinfo import LayerGuardian
 from modulesaccess import ModulesAccess
 from uisizes import sceneMiniMapSize
@@ -284,7 +283,8 @@ class Scene(OrderSceneObjects, LayoutGetter):
 	def selectAll(self):
 		self._renderGuardian.unsetSelection()
 		for obj in self._objectDict.values():
-			self._renderGuardian.addObjectToSelection(obj)
+			if (obj.getHidden() == False and obj.getFinished() == False):
+				self._renderGuardian.addObjectToSelection(obj)
 		ModulesAccess.get('ObjectDescriptor').set(self._objectDict.values())
 
 	def resetAllWidgets(self):
