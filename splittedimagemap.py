@@ -38,16 +38,10 @@ class SpriteSelection:
 		return self.__yParts
 
 class ResourceInformation:
-
-	def __init__(self, path, keepOriginal = True):
+	def __init__(self, path):
 		self.__path = path
 		self.__selectionDict = {}
 		self.__selectionId = 0
-		self.__keepOriginal = keepOriginal
-
-	def setKeekOriginal(self, value):
-		assert(type(value) is bool)
-		self.__keepOriginal = value
 
 	def addSelection(self, selection):
 		self.__selectionDict[self.__selectionId] = selection
@@ -86,9 +80,6 @@ class ResourceInformation:
 	def getSelectionItems(self):
 		return self.__selectionDict.items()
 
-	def getKeepOriginal(self):
-		return self.__keepOriginal
-
 class SplittedImageExporter:
 	@staticmethod
 	def save(resourceInfo):
@@ -98,7 +89,6 @@ class SplittedImageExporter:
 
 		parser.add_section('General')
 		parser.set('General', 'Amount', str(resourceInfo.getNumberOfSelections()))
-		parser.set('General', 'KeepOriginal', boolToStr(resourceInfo.getKeepOriginal()))
 		parser.set('General', 'Path', resourceInfo.getPath())
 
 		i = 0
@@ -129,8 +119,7 @@ class SplittedImageImporter:
 		parser = ConfigParser()
 		parser.read(filename)
 		numberOfImages = int(parser.get('General', 'Amount'))
-		keepOriginal = strToBool(parser.get('General', 'KeepOriginal'))
-		resourceInfo = ResourceInformation(parser.get('General', 'Path'), keepOriginal)
+		resourceInfo = ResourceInformation(parser.get('General', 'Path'))
 		for i in range(numberOfImages):
 			sectionName = 'SelectionInfo' + str(i)
 			x, y = strToDoubleIntTuple(parser.get(sectionName, 'Position'))

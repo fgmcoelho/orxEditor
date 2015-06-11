@@ -13,7 +13,6 @@ from uisizes import mainLayoutSize, descriptorLabelDefault, sceneMiniMapSize
 from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler, SceneMiniMap
 from optionsmenu import OptionsMenu
-from objectsmenu import ObjectsMenu
 from tilemapfiles import FilesManager
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
 from resourceloader import ResourceLoaderPopup
@@ -21,7 +20,7 @@ from layer import LayerInformationPopup
 from editorobjects import BaseObject
 from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
 from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder, LayerToSceneCommunication
-from communicationobjects import ResourceLoaderToObjectDescriptor, FileOptionsMenuToScene
+from communicationobjects import FileOptionsMenuToScene
 
 from objectsmenu import NewBaseObjectDisplay, NewBaseObjectsMenu
 from objectdescriptor import ObjectDescriptor
@@ -40,11 +39,11 @@ class TileEditor(App, KeyboardAccess):
 				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete']):
 			self.__sceneHandler.processKeyDown(keycode, modifiers)
 
-		elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):
-			if ('ctrl' in modifiers):
-				ObjectsMenu.Instance().setShortcut(keycode[1])
-			else:
-				ObjectsMenu.Instance().processShortcut(keycode[1])
+		#elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):
+		#	if ('ctrl' in modifiers):
+		#		ObjectsMenu.Instance().setShortcut(keycode[1])
+		#	else:
+		#		ObjectsMenu.Instance().processShortcut(keycode[1])
 
 		elif (keycode[1] == 'spacebar'):
 			obj = ModulesAccess.get('ObjectDescriptor').getCurrentObject()
@@ -53,15 +52,11 @@ class TileEditor(App, KeyboardAccess):
 
 		elif (keycode[1] in ['up', 'down', 'left', 'right']):
 			if ('ctrl' in modifiers):
-				ModulesAccess.get('BaseObjectsMenu').updateSelection(keycode[1])
+				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode(keycode[1])
 
 	def confirm_exit(self, *args):
-		# TODO:  exit confirmation here!
 		print 'We got exit confirmation: ', args
 		return False
-
-	def test_dropfile(self, *args):
-		print 'Files dropped: ', args
 
 	def test_dropfile(self, *args):
 		print "File dropped: ", args
@@ -123,8 +118,6 @@ class TileEditor(App, KeyboardAccess):
 		#OptionsMenu.Instance(self.rightScreen)
 
 		# Left Menu Handler
-		#ObjectsMenu.Instance()
-		#self.leftMenuBase.add_widget(ObjectsMenu.Instance().getLayout())
 		NewBaseObjectDisplay()
 		NewBaseObjectsMenu()
 		ObjectDescriptor()
@@ -161,7 +154,6 @@ class TileEditor(App, KeyboardAccess):
 			self.__sceneHandler.getSceneObjectId)
 		CollisionToCollisionForm.Instance(CollisionInformationPopup.Instance().callPreview)
 		ObjectDescriptorToResourceLoarder.Instance(self.__resourcePopup.open)
-		#ResourceLoaderToObjectDescriptor.Instance(ObjectsMenu.Instance().reloadResource)
 		LayerToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
 			self.__sceneHandler.getAllObjects, self.__sceneHandler.redraw)
 		FileOptionsMenuToScene.Instance(self.__sceneHandler.newScene)

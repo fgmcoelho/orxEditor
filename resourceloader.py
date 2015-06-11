@@ -2,12 +2,9 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
-from kivy.uix.label import Label
 from kivy.uix.treeview import TreeView, TreeViewLabel
-from kivy.uix.checkbox import CheckBox
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
-from kivy.graphics.texture import Texture
 
 from uisizes import resourceLoderSize, descriptorLabelDefault, buttonDefault, inputDefault
 from editorheritage import SpecialScrollControl, SeparatorLabel
@@ -15,7 +12,6 @@ from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog,
 from editorutils import NumberInput, AlignedLabel
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import SpriteSelection, SplittedImageExporter, SplittedImageImporter
-from communicationobjects import ResourceLoaderToObjectDescriptor
 from modulesaccess import ModulesAccess
 
 class GridCell:
@@ -279,11 +275,6 @@ class ResourceLoaderList(SpecialScrollControl):
 
 		self.__layout.height = self.__tree.minimum_height
 
-	def getKeepOriginal(self):
-		if (self.__resourceInfo is not None):
-			return self.__resourceInfo.getKeepOriginal()
-		return True
-
 	def getSelection(self):
 		if (self.__tree.selected_node is not None):
 			itemName, itemId = self.__tree.selected_node.id.split('#')
@@ -305,7 +296,7 @@ class ResourceLoaderList(SpecialScrollControl):
 			itemName, itemId = self.__tree.selected_node.id.split('#')
 			if (itemName != 'root'):
 				self.__tree.remove_node(self.__tree.selected_node)
-				self.__resourceInfo.removeSelectionById(itemId)
+				self.__resourceInfo.removeSelectionById(int(itemId))
 				self.__tree.select_node(self.__tree.root)
 				self.__layout.height = self.__tree.minimum_height
 
@@ -326,7 +317,6 @@ class ResourceLoaderList(SpecialScrollControl):
 				)
 
 			warn.open()
-			return
 
 	def addItem(self, selection):
 		if (self.__resourceInfo.hasSame(selection) == True):
@@ -355,14 +345,13 @@ class ResourceLoaderList(SpecialScrollControl):
 		self._scrollView.add_widget(self.__layout)
 		self.__showMethod = showMethod
 
-	def save(self, keepOriginal):
+	def save(self):
 		if (self.__resourceInfo is not None):
-			self.__resourceInfo.setKeekOriginal(keepOriginal)
+			self.__resourceInfo.setKeekOriginal(True)
 			SplittedImageExporter.save(self.__resourceInfo)
-			ResourceLoaderToObjectDescriptor.Instance().reloadResource(self.__resourceInfo)
+			ModulesAccess.get('BaseObjectsMenu').updateResource(self.__resourceInfo)
 
 class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel):
-
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
 
@@ -432,13 +421,6 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel):
 
 			self.__display.drawGridBySize(xSize, ySize, xSkip, ySkip)
 
-	def __save(self):
-		if (self.__selectionTree.getNumberOfSelections() == 0):
-			keepOriginal = True
-		else:
-			keepOriginal = self.__keepOriginalCheckbox.active
-		self.__selectionTree.save(keepOriginal)
-
 	def __changeMethod(self, *args):
 		if (self.__state == 'divisions'):
 			self.__state = 'size'
@@ -448,57 +430,22 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel):
 			self.__loadDivisionLeftMenu()
 
 	def __processCancel(self, *args):
-		if (self.__state == 'saving'):
-			self.__state = self.__previousState
-			if (self.__state == 'divisions'):
-				self.__loadDivisionLeftMenu()
-			else:
-				self.__loadSizeLeftMenu()
-		else:
-			self.close()
+		self.close()
 
 	def __processDone(self, *args):
-		if (self.__state == 'saving'):
-			self.__save()
-			self.close()
-		else:
-			self.__previousState = self.__state
-			self.__state = 'saving'
-			self.__loadSaveMenu()
-
-	def __loadSaveMenu(self):
-		self.__leftMenu.clear_widgets()
-		self.__leftMenu.add_widget(self.__exportColorToAlphaLine)
-		if (self.__selectionTree.getNumberOfSelections() != 0):
-			self.__leftMenu.add_widget(self.__keepOriginalLine)
-			self.__leftMenu.add_widget(self._separator)
-		else:
-			self.__leftMenu.add_widget(self._separator)
-
-		self.__leftMenu.add_widget(self.__doneButton)
-		self.__leftMenu.add_widget(self.__cancelButton)
+		self.__selectionTree.save()
+		self.close()
 
 	def __createLeftMenuUi(self):
 		# x divisions
 		self.__xDivisionsInput = NumberInput(text = '0', module = 'divisions', **inputDefault)
-		self.__yDivisionsInput = NumberInput(ext = '0', module = 'divisions', **inputDefault)
+		self.__yDivisionsInput = NumberInput(text = '0', module = 'divisions', **inputDefault)
 
 		# size divisions
 		self.__xSizeInput = NumberInput(text = '0', module = 'size', **inputDefault)
 		self.__ySizeInput = NumberInput(text = '0', module = 'size', **inputDefault)
 		self.__xSkipInput = NumberInput(text = '0', module = 'size', **inputDefault)
 		self.__ySkipInput = NumberInput(text = '0', module = 'size', **inputDefault)
-
-		# save menu
-		self.__keepOriginalLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		self.__keepOriginalCheckbox = CheckBox(size_hint = (0.2, 1.0))
-		self.__keepOriginalLine.add_widget(self.__keepOriginalCheckbox)
-		self.__keepOriginalLine.add_widget(Label(text = 'Keep\nimage\non list.', size_hint = (0.8, 1.0)))
-		self.__exportColorToAlphaLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		self.__exportColorToAlphaCheckbox = CheckBox(size_hint = (0.2, 1.0))
-		self.__exportColorToAlphaLine.add_widget(self.__exportColorToAlphaCheckbox)
-		self.__exportColorToAlphaLine.add_widget(Label(text = 'Export\ncolor to\nalpha [color=FF0000](NIY)[/color].',
-			size_hint = (0.8, 1.0), markup = True))
 
 		# buttons, mostly shared
 		self.__cancelButton = CancelableButton(on_release = self.__processCancel, text = 'Cancel', **buttonDefault)
@@ -646,7 +593,6 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel):
 		self.__display.loadImage(path)
 		sizeToUse = self.__display.getSize()
 		self.__selectionTree.loadImage(path, sizeToUse[1])
-		self.__keepOriginalCheckbox.active = self.__selectionTree.getKeepOriginal()
 		self.__popup.open()
 
 	def close(self, *args):

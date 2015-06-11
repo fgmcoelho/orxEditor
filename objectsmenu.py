@@ -18,26 +18,7 @@ from splittedimagemap import SplittedImageImporter
 from modulesaccess import ModulesAccess
 from uisizes import mainLayoutSize, descriptorLabelDefault
 from editorheritage import IgnoreTouch, LayoutGetter
-
-class ObjectMenuItem:
-	def __handle(self, image, touch):
-		if (touch.is_mouse_scrolling == False and self.getDisplayImage().collide_point(*touch.pos) == True and
-				touch.is_double_tap == True):
-			if (ObjectDescriptor.Instance().getCurrentObject() == self.getBaseObject()):
-				SceneToObjectsMenu.Instance().draw(self.getBaseObject())
-			else:
-				ObjectDescriptor.Instance().setObject(self.getBaseObject())
-
-	def __init__(self, baseObject, size):
-		self.__baseObject = baseObject
-		self.__displayImage = Image(texture = baseObject.getBaseImage().texture, size = size, size_hint = (None, None),
-			on_touch_down = self.__handle)
-
-	def getBaseObject(self):
-		return self.__baseObject
-
-	def getDisplayImage(self):
-		return self.__displayImage
+from time import time
 
 class ShortcutHandler:
 	def __init__(self):
@@ -54,128 +35,6 @@ class ShortcutHandler:
 		assert code in '0123456789', 'Invalid code for shortcut: ' + str(code) + '.'
 		return self.__shortcuts[code]
 
-@Singleton
-class ObjectsMenu:
-	def __reloadMenuList(self):
-		self.__numberOfItems = len(self.__menuObjectsList)
-		self.__objectListLayout.clear_widgets()
-		self.__objectListLayout.rows = self.__numberOfItems
-		self.__objectListLayout.size[1] = (self.__numberOfItems * 67)
-		for menuObjectItem in self.__menuObjectsList:
-			self.__objectListLayout.add_widget(menuObjectItem.getDisplayImage())
-
-	def __loadPng(self, item):
-		img = Image(source = fullPath)
-		self.__menuObjectsList.append(BaseObject(img, self.__baseObjectId))
-		self.__baseObjectId += 1
-
-	def __loadResourceInfoList(self, resourceInfo):
-		l = []
-		mainImage = Image (source = resourceInfo.getPath())
-		if (resourceInfo.getKeepOriginal() == True):
-			l.append(BaseObject(mainImage, self.__baseObjectId))
-			self.__baseObjectId += 1
-
-		spriteSize = tuple(mainImage.texture.size)
-		for selection in resourceInfo.getSelectionList():
-			x = selection.getX()
-			y = selection.getY()
-			width = selection.getSizeX()
-			height = selection.getSizeY()
-			image = createSpriteImage(mainImage, x, y, width, height)
-			obj = BaseObject(image, self.__baseObjectId, resourceInfo.getPath(), (x, y), spriteSize)
-			l.append(obj)
-			self.__baseObjectId += 1
-
-		return l
-
-	def __loadOpf(self, item, pngsToIgnoreList):
-		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles',item))
-		baseObjectList = self.__loadResourceInfoList(resourceInfo)
-
-		if baseObjectList != []:
-			for baseObject in baseObjectList:
-				self.__menuObjectsList.append(ObjectMenuItem(baseObject, (64, 64)))
-			pngsToIgnoreList.append(item)
-
-	def __loadItems(self):
-		l = listdir(join(getcwd(), 'tiles'))
-		self.__menuObjectsList = []
-		self.__baseObjectId = 0
-		pngsToIgnoreList = []
-		for item in l:
-			if (item[-4:] == '.opf'):
-				self.__loadOpf(item, pngsToIgnoreList)
-
-		for item in l:
-			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
-				self.__loadPng(item)
-
-
-	def __init__(self):
-		self.__shortcutHandler = ShortcutHandler()
-		self.__objectListLayout = None
-		self.__loadItems()
-		self.__scrollView = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
-		self.__scrollView.add_widget(self.__objectListLayout)
-
-	def reloadResource(self, resourceInfo):
-		pathToCheck = resourceInfo.getPath()
-		startIndex = None
-		finalIndex = None
-		i = 0
-		for menuObject in self.__menuObjectsList:
-			if (menuObject.getBaseObject().getPath() == pathToCheck):
-				if (startIndex is None):
-					startIndex = i
-			else:
-				if (startIndex is not None):
-					finalIndex = i
-					break
-
-			i += 1
-
-		newObjectMenuItemList = []
-		for baseObject in self.__loadResourceInfoList(resourceInfo):
-			newObjectMenuItemList.append(ObjectMenuItem(baseObject, (64, 64)))
-
-		if (startIndex is not None):
-			if (finalIndex is not None):
-				self.__menuObjectsList = self.__menuObjectsList[0:startIndex] + newObjectMenuItemList + \
-					self.__menuObjectsList[finalIndex:]
-			else:
-				self.__menuObjectsList = newObjectMenuItemList
-		else:
-			self.__menuObjectsList.extend(newObjectMenuItemList)
-
-		self.__reloadMenuList()
-
-	def getLayout(self):
-		return self.__scrollView
-
-	def resetAllWidgets(self):
-		for menuObject in self.__menuObjectsList:
-			self.__scrollView.remove_widget(menuObject.getDisplayImage())
-			menuObject = None
-
-		self.__loadItems()
-
-	def setShortcut(self, code):
-		obj = ObjectDescriptor.Instance().getCurrentObject()
-		if (isinstance(obj, BaseObject) == True):
-			self.__shortcutHandler.setShortcut(obj, code)
-
-	def processShortcut(self, code):
-		selectedObject = ObjectDescriptor.Instance().getCurrentObject()
-		shortcutObject = self.__shortcutHandler.getShortcut(code)
-		if (selectedObject is not None and shortcutObject is not None):
-			if (selectedObject == shortcutObject):
-				SceneToObjectsMenu.Instance().draw(selectedObject)
-			else:
-				ObjectDescriptor.Instance().setObject(shortcutObject)
-		elif shortcutObject is not None:
-			ObjectDescriptor.Instance().setObject(shortcutObject)
-
 class NewBaseObjectDisplay(LayoutGetter):
 	def __init__(self):
 		ModulesAccess.add('BaseObjectDisplay', self)
@@ -185,16 +44,19 @@ class NewBaseObjectDisplay(LayoutGetter):
 		self._nameLabel =  AlignedLabel(text = 'Preview', **descriptorLabelDefault)
 		self._currentObject = None
 		self._layout.add_widget(self._nameLabel)
-		self._layout.add_widget(Image(size = self._displaySize))
+		self._layout.add_widget(Image(size = self._displaySize, color = (0, 0, 0, 0)))
 
 	def setDisplay(self, obj, draw = True):
-		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
-		if (self._currentObject != obj):
+		assert obj is None or isinstance(obj, BaseObject), 'Error, object must be a BaseObject or None.'
+		if (self._currentObject != obj or obj is None):
 			self._layout.clear_widgets()
 			self._layout.add_widget(self._nameLabel)
-			self._layout.add_widget(
-				Image(texture = obj.getBaseImage().texture, size = self._displaySize, size_hint = (None, None))
-			)
+			if (obj is None):
+				self._layout.add_widget(Image(size = self._displaySize, color = (0, 0, 0, 0)))
+			else:
+				self._layout.add_widget(
+					Image(texture = obj.getBaseImage().texture, size = self._displaySize, size_hint = (None, None))
+				)
 			self._currentObject = obj
 			ModulesAccess.get('ObjectDescriptor').set(obj)
 		elif (draw == True):
@@ -227,25 +89,37 @@ class OptionMenuImage(TreeViewNode, Image):
 	def setDisplay(self, draw = True):
 		ModulesAccess.get('BaseObjectDisplay').setDisplay(self.__baseObject, draw)
 
+	def setResourceInfo(self, newValue):
+		self.__resourceInfo = newValue
+
 	def __updateDisplay(self, touch):
 		if (self.collide_point(*touch.pos) == True and touch.button == 'left'):
 			self.setDisplay()
 
-	def __init__(self, obj):
+	def getResourceInfo(self):
+		return self.__resourceInfo
+
+	def getBaseObject(self):
+		return self.__baseObject
+
+	def getSelection(self):
+		return self.__selection
+
+	def isNodeToUpdate(self, resourceInfo):
+		if (self.__selection is None and self.__baseObject.getPath()[:-4] == resourceInfo.getPath()[:-4]):
+			return True
+		else:
+			return False
+
+	def __init__(self, obj, resourceInfo = None, selection = None):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
 		super(self.__class__, self).__init__(texture = obj.getBaseImage().texture, size = (32, 32))
 		self.__baseObject = obj
+		self.__resourceInfo = resourceInfo
+		self.__selection = selection
 		self.on_touch_up = self.__updateDisplay
 
 class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
-	#def __reloadMenuList(self):
-	#	self.__numberOfItems = len(self.__menuObjectsList)
-	#	self.__objectListLayout.clear_widgets()
-	#	self.__objectListLayout.rows = self.__numberOfItems
-	#	self.__objectListLayout.size[1] = (self.__numberOfItems * 67)
-	#	for menuObjectItem in self.__menuObjectsList:
-	#		self.__objectListLayout.add_widget(menuObjectItem.getDisplayImage())
-
 	def _createTruncateFilename(self, fullname):
 		relativePath = relpath(fullname, getcwd())
 		dirs, filename = split(relativePath)
@@ -263,48 +137,34 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		self._tree.add_node(OptionMenuImage(baseObject))
 		self._baseObjectId += 1
 
-	def _loadResourceInfoList(self, resourceInfo):
-		l = []
-		mainImage = Image (source = resourceInfo.getPath())
-		l.append(BaseObject(mainImage, self._baseObjectId))
+	def _createAndAddBaseObject(self, newNode, selection, mainImage, spriteSize, path):
+		x = selection.getX()
+		y = selection.getY()
+		width = selection.getSizeX()
+		height = selection.getSizeY()
+		image = createSpriteImage(mainImage, x, y, width, height)
+		baseObject = BaseObject(image, self._baseObjectId, path, (x, y), spriteSize)
 		self._baseObjectId += 1
+		self._baseObjectsList.append(baseObject)
+		self._tree.add_node(OptionMenuImage(baseObject, selection = selection), newNode)
 
-		spriteSize = tuple(mainImage.texture.size)
+	def _loadSubitems(self, newNode, resourceInfo, mainImage, spriteSize):
 		for selection in resourceInfo.getSelectionList():
-			x = selection.getX()
-			y = selection.getY()
-			width = selection.getSizeX()
-			height = selection.getSizeY()
-			image = createSpriteImage(mainImage, x, y, width, height)
-			obj = BaseObject(image, self._baseObjectId, resourceInfo.getPath(), (x, y), spriteSize)
-			l.append(obj)
-			self._baseObjectId += 1
-
-		return l
+			self._createAndAddBaseObject(newNode, selection, mainImage, spriteSize, resourceInfo.getPath())
 
 	def _loadOpf(self, item, pngsToIgnoreList):
-		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles',item))
+		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles', item))
 
 		# Main object
 		mainImage = Image (source = resourceInfo.getPath())
 		mainBaseObject = BaseObject(mainImage, self._baseObjectId)
 		self._baseObjectId += 1
 		self._baseObjectsList.append(mainBaseObject)
-		newNode = self._tree.add_node(OptionMenuImage(mainBaseObject))
+		newNode = self._tree.add_node(OptionMenuImage(mainBaseObject, resourceInfo = resourceInfo))
 
 		# Sprites
 		spriteSize = tuple(mainImage.texture.size)
-		for selection in resourceInfo.getSelectionList():
-			x = selection.getX()
-			y = selection.getY()
-			width = selection.getSizeX()
-			height = selection.getSizeY()
-			image = createSpriteImage(mainImage, x, y, width, height)
-			baseObject = BaseObject(image, self._baseObjectId, resourceInfo.getPath(), (x, y), spriteSize)
-			self._baseObjectId += 1
-			self._baseObjectsList.append(baseObject)
-			finalFilename = 'Pos: (' + str(x) + ', '  + str(y) + ') | Size: (' + str(width) + ', ' + str(height) + ')'
-			self._tree.add_node(OptionMenuImage(baseObject), newNode)
+		self._loadSubitems(newNode, resourceInfo, mainImage, spriteSize)
 
 		pngsToIgnoreList.append(split(resourceInfo.getPath())[1])
 
@@ -329,7 +189,32 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		if (self._tree.selected_node is not None):
 			Clock.schedule_once(self.__scrollUpdate, 0)
 
-	def updateSelection(self, command):
+	def __doUpdateResource(self, node, newResourceInfo):
+		oldResourceInfo = node.getResourceInfo()
+		mainImage = node.getBaseObject().getBaseImage()
+		spriteSize = node.getBaseObject().getSize()
+		path = newResourceInfo.getPath()
+		if (oldResourceInfo is None):
+			self._loadSubitems(node, newResourceInfo, mainImage, spriteSize)
+		else:
+			for childNode in node.nodes[:]:
+				if (newResourceInfo.hasSame(childNode.getSelection()) == False):
+					self._tree.remove_node(childNode)
+
+			for selection in newResourceInfo.getSelectionList():
+				if (oldResourceInfo.hasSame(selection) == False):
+					self._createAndAddBaseObject(node, selection, mainImage, spriteSize, path)
+
+		node.setResourceInfo(newResourceInfo)
+
+	def updateResource(self, newResourceInfo):
+		for item in self._tree.children:
+			if item.isNodeToUpdate(newResourceInfo) == True:
+				self.__doUpdateResource(item, newResourceInfo)
+				self.__recentlyUpdated = (newResourceInfo.getPath(), time())
+				break
+
+	def updateSelectedNode(self, command):
 		assert command in ('up', 'down', 'left', 'right', 'leftright')
 		if (self._tree.selected_node is None and len(self._tree.children) > 0):
 			if (command == 'up'):

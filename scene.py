@@ -262,7 +262,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 	def removeObject(self):
 		deletedObjects = self._renderGuardian.deleteSelection()
-		ModulesAccess.get('ObjectDescriptor').set(None)
+		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
 
 	def alignToGrid(self):
 		self._renderGuardian.alignSelectionToGrid()
@@ -278,7 +278,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 	def unselectAll(self):
 		self._renderGuardian.unsetSelection()
-		ModulesAccess.get('ObjectDescriptor').set(None)
+		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
 
 	def selectAll(self):
 		self._renderGuardian.unsetSelection()
@@ -497,13 +497,13 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (touch.button == 'scrollup' and self._isCtrlPressed):
-			ModulesAccess.get('BaseObjectsMenu').updateSelection('down')
+			ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('down')
 			return
 		elif (touch.button == 'scrolldown' and self._isCtrlPressed):
-			ModulesAccess.get('BaseObjectsMenu').updateSelection('up')
+			ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('up')
 			return
 		elif (touch.button == 'middle'):
-			ModulesAccess.get('BaseObjectsMenu').updateSelection('leftright')
+			ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('leftright')
 			return
 
 		if (self._layout.collide_point(*touch.pos) == True):
