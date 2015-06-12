@@ -3,13 +3,14 @@ from kivy.uix.popup import Popup
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
 from kivy.uix.treeview import TreeView, TreeViewLabel
+from kivy.uix.scrollview import ScrollView
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
 from uisizes import resourceLoderSize, descriptorLabelDefault, buttonDefault, inputDefault
-from editorheritage import SpecialScrollControl, SeparatorLabel
+from editorheritage import SeparatorLabel, LayoutGetter
 from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog, convertKivyCoordToOrxCoord
-from editorutils import NumberInput, AlignedLabel
+from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import SpriteSelection, SplittedImageExporter, SplittedImageImporter
 from modulesaccess import ModulesAccess
@@ -52,7 +53,7 @@ class GridCell:
 		if (self.__marked):
 			self.draw((0., 1., 0., 1.))
 
-class ResourceLoaderDisplay(SpecialScrollControl):
+class ResourceLoaderDisplay(LayoutGetter):
 	def __clearGraphicGrid(self):
 		self.__currentSelection = None
 		for line in self.__gridGraphics:
@@ -75,31 +76,34 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		return (j, i)
 
 	def __handleTouchMove(self, touch):
-		if (self._scrollView.collide_point(*touch.pos) == False):
+		if (self._layout.collide_point(*touch.pos) == False):
 			return
 
-		self.updateSelection(touch)
+		if(touch.button == 'left'):
+			self.updateSelection(touch)
+
+		if (touch.button == 'right'):
+			self.__defaultTouchMove(touch)
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
-		if (self._scrollView.collide_point(*touch.pos) == False):
+		if (self._layout.collide_point(*touch.pos) == False):
 			return
 
-		if (touch.is_mouse_scrolling == True):
-			return self.specialScroll(touch)
-
-		imgCoords = self.__currentImage.to_widget(touch.pos[0], touch.pos[1])
-		if (self.__currentImage is not None and self.__currentImage.collide_point(*imgCoords) == True):
-			self.startSelection(touch)
-		else:
-			self.__clearGraphicGrid()
+		if (touch.button == 'left'):
+			imgCoords = self.__currentImage.to_widget(touch.pos[0], touch.pos[1])
+			if (self.__currentImage is not None and self.__currentImage.collide_point(*imgCoords) == True):
+				self.startSelection(touch)
+			else:
+				self.__clearGraphicGrid()
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		self.finishSelection(touch)
+		if (touch.button == 'left'):
+			self.finishSelection(touch)
 
 	def __clearSelectionGrid(self):
-		self.__layout.clear_widgets()
-		self.__layout.canvas.clear()
-		self.__layout.add_widget(self.__currentImage)
+		self._scrollLayout.clear_widgets()
+		self._scrollLayout.canvas.clear()
+		self._scrollLayout.add_widget(self.__currentImage)
 		self.__gridGraphics = []
 		self.__selectionPreview = None
 		self.__currentSelection = None
@@ -111,12 +115,12 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.__xSkip = xSkip
 		self.__ySkip = ySkip
 
-		j = self.__layout.size[1] - ySkip
+		j = self._scrollLayout.size[1] - ySkip
 		while j - yInc >= 0:
 			i = xSkip
 			line = []
-			while i + xInc <= self.__layout.size[0]:
-				line.append(GridCell(self.__layout.canvas, i, j, xInc, yInc))
+			while i + xInc <= self._scrollLayout.size[0]:
+				line.append(GridCell(self._scrollLayout.canvas, i, j, xInc, yInc))
 				i += xInc
 			j -= yInc
 			self.__gridGraphics.append(line)
@@ -132,18 +136,19 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.__gridGraphics = []
 
 	def __init__(self, **kwargs):
-		super(ResourceLoaderDisplay, self).__init__(size_hint = (1.0, 1.0))
-		self._scrollView.on_touch_move = self.__handleTouchMove
-		self.__defaultTouchDown = self._scrollView.on_touch_down
-		self.__defaultTouchUp = self._scrollView.on_touch_up
-		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
-		self._scrollView.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
+		self._layout = ScrollView(size_hint = (1.0, 1.0), effect_cls = EmptyScrollEffect)
+		self.__defaultTouchMove = self._layout.on_touch_move
+		self.__defaultTouchDown = self._layout.on_touch_down
+		self.__defaultTouchUp = self._layout.on_touch_up
+		self._layout.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+		self._layout.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
+		self._layout.on_touch_move = self.__handleTouchMove
 
 		self.__setStartState()
 		self.__selectionPreview = None
-		self.__layout = RelativeLayout(size_hint = (None, None), size = (100, 100))
+		self._scrollLayout = RelativeLayout(size_hint = (None, None), size = (100, 100))
 		self.__currentImage = None
-		self._scrollView.add_widget(self.__layout)
+		self._layout.add_widget(self._scrollLayout)
 
 	def updateSelection(self, touch):
 		pass
@@ -177,7 +182,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 			self.__selectionStarted = False
 			self.__currentSelection = SpriteSelection(
 				(loopStartIndexI * self.__xSize) + self.__xSkip,
-				self.__layout.size[1] - (((loopFinalIndexJ + 1) * self.__ySize) + self.__ySkip),
+				self._scrollLayout.size[1] - (((loopFinalIndexJ + 1) * self.__ySize) + self.__ySkip),
 				(loopFinalIndexI - loopStartIndexI + 1) * self.__xSize,
 				(loopFinalIndexJ - loopStartIndexJ + 1) * self.__ySize,
 				(loopFinalIndexI - loopStartIndexI + 1),
@@ -188,18 +193,18 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		self.clearPreview()
 		self.__setStartState()
 		if (self.__currentImage is not None):
-			self.__layout.canvas.clear()
-			self.__layout.remove_widget(self.__currentImage)
+			self._scrollLayout.canvas.clear()
+			self._scrollLayout.remove_widget(self.__currentImage)
 
 		im = Image(source = path)
 		self.__texture = AutoReloadTexture(im.texture.size, im)
 		self.__currentImage = Image(size = im.texture.size, texture = self.__texture.getTexture())
-		self.__layout.size = im.texture.size
-		self.__layout.add_widget(self.__currentImage)
+		self._scrollLayout.size = im.texture.size
+		self._scrollLayout.add_widget(self.__currentImage)
 
 	def drawGridByDivisions(self, xDivisions, yDivisions):
-		xInc = int(self.__layout.size[0] / xDivisions)
-		yInc = int(self.__layout.size[1] / yDivisions)
+		xInc = int(self._scrollLayout.size[0] / xDivisions)
+		yInc = int(self._scrollLayout.size[1] / yDivisions)
 		self.__doDrawGrid(xInc, yInc)
 
 	def drawGridBySize(self, xSize, ySize, xSkip, ySkip):
@@ -214,7 +219,7 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 		y = selection.getY()
 		xSize = selection.getSizeX()
 		ySize = selection.getSizeY()
-		with self.__layout.canvas:
+		with self._scrollLayout.canvas:
 			self.__selectionPreview = Line(points = [
 				x, y,
 				x, y + ySize,
@@ -225,24 +230,23 @@ class ResourceLoaderDisplay(SpecialScrollControl):
 
 	def clearPreview(self):
 		if (self.__selectionPreview is not None):
-			self.__layout.canvas.remove(self.__selectionPreview)
+			self._scrollLayout.canvas.remove(self.__selectionPreview)
 			self.__selectionPreview = None
 
 	def getSize(self):
-		return self.__layout.size
+		return self._scrollLayout.size
 
-class ResourceLoaderList(SpecialScrollControl):
-
+class ResourceLoaderList(LayoutGetter):
 	def __ignoreMoves(self, touch):
 		pass
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
-		if (self._scrollView.collide_point(*touch.pos) == False):
+		if (self._layout.collide_point(*touch.pos) == False):
 			return
 
 		if (touch.is_mouse_scrolling == True):
-			if (self.__layout.height != self.__tree.minimum_height):
-				self.__layout.height = self.__tree.minimum_height
+			if (self._layout.height != self.__tree.minimum_height):
+				self._layout.height = self.__tree.minimum_height
 
 			return self.specialScroll(touch)
 
@@ -259,7 +263,7 @@ class ResourceLoaderList(SpecialScrollControl):
 				str(selection.getSizeX()) + ', ' + str(selection.getSizeY()) + ')', id = 'selection#' + \
 				str(identifier), on_touch_down = self.__callShowMethod)
 		self.__tree.add_node(node)
-		self.__layout.height = self.__tree.minimum_height
+		self._layout.height = self.__tree.minimum_height
 
 	def __renderLoadedList(self, selectionItems):
 		for item in selectionItems:
@@ -273,7 +277,7 @@ class ResourceLoaderList(SpecialScrollControl):
 		for node in self.__tree.children:
 			self.__tree.remove_node(node)
 
-		self.__layout.height = self.__tree.minimum_height
+		self._layout.height = self.__tree.minimum_height
 
 	def getSelection(self):
 		if (self.__tree.selected_node is not None):
@@ -298,7 +302,7 @@ class ResourceLoaderList(SpecialScrollControl):
 				self.__tree.remove_node(self.__tree.selected_node)
 				self.__resourceInfo.removeSelectionById(int(itemId))
 				self.__tree.select_node(self.__tree.root)
-				self.__layout.height = self.__tree.minimum_height
+				self._layout.height = self.__tree.minimum_height
 
 	def addItemList(self, selectionList):
 		count = 0
@@ -333,16 +337,16 @@ class ResourceLoaderList(SpecialScrollControl):
 		self.__renderLoadedList(self.__resourceInfo.getSelectionItems())
 
 	def __init__(self, showMethod, **kwargs):
-		super(ResourceLoaderList, self).__init__(**kwargs)
 		self.__resourceInfo = None
-		self._scrollView.on_touch_move = self.__ignoreMoves
-		self.__defaultTouchDown = self._scrollView.on_touch_down
-		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+		self._layout = ScrollView(effect_cls = EmptyScrollEffect)
+		self._layout.on_touch_move = self.__ignoreMoves
+		self.__defaultTouchDown = self._layout.on_touch_down
+		self._layout.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 		self.__tree = TreeView(root_options = dict(text='Resources', id='root#0'), size_hint = (1.0, 1.0),
 			expand_root = False)
-		self.__layout = RelativeLayout(size = (300, 100), size_hint = (None, None))
-		self.__layout.add_widget(self.__tree)
-		self._scrollView.add_widget(self.__layout)
+		self._scrollLayout = RelativeLayout(size = (300, 100), size_hint = (None, None))
+		self._scrollLayout.add_widget(self.__tree)
+		self._layout.add_widget(self._scrollLayout)
 		self.__showMethod = showMethod
 
 	def save(self):
@@ -351,18 +355,12 @@ class ResourceLoaderList(SpecialScrollControl):
 			SplittedImageExporter.save(self.__resourceInfo)
 			ModulesAccess.get('BaseObjectsMenu').updateResource(self.__resourceInfo)
 
-class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel):
+class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
 
 		if (keycode[1] == 'shift'):
 			self.__isShiftPressed = False
-			self.__display.setIsShiftPressed(False)
-			self.__selectionTree.setIsShiftPressed(False)
-
-		elif (keycode[1] == 'ctrl'):
-			self.__display.setIsCtrlPressed(False)
-			self.__selectionTree.setIsShiftPressed(False)
 
 		elif (keycode[1] == 'tab'):
 			if (self.__state in ['divisions', 'size']):
@@ -376,12 +374,6 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel):
 
 		if (keycode[1] == 'shift'):
 			self.__isShiftPressed = True
-			self.__display.setIsShiftPressed(True)
-			self.__selectionTree.setIsShiftPressed(True)
-
-		elif (keycode[1] == 'ctrl'):
-			self.__display.setIsCtrlPressed(True)
-			self.__selectionTree.setIsCtrlPressed(True)
 
 		elif (keycode[1] == 'escape'):
 			self.close()
@@ -565,7 +557,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel):
 
 		self.__popup = Popup(title = 'Resource Loader', auto_dismiss = False)
 
-		self.__layout = BoxLayout(orientation = 'horizontal')
+		self._layout = BoxLayout(orientation = 'horizontal')
 
 		self.__leftMenu = BoxLayout(orientation = 'vertical', size_hint = (None, 1.0),
 			width = resourceLoderSize['width'])
@@ -579,11 +571,11 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel):
 		self.__rightMenu = BoxLayout(orientation = 'vertical', size_hint = (0.15, 1.0))
 		self.__createRightMenuUi()
 
-		self.__layout.add_widget(self.__leftMenu)
-		self.__layout.add_widget(self.__middleMenu)
-		self.__layout.add_widget(self.__rightMenu)
+		self._layout.add_widget(self.__leftMenu)
+		self._layout.add_widget(self.__middleMenu)
+		self._layout.add_widget(self.__rightMenu)
 
-		self.__popup.content = self.__layout
+		self.__popup.content = self._layout
 		ModulesAccess.add('ResourceLoader', self)
 
 	def open(self, path):

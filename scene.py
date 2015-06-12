@@ -522,8 +522,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			return self.__defaultTouchDown(touch)
 
 	def __handleScrollAndPassMoveToChildren(self, touch):
-		if (touch.button == "right"):
-			self.__defaultTouchMove(touch)
+		self.__defaultTouchMove(touch)
 
 	def __init__(self):
 		super(SceneHandler, self).__init__()
