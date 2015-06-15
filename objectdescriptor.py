@@ -42,10 +42,12 @@ class DescriptorButtons(DescriptorLinesConfigs):
 			**descriptorButtonDoubleSize)
 		self._alignButton = CancelableButton(text = 'Align (q)', on_release = self._call_on_press,
 			**descriptorButtonDefault)
-		self._editCollisionButton = CancelableButton(text = 'Edit collision', on_release = self._call_on_press,
+		self._editCollisionButton = CancelableButton(text = 'Edit collision',
 			**descriptorButtonDoubleSize)
-		self._editGroupButton = CancelableButton(text = 'Edit Group', on_release = self._call_on_press,
-			**descriptorButtonDefault)
+		self._editGroupButton = CancelableButton(text = 'Edit Group',
+			on_release = ModulesAccess.get('LayerInformation').open,
+			**descriptorButtonDefault
+		)
 		self._flipXButton = CancelableButton(text = 'Flip X (f)', on_release = self._call_on_press,
 			**descriptorButtonDefault)
 		self._flipYButton = CancelableButton(text = 'Flip Y (g)', on_release = self._call_on_press,

@@ -283,7 +283,7 @@ class ResourceLoaderList(LayoutGetter):
 			self.__tree.remove_node(node)
 
 		self._layout.height = self.__tree.minimum_height
-	
+
 	def _adjustTreeSize(self, *args):
 		self._scrollLayout.size[1] = self.__tree.minimum_height
 
@@ -353,14 +353,13 @@ class ResourceLoaderList(LayoutGetter):
 		self._scrollLayout.add_widget(self.__tree)
 		self._layout.add_widget(self._scrollLayout)
 		self.__showMethod = showMethod
-		
+
 		self.__defaultTouchDown = self._layout.on_touch_down
 		self._layout.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 		self.__tree.bind(minimum_height=self._adjustTreeSize)
 
 	def save(self):
 		if (self.__resourceInfo is not None):
-			self.__resourceInfo.setKeekOriginal(True)
 			SplittedImageExporter.save(self.__resourceInfo)
 			ModulesAccess.get('BaseObjectsMenu').updateResource(self.__resourceInfo)
 

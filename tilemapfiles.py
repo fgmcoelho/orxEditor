@@ -8,7 +8,7 @@ from editorobjects import BaseObject
 from communicationobjects import SceneToFilesManager
 from ConfigParser import ConfigParser
 from collisioninfo import CollisionGuardian, CollisionInformation, CollisionPartInformation
-from layerinfo import LayerGuardian
+from modulesaccess import ModulesAccess
 from scene import SceneAttributes
 
 from os.path import sep, isfile, join
@@ -52,7 +52,7 @@ class FilesManager:
 	def saveScene(self, filename):
 		parser = ConfigParser()
 		parser.optionxform = str
-		
+
 		sceneAttributes = SceneToFilesManager.Instance().getSceneAttributes()
 		parser.add_section(self.__tileEditorSectionName)
 		parser.set(self.__tileEditorSectionName, 'MaxX', sceneAttributes.getValue('TilesMaxX'))
@@ -63,12 +63,12 @@ class FilesManager:
 		parser.set(self.__assetsSectionName, 'Path', 'tiles')
 
 		parser.add_section(self.__groupsListName)
-		parser.set(self.__groupsListName, 'LayerNames', 
-			self.__compileObjListWithName(LayerGuardian.Instance().getLayerList())
+		parser.set(self.__groupsListName, 'LayerNames',
+			self.__compileObjListWithName(ModulesAccess.get('LayerGuardian').getLayerList())
 		)
 
 		parser.add_section(self.__collisionListName)
-		parser.set(self.__collisionListName, 'Flags', 
+		parser.set(self.__collisionListName, 'Flags',
 			self.__compileObjListWithName(CollisionGuardian.Instance().getFlags())
 		)
 
@@ -108,7 +108,7 @@ class FilesManager:
 				parser.set(newSectionName, 'HasCollisionInfo', boolToStr(True))
 				collisionInfoSectionName = newSectionName + '_CollisionInfo'
 				parts = collisionObject.getPartsList()
-				
+
 				parser.add_section(collisionInfoSectionName)
 				parser.set(collisionInfoSectionName, 'Dynamic', boolToStr(collisionObject.getDynamic()))
 				parser.set(collisionInfoSectionName, 'FixedRotation', boolToStr(collisionObject.getFixedRotation()))
@@ -130,7 +130,7 @@ class FilesManager:
 							strPoints.append(str(point))
 						parser.set(partSectionName, 'Points', '#'.join(strPoints))
 					i += 1
-		
+
 		parser.set(self.__objectListName, 'LastId', str(SceneToFilesManager.Instance().getSceneObjectId()))
 
 		f = open(filename, 'w')
@@ -144,7 +144,7 @@ class FilesManager:
 			parser.read(filename)
 		except:
 			raise Exception("Error opening the file.")
-		
+
 		try:
 			# At first we need to recreate the base objects that were used, since the selections
 			# may even no longer exist.
@@ -154,7 +154,7 @@ class FilesManager:
 				fullPath = parser.get(name, 'AbsolutePath')
 				if (fullPath not in tempBaseImages):
 					tempBaseImages[fullPath] = None
-		
+
 		except Exception, e:
 			raise Exception('Error parsing the file: ' + str(e))
 
@@ -181,18 +181,18 @@ class FilesManager:
 						tempBaseObjects[(fullPath, coords)] = BaseObject(imageToUse, identifier, fullPath, (x, y),
 							textureSize)
 					identifier += 1
-		
+
 		except Exception, e:
 			raise Exception('Error creating the base objects: ' + str(e))
-		
+
 		try:
-			LayerGuardian.Instance().reset()
-			LayerGuardian.Instance().deleteLayerByName('default')
+			ModulesAccess.get('LayerGuardian').reset()
+			ModulesAccess.get('LayerGuardian').deleteLayerByName('default')
 			defaultPresent = False
 			for layer in parser.get(self.__groupsListName, 'LayerNames').split('#'):
 				if (layer == 'default'):
 					defaultPresent = True
-				LayerGuardian.Instance().addNewLayer(layer)
+				ModulesAccess.get('LayerGuardian').addNewLayer(layer)
 			assert defaultPresent == True, 'default group is missing.'
 
 		except Exception, e:
@@ -212,7 +212,7 @@ class FilesManager:
 			tilesOnX = int(parser.get(self.__tileEditorSectionName, 'MaxX'))
 			tilesOnY = int(parser.get(self.__tileEditorSectionName, 'MaxY'))
 			tilesSize = int(parser.get(self.__tileEditorSectionName, 'Size'))
-		
+
 		except Exception, e:
 			raise Exception('Error parsing the file: ' + str(e))
 
@@ -223,7 +223,7 @@ class FilesManager:
 			raise Exception('Error creating the base scene to load: ' + str(e))
 
 		loadedLayers = []
-		for layer in LayerGuardian.Instance().getLayerList():
+		for layer in ModulesAccess.get('LayerGuardian').getLayerList():
 			loadedLayers.append(layer.getName())
 
 		try:
@@ -261,15 +261,15 @@ class FilesManager:
 
 						newPart = CollisionPartInformation(checkMask, selfFlags, solid, formType, points)
 						collisionInfo.addPart(newPart)
-				
-				SceneToFilesManager.Instance().addObjectByInfo(tempBaseObjects[(fullPath, coords)],	identifier, 
+
+				SceneToFilesManager.Instance().addObjectByInfo(tempBaseObjects[(fullPath, coords)],	identifier,
 					position, scale, flipX, flipY, layer, collisionInfo)
-			
+
 		except Exception, e:
 			raise Exception('Error loading the objecs to the list:' + str(e))
-		
+
 		SceneToFilesManager.Instance().setSceneObjectId(int(parser.get(self.__objectListName, 'LastId')))
-							
+
 	def exportScene(self, filename, assetsPath, shouldSmooth):
 		parser = ConfigParser()
 		parser.optionxform = str
@@ -279,7 +279,7 @@ class FilesManager:
 			CollisionGuardian.Instance().getFlags())
 		)
 		parser.set('General', 'GroupList', self.__compileObjListWithName(
-			LayerGuardian.Instance().getLayerList())
+			ModulesAccess.get('LayerGuardian').getLayerList())
 		)
 
 		renderedObjectsList = SceneToFilesManager.Instance().getSceneObjects()
@@ -329,8 +329,8 @@ class FilesManager:
 				posAdjust = (0, renderedSize[1])
 			else:
 				posAdjust = (0, 0)
-			
-			parser.set(newSectionName, 'Position', 
+
+			parser.set(newSectionName, 'Position',
 				vector2ToVector3String(self.__convertObjectPosition(obj, sceneMaxY, posAdjust), 1.0))
 
 			if (float(scale[0]) != 1.0 or float(scale[1]) != 1.0):
@@ -349,7 +349,7 @@ class FilesManager:
 			parser.set(graphicSectionName, 'Texture',  textureName)
 			if (shouldSmooth == True):
 				parser.set(graphicSectionName, 'Smoothing',  boolToStr(True))
-			
+
 			spriteInfo = obj.getSpriteInfo()
 			if (spriteInfo is not None):
 				coords = spriteInfo.getSpriteCoords()

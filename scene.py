@@ -17,7 +17,6 @@ from operator import itemgetter
 from editorheritage import LayoutGetter, KeyboardModifiers, MouseModifiers
 from editorobjects import RenderObjectGuardian
 from editorutils import AlertPopUp, AutoReloadTexture, EmptyScrollEffect
-from layerinfo import LayerGuardian
 from modulesaccess import ModulesAccess
 from uisizes import sceneMiniMapSize
 
@@ -85,7 +84,7 @@ class SceneMiniMap(LayoutGetter):
 class OrderSceneObjects:
 	def _order_objects(self, objectDict):
 		objectsList = []
-		nameToPriorityDict = LayerGuardian.Instance().getNameToPriorityDict()
+		nameToPriorityDict = ModulesAccess.get('LayerGuardian').getNameToPriorityDict()
 		for key in objectDict.keys():
 			objectsList.append(
 				(
@@ -390,7 +389,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			self.setIsCtrlPressed(False)
 
 	def processKeyDown(self, keycode, modifiers = None):
-		if ('ctrl' in modifiers and keycode[1] == 'a'):
+		if (modifiers is not None and 'ctrl' in modifiers and keycode[1] == 'a'):
 			self.__sceneList[self.__currentIndex].selectAll()
 
 		elif (keycode[1] == 'q'):

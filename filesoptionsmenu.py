@@ -22,16 +22,16 @@ class NewScenePopup(KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			self.close()
-		
+
 		elif (keycode[1] == 'shift'):
 			self.__isShiftPressed = False
-		
+
 		elif (keycode[1] == 'tab'):
 			if (self.__isShiftPressed == False):
 				NumberInput.selectInputByFocus('NewScene')
 			else:
 				NumberInput.selectInputByFocus('NewScene', reverse = True)
-	
+
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
 		if (keycode[1] == 'shift'):
 			self.__isShiftPressed = True
@@ -50,7 +50,7 @@ class NewScenePopup(KeyboardAccess):
 		except:
 			alert = AlertPopUp('Error', 'Invalid entry for number of tiles on y.', 'Ok')
 			return alert.open()
-		
+
 		try:
 			tilesSize = int(self.__tileSizeInput.text)
 			assert(tilesSize > 0)
@@ -66,7 +66,7 @@ class NewScenePopup(KeyboardAccess):
 			CollisionGuardian.Instance().reset()
 
 		if (self.__keepGroupsFlags.active == False):
-			LayerGuardian.Instance().reset()
+			ModulesAccess.get('LayerGuardian').reset()
 
 		newSceneAttributes = SceneAttributes(tilesSize, tilesOnX, tilesOnY)
 		FileOptionsMenuToScene.Instance().newScene(newSceneAttributes)
@@ -83,11 +83,11 @@ class NewScenePopup(KeyboardAccess):
 		self.__keepGroupsFlags = CheckBox(size_hint = (0.1, 1.0))
 		self.__okButton = CancelableButton(text = 'Ok', on_release = self.__confirm, size_hint = (0.2, 1.0))
 		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, size_hint = (0.2, 1.0))
-		
+
 		tilesSizeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		tilesSizeLine.add_widget(Label(text = 'Size of the tiles:', size_hint = (0.7, 1.0)))
 		tilesSizeLine.add_widget(self.__tileSizeInput)
-		
+
 		xNumberOfTilesLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		xNumberOfTilesLine.add_widget(Label(text = 'Number of tiles on X:', size_hint = (0.7, 1.0)))
 		xNumberOfTilesLine.add_widget(self.__xTilesInput)
@@ -119,9 +119,9 @@ class NewScenePopup(KeyboardAccess):
 
 		self.__popup.content = self.__layout
 		self.__isShiftPressed = False
-			
+
 	def open(self, *args):
-		KeyboardGuardian.Instance().acquireKeyboard(self)	
+		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.__popup.open()
 
 	def close(self, *args):
@@ -132,7 +132,7 @@ class FileSelectorPopup(KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			self.close()
-	
+
 	def __finish(self):
 		if (self.__directoriesOnly == True):
 			self.__selected = abspath(str(self.__fileChooser.path))
@@ -154,7 +154,7 @@ class FileSelectorPopup(KeyboardAccess):
 	def __submit(self, selection, touch):
 		if(len(selection) != 1):
 			return
-		
+
 		if (self.__fileChooserInput.text == selection[0]):
 			return self.__validate()
 		else:
@@ -167,7 +167,7 @@ class FileSelectorPopup(KeyboardAccess):
 		# control variables
 		self.__validadeExists = validateExists
 		if (validateExists == True):
-			self.__warn = Dialog(self.__finish, 'Warning', 
+			self.__warn = Dialog(self.__finish, 'Warning',
 				'The selected file already exists.\nThis operation will override it,\n'\
 				'are you sure you want to continue?', 'Ok', 'Cancel'
 			)
@@ -190,7 +190,7 @@ class FileSelectorPopup(KeyboardAccess):
 			self.__fileChooserInputLayout.add_widget(Label(text = 'File:', size_hint = (0.3, 1.0)))
 			self.__fileChooser.on_submit = self.__submit
 			self.__filters = filters
-	
+
 		self.__fileChooser.filters = self.__filters
 		self.__fileChooserInputLayout.add_widget(self.__fileChooserInput)
 		self.__finishMethod = finishMethod
@@ -272,7 +272,7 @@ class FileChooserUser(object):
 
 		self._fileChooserYesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		self._fileChooserOkButton = CancelableButton(text = 'Ok')
-		self._fileChooserCancelButton = CancelableButton(text = 'Cancel', 
+		self._fileChooserCancelButton = CancelableButton(text = 'Cancel',
 			on_release = self.close)
 		self._fileChooserYesNoLayout.add_widget(self._fileChooserOkButton)
 		self._fileChooserYesNoLayout.add_widget(self._fileChooserCancelButton)
@@ -292,12 +292,12 @@ class SaveScenePopup(KeyboardAccess, FileChooserUser):
 			self.close()
 
 	def __saveSceneFinish(self, *args):
-		filename = self._fileChooserInput.text	
+		filename = self._fileChooserInput.text
 		if (filename[-4:] != '.osf'):
 			filename += '.osf'
 
 		self._closePopUpsAndShowResult(
-			FilesManager.Instance().saveScene, 
+			FilesManager.Instance().saveScene,
 			join(self._fileChooser.path, filename),
 			'saving'
 		)
@@ -312,7 +312,7 @@ class SaveScenePopup(KeyboardAccess, FileChooserUser):
 			self.__saveSceneDialog.open()
 		else:
 			self.__saveSceneFinish()
-	
+
 	def __init__(self):
 		super(SaveScenePopup, self).__init__()
 		self.__saveSceneDialog = Dialog(
@@ -320,7 +320,7 @@ class SaveScenePopup(KeyboardAccess, FileChooserUser):
 			'This will override the selected file.\nContinue?', 'Ok', 'Cancel'
 		)
 		self._successPopup.setText("The file was successfully saved.")
-	
+
 	def open(self, *args):
 		self._prepareOpen()
 		KeyboardGuardian.Instance().acquireKeyboard(self)
@@ -350,7 +350,7 @@ class LoadScenePopup(KeyboardAccess, FileChooserUser):
 
 	def __loadSceneFinish(self, *args):
 		self._closePopUpsAndShowResult(
-			FilesManager.Instance().loadScene, 
+			FilesManager.Instance().loadScene,
 			join(self._fileChooser.path, self._fileChooserInput.text),
 			'loading'
 		)
@@ -364,7 +364,7 @@ class LoadScenePopup(KeyboardAccess, FileChooserUser):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self._fileChooserOkButton.on_release = self._validateAndContinue
 		self._fileChooserPopUp.open()
-	
+
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self._fileChooserPopUp.dismiss()
@@ -414,7 +414,7 @@ class ExportScenePopup (KeyboardAccess):
 
 		self.__fileChooser = FileSelectorPopup(filters = ['*.ini'], finishMethod = self.__setFilename)
 		self.__assetsChooser = FileSelectorPopup(finishMethod = self.__setAssetsPath, directoriesOnly = True)
-		
+
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__filenameDescription = TextInput(text = '', readonly = True, multiline = False, size_hint = (0.7, 1.0))
 		self.__chooseFilenameButton = CancelableButton(text = 'Choose', size_hint = (0.2, 1.0),
@@ -425,7 +425,7 @@ class ExportScenePopup (KeyboardAccess):
 		self.__smoothCheckBox = CheckBox(active = True, size_hint = (0.2,  1.0))
 		self.__okButton = CancelableButton(text = 'Ok', on_release = self.__confirm, size_hint = (0.2, 1.0))
 		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, size_hint = (0.2, 1.0))
-		
+
 		self.__filenameLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__filenameLine.add_widget(self.__filenameDescription)
 		self.__filenameLine.add_widget(Label(text = '', size_hint = (0.1, 1.0)))
@@ -452,11 +452,11 @@ class ExportScenePopup (KeyboardAccess):
 		self.__layout.add_widget(self.__smoothLine)
 		self.__layout.add_widget(self.__confirmLine)
 
-		self.__popup = Popup(size_hint = (0.5, 0.5), auto_dismiss = False, title = 'Export Scene', 
+		self.__popup = Popup(size_hint = (0.5, 0.5), auto_dismiss = False, title = 'Export Scene',
 			content = self.__layout)
 		self.__errorPopup = AlertPopUp('Error', '', 'Ok')
 		self.__successPopup = AlertPopUp('Success', 'The scene was successfully exported.', 'Ok')
-		
+
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__popup.dismiss()
@@ -473,15 +473,15 @@ class ExportScenePopup (KeyboardAccess):
 class FilesOptionsMenu:
 	def __startBasicButtonsLayout(self):
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__newButton = CancelableButton(text = 'New Scene', size_hint = (1.0, 0.25), 
+		self.__newButton = CancelableButton(text = 'New Scene', size_hint = (1.0, 0.25),
 			on_release = self.__newScenePopup.open)
-		self.__loadButton = CancelableButton(text = 'Load Scene', size_hint = (1.0, 0.25), 
+		self.__loadButton = CancelableButton(text = 'Load Scene', size_hint = (1.0, 0.25),
 			on_release = self.__loadScenePopup.open)
-		self.__saveButton = CancelableButton(text = 'Save Scene', size_hint = (1.0, 0.25), 
+		self.__saveButton = CancelableButton(text = 'Save Scene', size_hint = (1.0, 0.25),
 			on_release = self.__saveScenePopup.open)
-		self.__exportButton = CancelableButton(text = 'Export Scene', size_hint = (1.0, 0.25), 
+		self.__exportButton = CancelableButton(text = 'Export Scene', size_hint = (1.0, 0.25),
 			on_release = self.__exportPopup.open)
-		
+
 		self.__layout.add_widget(self.__newButton)
 		self.__layout.add_widget(self.__loadButton)
 		self.__layout.add_widget(self.__saveButton)

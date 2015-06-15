@@ -2,6 +2,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
 from kivy.graphics.texture import Texture
@@ -116,6 +117,10 @@ class AlignedLabel(Label, AutoAlign):
 		super(AlignedLabel, self).__init__(**kwargs)
 		self.bind(size = self._set_on_size)
 
+class AlignedToggleButton(ToggleButton, AutoAlign):
+	def __init__(self, **kwargs):
+		super(AlignedToggleButton, self).__init__(**kwargs)
+		self.bind(size = self._set_on_size)
 
 class BaseWarnMethods(KeyboardAccess):
 	def open(self):

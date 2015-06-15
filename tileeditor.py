@@ -17,6 +17,7 @@ from tilemapfiles import FilesManager
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
 from resourceloader import ResourceLoaderPopup
 from layer import LayerInformationPopup
+from layerinfo import LayerGuardian
 from editorobjects import BaseObject
 from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
 from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder, LayerToSceneCommunication
@@ -98,6 +99,13 @@ class TileEditor(App, KeyboardAccess):
 		#Keyboard handler:
 		KeyboardGuardian.Instance()
 
+		# Left Menu Handler
+		LayerGuardian()
+		LayerInformationPopup()
+		NewBaseObjectDisplay()
+		NewBaseObjectsMenu()
+		ObjectDescriptor()
+
 		# Files handlers
 		FilesManager.Instance()
 
@@ -117,11 +125,6 @@ class TileEditor(App, KeyboardAccess):
 		# Bottom Menu Handler
 		#OptionsMenu.Instance(self.rightScreen)
 
-		# Left Menu Handler
-		NewBaseObjectDisplay()
-		NewBaseObjectsMenu()
-		ObjectDescriptor()
-
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())
 		bottomMenu = BoxLayout(orientation = 'horizontal', height = mainLayoutSize['bottomMenuHeight'],
@@ -140,9 +143,6 @@ class TileEditor(App, KeyboardAccess):
 
 		# ResourceLoader
 		self.__resourcePopup = ResourceLoaderPopup()
-
-		# Layers
-		LayerInformationPopup.Instance()
 
 		# Communication Objects
 		CollisionToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,

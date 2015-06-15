@@ -7,7 +7,6 @@ mainLayoutSize = {
 options_menu_size = {
 	'objectSize' : (mainLayoutSize['leftMenuWidth'] * 0.9, mainLayoutSize['leftMenuWidth'] * 0.9),
 	'padding' : 3,
-
 }
 
 descriptorSize = {'height' : 200 }
