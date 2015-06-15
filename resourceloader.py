@@ -8,7 +8,7 @@ from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
 from uisizes import resourceLoderSize, descriptorLabelDefault, buttonDefault, inputDefault
-from editorheritage import SeparatorLabel, LayoutGetter
+from editorheritage import SeparatorLabel, LayoutGetter, MouseModifiers
 from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog, convertKivyCoordToOrxCoord
 from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
 from keyboard import KeyboardAccess, KeyboardGuardian
@@ -53,7 +53,7 @@ class GridCell:
 		if (self.__marked):
 			self.draw((0., 1., 0., 1.))
 
-class ResourceLoaderDisplay(LayoutGetter):
+class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def __clearGraphicGrid(self):
 		self.__currentSelection = None
 		for line in self.__gridGraphics:
@@ -89,6 +89,10 @@ class ResourceLoaderDisplay(LayoutGetter):
 		if (self._layout.collide_point(*touch.pos) == False):
 			return
 
+		self.updateMouseDown(touch)
+		if (self._isLeftPressed == True and self._isRightPressed == False):
+			self._layout.do_scroll = False
+
 		if (touch.button == 'left'):
 			imgCoords = self.__currentImage.to_widget(touch.pos[0], touch.pos[1])
 			if (self.__currentImage is not None and self.__currentImage.collide_point(*imgCoords) == True):
@@ -96,9 +100,18 @@ class ResourceLoaderDisplay(LayoutGetter):
 			else:
 				self.__clearGraphicGrid()
 
+		self.__defaultTouchDown(touch)
+
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
+		self.updateMouseUp(touch)
+		if (self._isRightPressed == True or self._isLeftPressed == False):
+			self._layout.do_scroll = True
+
 		if (touch.button == 'left'):
 			self.finishSelection(touch)
+
+		elif (touch.button == 'right'):
+			self.__defaultTouchUp(touch)
 
 	def __clearSelectionGrid(self):
 		self._scrollLayout.clear_widgets()
@@ -136,6 +149,7 @@ class ResourceLoaderDisplay(LayoutGetter):
 		self.__gridGraphics = []
 
 	def __init__(self, **kwargs):
+		super(self.__class__, self).__init__(**kwargs)
 		self._layout = ScrollView(size_hint = (1.0, 1.0), effect_cls = EmptyScrollEffect)
 		self.__defaultTouchMove = self._layout.on_touch_move
 		self.__defaultTouchDown = self._layout.on_touch_down
@@ -237,18 +251,9 @@ class ResourceLoaderDisplay(LayoutGetter):
 		return self._scrollLayout.size
 
 class ResourceLoaderList(LayoutGetter):
-	def __ignoreMoves(self, touch):
-		pass
-
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self._layout.collide_point(*touch.pos) == False):
 			return
-
-		if (touch.is_mouse_scrolling == True):
-			if (self._layout.height != self.__tree.minimum_height):
-				self._layout.height = self.__tree.minimum_height
-
-			return self.specialScroll(touch)
 
 		self.__defaultTouchDown(touch)
 
@@ -278,6 +283,9 @@ class ResourceLoaderList(LayoutGetter):
 			self.__tree.remove_node(node)
 
 		self._layout.height = self.__tree.minimum_height
+	
+	def _adjustTreeSize(self, *args):
+		self._scrollLayout.size[1] = self.__tree.minimum_height
 
 	def getSelection(self):
 		if (self.__tree.selected_node is not None):
@@ -338,16 +346,17 @@ class ResourceLoaderList(LayoutGetter):
 
 	def __init__(self, showMethod, **kwargs):
 		self.__resourceInfo = None
-		self._layout = ScrollView(effect_cls = EmptyScrollEffect)
-		self._layout.on_touch_move = self.__ignoreMoves
-		self.__defaultTouchDown = self._layout.on_touch_down
-		self._layout.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+		self._layout = ScrollView(effect_cls = EmptyScrollEffect, scroll = (1.0, 1.0))
 		self.__tree = TreeView(root_options = dict(text='Resources', id='root#0'), size_hint = (1.0, 1.0),
 			expand_root = False)
 		self._scrollLayout = RelativeLayout(size = (300, 100), size_hint = (None, None))
 		self._scrollLayout.add_widget(self.__tree)
 		self._layout.add_widget(self._scrollLayout)
 		self.__showMethod = showMethod
+		
+		self.__defaultTouchDown = self._layout.on_touch_down
+		self._layout.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+		self.__tree.bind(minimum_height=self._adjustTreeSize)
 
 	def save(self):
 		if (self.__resourceInfo is not None):
@@ -564,11 +573,12 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__createLeftMenuUi()
 		self.__setStartState()
 
-		self.__middleMenu = BoxLayout(orientation = 'vertical', size_hint = (0.7, 1.0))
+		self.__middleMenu = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__display = ResourceLoaderDisplay()
 		self.__middleMenu.add_widget(self.__display.getLayout())
 
-		self.__rightMenu = BoxLayout(orientation = 'vertical', size_hint = (0.15, 1.0))
+		self.__rightMenu = BoxLayout(orientation = 'vertical', size_hint = (None, 1.0),
+			width = resourceLoderSize['width'])
 		self.__createRightMenuUi()
 
 		self._layout.add_widget(self.__leftMenu)
