@@ -9,17 +9,43 @@ options_menu_size = {
 	'padding' : 3,
 }
 
+defaultFontSize = 20
+
 descriptorSize = {'height' : 200 }
-descriptorLabelDefault = {'height' : 20, 'shorten' : True, 'shorten_from' : 'left', 'size_hint' : (1.0, None)}
-descriptorButtonDefault = {
-	'height' : 20, 'width' : 80, 'shorten' : True, 'shorten_from' : 'left', 'size_hint' : (None, None)
-}
-descriptorButtonDoubleSize = {
-	'height' : 20, 'width' : 160, 'shorten' : True, 'shorten_from' : 'left', 'size_hint' : (None, None)
+
+descriptorLabelDefault = {
+	'height' : defaultFontSize,
+	'shorten' : True,
+	'shorten_from' : 'left',
+	'size_hint' : (1.0, None)
 }
 
-buttonDefault = {'height' : 20, 'size_hint' : (1.0, None)}
-inputDefault = {'height' : 30, 'size_hint' : (1.0, None), 'multiline' : False}
+descriptorButtonDefault = {
+	'height' : defaultFontSize,
+	'width' : 80,
+	'shorten' : True,
+	'shorten_from' : 'left',
+	'size_hint' : (None, None)
+}
+descriptorButtonDoubleSize = {
+	'height' : defaultFontSize,
+	'width' : 160,
+	'shorten' : True,
+	'shorten_from' : 'left',
+	'size_hint' : (None, None)
+}
+
+buttonDefault = {
+	'height' : defaultFontSize,
+	'size_hint' : (1.0, None)
+}
+
+inputDefault = {
+	'height' : defaultFontSize + 10,
+	'size_hint' :
+	(1.0, None),
+	'multiline' : False
+}
 
 sceneMiniMapSize = {
 	'size' : (200, 200),

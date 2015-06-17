@@ -4,7 +4,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
 
-
 from editorutils import CancelableButton, AlertPopUp, Dialog, AlignedLabel, AlignedToggleButton
 from keyboard import KeyboardAccess, KeyboardGuardian
 from modulesaccess import ModulesAccess

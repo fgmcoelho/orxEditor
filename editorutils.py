@@ -10,10 +10,13 @@ from kivy.uix.image import Image
 from kivy.effects.scroll import ScrollEffect
 
 from keyboard import KeyboardAccess, KeyboardGuardian
+from editorheritage import SeparatorLabel
 
 from os.path import sep as pathSeparator
 from os import getcwd
 from math import sqrt
+
+from uisizes import buttonDefault, defaultFontSize
 
 class NumberInput(TextInput):
 	modulesDict = {}
@@ -177,7 +180,14 @@ class Dialog(BaseWarnMethods):
 		popUpLayout.add_widget(yesNoLayout)
 		self.mainPopUp.content = popUpLayout
 
-class AlertPopUp (BaseWarnMethods):
+class AlertPopUp (BaseWarnMethods, SeparatorLabel):
+	def _setButtonSize(self, button, new_size):
+		if (button.texture_size[0] != 0 and button.texture_size[1] != 0):
+			print button.texture_size
+			button.unbind(size=self._setButtonSize)
+			button.size = (button.texture_size[0] + 30, button.texture_size[1])
+			button.size_hint = (None, None)
+
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			self.__processClose()
@@ -189,19 +199,26 @@ class AlertPopUp (BaseWarnMethods):
 			self.__processCloseAction()
 
 	def __init__(self, alertTitle = '', alertText = '', closeButtonText = '', processCloseAction = None):
+		super(self.__class__, self).__init__()
 		self.mainPopUp = Popup(
 			title = alertTitle,
 			auto_dismiss = False,
-			size_hint = (0.5, 0.5)
+			size = (400, 200),
+			size_hint = (None, None),
 		)
 		self.__processCloseAction = processCloseAction
 		mainPopUpBox = BoxLayout(orientation = 'vertical')
-		self.mainPopUpText = Label(
-			text = alertText, size_hint = (1.0, 0.7)
-		)
+		self.mainPopUpText = AlignedLabel(text = alertText, height = defaultFontSize, size_hint = (1.0, None))
+		okLine = BoxLayout(orientation = 'horizontal', height = defaultFontSize, size_hint = (1.0, None))
+		finalButton = CancelableButton(text = closeButtonText, on_release = self.__processClose, **buttonDefault)
+		finalButton.bind(size=self._setButtonSize)
+
 		mainPopUpBox.add_widget(self.mainPopUpText)
-		mainPopUpBox.add_widget(CancelableButton(text = closeButtonText, size_hint = (1.0, 0.3),
-			on_release = self.__processClose))
+		mainPopUpBox.add_widget(self._separator)
+		okLine.add_widget(Label(text = '', height = defaultFontSize, size_hint_x = 1.0))
+		okLine.add_widget(finalButton)
+		mainPopUpBox.add_widget(okLine)
+
 		self.mainPopUp.content = mainPopUpBox
 
 class FileSelectionPopup:
