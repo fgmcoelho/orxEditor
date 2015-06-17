@@ -16,7 +16,7 @@ from os.path import sep as pathSeparator
 from os import getcwd
 from math import sqrt
 
-from uisizes import buttonDefault, defaultFontSize
+from uisizes import buttonDefault, defaultFontSize, warningSize
 
 class NumberInput(TextInput):
 	modulesDict = {}
@@ -126,6 +126,12 @@ class AlignedToggleButton(ToggleButton, AutoAlign):
 		self.bind(size = self._set_on_size)
 
 class BaseWarnMethods(KeyboardAccess):
+	def _setButtonSize(self, button, new_size):
+		if (button.texture_size[0] != 0 and button.texture_size[1] != 0):
+			button.unbind(size=self._setButtonSize)
+			button.size = (button.texture_size[0] + 30, button.texture_size[1])
+			button.size_hint = (None, None)
+
 	def open(self):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.mainPopUp.open()
@@ -180,14 +186,7 @@ class Dialog(BaseWarnMethods):
 		popUpLayout.add_widget(yesNoLayout)
 		self.mainPopUp.content = popUpLayout
 
-class AlertPopUp (BaseWarnMethods, SeparatorLabel):
-	def _setButtonSize(self, button, new_size):
-		if (button.texture_size[0] != 0 and button.texture_size[1] != 0):
-			print button.texture_size
-			button.unbind(size=self._setButtonSize)
-			button.size = (button.texture_size[0] + 30, button.texture_size[1])
-			button.size_hint = (None, None)
-
+class Alert(BaseWarnMethods, SeparatorLabel):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			self.__processClose()
@@ -203,19 +202,29 @@ class AlertPopUp (BaseWarnMethods, SeparatorLabel):
 		self.mainPopUp = Popup(
 			title = alertTitle,
 			auto_dismiss = False,
-			size = (400, 200),
-			size_hint = (None, None),
+			**warningSize
 		)
 		self.__processCloseAction = processCloseAction
+
+		lineSize = {
+			'height' : defaultFontSize,
+			'size_hint' : (1.0, None)
+		}
 		mainPopUpBox = BoxLayout(orientation = 'vertical')
-		self.mainPopUpText = AlignedLabel(text = alertText, height = defaultFontSize, size_hint = (1.0, None))
-		okLine = BoxLayout(orientation = 'horizontal', height = defaultFontSize, size_hint = (1.0, None))
+		if (alertText.count('\n') > 1):
+			multilineSize = lineSize.copy()
+			multilineSize['height'] = defaultFontSize * alertText.count('\n')
+			self.mainPopUpText = AlignedLabel(text = alertText, **multilineSize)
+		else:
+			self.mainPopUpText = AlignedLabel(text = alertText, **lineSize)
+
+		okLine = BoxLayout(orientation = 'horizontal', **lineSize)
 		finalButton = CancelableButton(text = closeButtonText, on_release = self.__processClose, **buttonDefault)
 		finalButton.bind(size=self._setButtonSize)
 
 		mainPopUpBox.add_widget(self.mainPopUpText)
 		mainPopUpBox.add_widget(self._separator)
-		okLine.add_widget(Label(text = '', height = defaultFontSize, size_hint_x = 1.0))
+		okLine.add_widget(Label(text = '', **lineSize))
 		okLine.add_widget(finalButton)
 		mainPopUpBox.add_widget(okLine)
 

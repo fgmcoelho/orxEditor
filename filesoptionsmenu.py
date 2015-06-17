@@ -2,7 +2,7 @@ from singleton import Singleton
 
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
-from editorutils import Dialog, AlertPopUp
+from editorutils import Dialog, Alert
 from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
 from kivy.uix.filechooser import FileChooserIconView
@@ -41,25 +41,25 @@ class NewScenePopup(KeyboardAccess):
 			tilesOnX = int(self.__xTilesInput.text)
 			assert(tilesOnX > 0)
 		except:
-			alert = AlertPopUp('Error', 'Invalid entry for number of tiles on x.', 'Ok')
+			alert = Alert('Error', 'Invalid entry for number of tiles on x.', 'Ok')
 			return alert.open()
 
 		try:
 			tilesOnY = int(self.__yTilesInput.text)
 			assert (tilesOnY > 0)
 		except:
-			alert = AlertPopUp('Error', 'Invalid entry for number of tiles on y.', 'Ok')
+			alert = Alert('Error', 'Invalid entry for number of tiles on y.', 'Ok')
 			return alert.open()
 
 		try:
 			tilesSize = int(self.__tileSizeInput.text)
 			assert(tilesSize > 0)
 		except:
-			alert = AlertPopUp('Error', 'Invalid entry for the size of tiles.', 'Ok')
+			alert = Alert('Error', 'Invalid entry for the size of tiles.', 'Ok')
 			return alert.open()
 
 		if (tilesSize < 8):
-			alert = AlertPopUp('Error', 'Minimum size tile supported is 8.', 'Ok')
+			alert = Alert('Error', 'Minimum size tile supported is 8.', 'Ok')
 			return alert.open()
 
 		if (self.__keepCollisionFlags.active == False):
@@ -282,8 +282,8 @@ class FileChooserUser(object):
 		self._fileChooserLayout.add_widget(self._fileChooserYesNoLayout)
 		self._fileChooserPopUp.content = self._fileChooserLayout
 		self._lastPath = getcwd()
-		self._errorPopup = AlertPopUp('Error', '', 'Ok')
-		self._successPopup = AlertPopUp('Success', '', 'Ok')
+		self._errorPopup = Alert('Error', '', 'Ok')
+		self._successPopup = Alert('Success', '', 'Ok')
 
 
 class SaveScenePopup(KeyboardAccess, FileChooserUser):
@@ -454,8 +454,8 @@ class ExportScenePopup (KeyboardAccess):
 
 		self.__popup = Popup(size_hint = (0.5, 0.5), auto_dismiss = False, title = 'Export Scene',
 			content = self.__layout)
-		self.__errorPopup = AlertPopUp('Error', '', 'Ok')
-		self.__successPopup = AlertPopUp('Success', 'The scene was successfully exported.', 'Ok')
+		self.__errorPopup = Alert('Error', '', 'Ok')
+		self.__successPopup = Alert('Success', 'The scene was successfully exported.', 'Ok')
 
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)

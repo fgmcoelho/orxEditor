@@ -1,10 +1,8 @@
-from singleton import Singleton
-
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
 
-from editorutils import CancelableButton, AlertPopUp, Dialog, AlignedLabel, AlignedToggleButton
+from editorutils import CancelableButton, Alert, Dialog, AlignedLabel, AlignedToggleButton
 from keyboard import KeyboardAccess, KeyboardGuardian
 from modulesaccess import ModulesAccess
 
@@ -74,14 +72,14 @@ class LayerEditorPopup(KeyboardAccess):
 	def __processAddLayer(self, *args):
 		newLayer = self.__layerNameInput.text.strip()
 		if (newLayer == ''):
-			error = AlertPopUp('Error', 'Layer name can\'t be empty.', 'Ok', self.__reaplyFocus)
+			error = Alert('Error', 'Layer name can\'t be empty.', 'Ok', self.__reaplyFocus)
 			error.open()
 			return
 
 		layerList = ModulesAccess.get('LayerGuardian').getLayerList()
 		for layer in layerList:
 			if (newLayer == layer.getName()):
-				error = AlertPopUp('Error', 'This name has already been used.', 'Ok', self.__reaplyFocus)
+				error = Alert('Error', 'This name has already been used.', 'Ok', self.__reaplyFocus)
 				error.open()
 				return
 
@@ -91,7 +89,7 @@ class LayerEditorPopup(KeyboardAccess):
 				invalidSet.append(char)
 
 		if (invalidSet != []):
-			error = AlertPopUp('Error', 'Found invalid characters in the name:\n ' + ''.join(invalidSet), 'Ok',
+			error = Alert('Error', 'Found invalid characters in the name:\n ' + ''.join(invalidSet), 'Ok',
 				self.__reaplyFocus)
 			error.open()
 			return
@@ -186,7 +184,7 @@ class LayerInformationPopup(KeyboardAccess):
 				newLayer = button.text
 
 		if (newLayer is None):
-			errorAlert = AlertPopUp(
+			errorAlert = Alert(
 				'Error',
 				'No layer selected!\nYou must select a new layer.',
 				'Ok'
@@ -255,7 +253,7 @@ class LayerInformationPopup(KeyboardAccess):
 	def open(self, *args):
 		objList = ModulesAccess.get('SceneHandler').getCurrentSelection()
 		if (objList == []):
-			errorAlert = AlertPopUp(
+			errorAlert = Alert(
 				'Error',
 				'No object is selected!\nYou need to select at least one object from the scene.',
 				'Ok'

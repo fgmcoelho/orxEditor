@@ -14,7 +14,7 @@ from kivy.uix.togglebutton import ToggleButton
 from string import letters, digits
 from math import floor, ceil
 
-from editorutils import AlertPopUp, Dialog, EmptyScrollEffect, CancelableButton, distance
+from editorutils import Alert, Dialog, EmptyScrollEffect, CancelableButton, distance
 from communicationobjects import CollisionToSceneCommunication
 from keyboard import KeyboardAccess, KeyboardGuardian
 from collisioninfo import CollisionGuardian, CollisionPartInformation, CollisionInformation
@@ -24,7 +24,7 @@ class CollisionFlagsEditorKeyboardHandler(KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			CollisionFlagsEditor.Instance().close()
-	
+
 	def __init__(self):
 		pass
 
@@ -151,12 +151,12 @@ class CollisionFlagsEditor:
 
 	def __processAddFlag(self, *args):
 		if (self.__flagNameInput.text == ''):
-			error = AlertPopUp('Error', 'Flag name can\'t be empty.', 'Ok', self.__reaplyFocus)
+			error = Alert('Error', 'Flag name can\'t be empty.', 'Ok', self.__reaplyFocus)
 			error.open()
 			return
 
 		if (CollisionGuardian.Instance().getFlagByName(self.__flagNameInput.text) is not None):
-			error = AlertPopUp('Error', 'This name has already been used.', 'Ok', self.__reaplyFocus)
+			error = Alert('Error', 'This name has already been used.', 'Ok', self.__reaplyFocus)
 			error.open()
 			return
 
@@ -166,7 +166,7 @@ class CollisionFlagsEditor:
 				invalidSet.append(char)
 
 		if (invalidSet != []):
-			error = AlertPopUp('Error', 'Found invalid characters in the name:\n ' + ''.join(invalidSet), 'Ok',
+			error = Alert('Error', 'Found invalid characters in the name:\n ' + ''.join(invalidSet), 'Ok',
 				self.__reaplyFocus)
 			error.open()
 			return
@@ -407,7 +407,7 @@ class CollisionInformationPopupKeyboardHandler(KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			CollisionInformationPopup.Instance().dismissPopUp()
-	
+
 	def __init__(self):
 		pass
 
@@ -447,7 +447,7 @@ class CollisionInformationPopup:
 
 	def __deleteCurrentPart(self, *args):
 		if (self.__partsPanel.current_tab.text == 'Edit'):
-			errorPopup = AlertPopUp('Error', 'You can\'t delete the edit flag, it hasn\'t been added.', 'Ok')
+			errorPopup = Alert('Error', 'You can\'t delete the edit flag, it hasn\'t been added.', 'Ok')
 			errorPopup.open()
 		else:
 			self.__warnDelete.open()
@@ -696,7 +696,7 @@ class CollisionInformationPopup:
 			'Are you sure you want to\ndelete this part?', 'Yes', 'No')
 		self.__warnApplyAll = Dialog(self.__doApplyChanges, 'Confirmation',
 			'This will replace information of other objects.', 'Yes', 'No')
-		self.__errorPopUp = AlertPopUp('Error', 'No Object selected!\nYou need to select one object from the scene.',
+		self.__errorPopUp = Alert('Error', 'No Object selected!\nYou need to select one object from the scene.',
 			'Ok')
 		self.__keyboardHandler = CollisionInformationPopupKeyboardHandler()
 

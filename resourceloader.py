@@ -9,7 +9,7 @@ from kivy.graphics import Color
 
 from uisizes import resourceLoderSize, descriptorLabelDefault, buttonDefault, inputDefault
 from editorheritage import SeparatorLabel, LayoutGetter, MouseModifiers
-from editorutils import CancelableButton, AutoReloadTexture, AlertPopUp, Dialog, convertKivyCoordToOrxCoord
+from editorutils import CancelableButton, AutoReloadTexture, Alert, Dialog, convertKivyCoordToOrxCoord
 from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import SpriteSelection, SplittedImageExporter, SplittedImageImporter
@@ -322,9 +322,9 @@ class ResourceLoaderList(LayoutGetter):
 
 		if (count != 0):
 			if (count == 1):
-				warn = AlertPopUp('Error', '1 selection could not be added because it\nhas already been added.', 'Ok')
+				warn = Alert('Error', '1 selection could not be added because it\nhas already been added.', 'Ok')
 			else:
-				warn = AlertPopUp('Error',
+				warn = Alert('Error',
 					str(count) + ' selections could not be added because they\nhave already been added.', 'Ok'
 				)
 
@@ -332,7 +332,7 @@ class ResourceLoaderList(LayoutGetter):
 
 	def addItem(self, selection):
 		if (self.__resourceInfo.hasSame(selection) == True):
-			warn = AlertPopUp('Error', 'This selection has already been added.', 'Ok')
+			warn = Alert('Error', 'This selection has already been added.', 'Ok')
 			warn.open()
 			return
 

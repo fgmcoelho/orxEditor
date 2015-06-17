@@ -16,7 +16,7 @@ from operator import itemgetter
 
 from editorheritage import LayoutGetter, KeyboardModifiers, MouseModifiers
 from editorobjects import RenderObjectGuardian
-from editorutils import AlertPopUp, AutoReloadTexture, EmptyScrollEffect
+from editorutils import Alert, AutoReloadTexture, EmptyScrollEffect
 from modulesaccess import ModulesAccess
 from uisizes import sceneMiniMapSize
 
@@ -300,7 +300,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			exactlyY is not None), "Invalid argument received."
 		sx, sy = obj.getSize()
 		if (sx > self._maxX or sy > self._maxY):
-			errorAlert = AlertPopUp(
+			errorAlert = Alert(
 				'Error',
 				'Object could not be rendered because\nit is bigger than the scene space.',
 				'Ok'

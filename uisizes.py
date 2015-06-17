@@ -55,3 +55,7 @@ resourceLoderSize = {
 	'width' : 120,
 }
 
+warningSize = {
+	'size' : (400, 200),
+	'size_hint' : (None, None),
+}

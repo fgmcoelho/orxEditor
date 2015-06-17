@@ -1,7 +1,7 @@
 from kivy.uix.boxlayout import BoxLayout
 
 from editorobjects import BaseObject, RenderedObject
-from editorutils import CancelableButton, AlertPopUp, AlignedLabel
+from editorutils import CancelableButton, Alert, AlignedLabel
 from modulesaccess import ModulesAccess
 from editorheritage import LayoutGetter, SeparatorLabel
 from uisizes import descriptorSize, descriptorLabelDefault, descriptorButtonDefault, descriptorButtonDoubleSize
@@ -198,7 +198,7 @@ class RenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGette
 class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, SeparatorLabel):
 	def _openResourceLoader(self, *args):
 		if (self._describedObject is None or isinstance(self._describedObject, BaseObject) == False):
-			AlertPopUp('Error', 'No compatible object selected.', 'Ok').open()
+			Alert('Error', 'No compatible object selected.', 'Ok').open()
 		else:
 			ModulesAccess.get('ResourceLoader').open(self._describedObject.getPath())
 
