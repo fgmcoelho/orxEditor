@@ -27,6 +27,7 @@ descriptorButtonDefault = {
 	'shorten_from' : 'left',
 	'size_hint' : (None, None)
 }
+
 descriptorButtonDoubleSize = {
 	'height' : defaultFontSize,
 	'width' : 160,
@@ -42,8 +43,7 @@ buttonDefault = {
 
 inputDefault = {
 	'height' : defaultFontSize + 10,
-	'size_hint' :
-	(1.0, None),
+	'size_hint' : (1.0, None),
 	'multiline' : False
 }
 
@@ -58,4 +58,9 @@ resourceLoderSize = {
 warningSize = {
 	'size' : (400, 200),
 	'size_hint' : (None, None),
+}
+
+lineSize = {
+	'height' : defaultFontSize,
+	'size_hint' : (1.0, None),
 }

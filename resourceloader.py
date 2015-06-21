@@ -366,7 +366,6 @@ class ResourceLoaderList(LayoutGetter):
 class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
-
 		if (keycode[1] == 'shift'):
 			self.__isShiftPressed = False
 
@@ -376,10 +375,13 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 					NumberInput.selectInputByFocus(self.__state)
 				else:
 					NumberInput.selectInputByFocus(self.__state, reverse = True)
+		
+		elif (keycode[1] == 'enter'):
+			self.__splitImage()
+			
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
-
 		if (keycode[1] == 'shift'):
 			self.__isShiftPressed = True
 

@@ -65,11 +65,14 @@ class LayerGuardian:
 	def deleteLayerByName(self, layerName):
 		i = self.__getIndex(layerName)
 		while (self.__layersDict[i] != None):
-			self.__layersDict[i] = self.__layersDict[i + 1]
-			if (self.__layersDict[i] is not None):
-				self.__layersDict[i].setPriority(i)
-			i += 1
-
+			if (i == 15):
+				self.__layersDict[i] = None
+				break
+			else:
+				self.__layersDict[i] = self.__layersDict[i + 1]
+				if (self.__layersDict[i] is not None):
+					self.__layersDict[i].setPriority(i)
+				i += 1
 		self.__highestPriority -= 1
 
 	def getLayerList(self):

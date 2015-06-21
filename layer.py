@@ -1,23 +1,25 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
+from kivy.clock import Clock
 
 from editorutils import CancelableButton, Alert, Dialog, AlignedLabel, AlignedToggleButton
+from editorheritage import SeparatorLabel
 from keyboard import KeyboardAccess, KeyboardGuardian
+from uisizes import descriptorLabelDefault, lineSize, descriptorButtonDefault, inputDefault, defaultFontSize
 from modulesaccess import ModulesAccess
 
 from string import letters, digits
 
-class LayerEditorPopup(KeyboardAccess):
+class LayerEditorPopup(KeyboardAccess, SeparatorLabel):
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
-			self.__close()
+			self.close()
 
-	def __close(self, *args):
-		KeyboardGuardian.Instance().dropKeyboard(self)
-		ModulesAccess.get('LayerInformation').update()
-		self.__popup.dismiss()
+		elif (keycode[1] in self.__validCharacters and self.__layerNameInput.focus == False):
+			self.__layerNameInput.insert_text(keycode[1])
+			self.__layerNameInput.focus = True
 
 	def __doDeleteLayer(self):
 		if (self.__layerToRemoveName is not None):
@@ -29,7 +31,6 @@ class LayerEditorPopup(KeyboardAccess):
 
 			self.__layerToRemoveName = None
 			self.__render()
-
 
 	def __updateLayers(self, *args):
 		button = args[0]
@@ -58,6 +59,7 @@ class LayerEditorPopup(KeyboardAccess):
 					'Cancel', None, None
 				)
 				warn.open()
+
 			else:
 				warn = Dialog(
 					self.__doDeleteLayer,
@@ -67,7 +69,6 @@ class LayerEditorPopup(KeyboardAccess):
 					'Cancel',
 				)
 				warn.open()
-
 
 	def __processAddLayer(self, *args):
 		newLayer = self.__layerNameInput.text.strip()
@@ -98,64 +99,75 @@ class LayerEditorPopup(KeyboardAccess):
 		self.__layerNameInput.text = ''
 		self.__render()
 
+	def __delayedFocus(self, *args):
+		self.__layerNameInput.focus = True
+
 	def __reaplyFocus(self):
 		layerList = ModulesAccess.get('LayerGuardian').getLayerList()
 		if (len(layerList) != self.__maxLayers):
 			self.__inputBar.clear_widgets()
-			oldText = self.__layerNameInput.text
-			self.__layerNameInput = TextInput(text = oldText, multiline = False, size_hint = (0.9, 1.0),
-				on_text_validate = self.__processAddLayer, focus = True)
 			self.__inputBar.add_widget(self.__layerNameInput)
 			self.__inputBar.add_widget(self.__layerAddButton)
-
+			Clock.schedule_once(self.__delayedFocus, 0)
+			
 	def __render(self):
 		self.__layout.clear_widgets()
 		layerList = ModulesAccess.get('LayerGuardian').getLayerList()
 		for layer in layerList:
 			name = layer.getName()
-			line = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.05))
-			line.add_widget(AlignedLabel(text = name, size_hint = (0.85, 1.0)))
-			line.add_widget(CancelableButton(text = '+', on_release = self.__updateLayers, id = 'inc#' + name,
-				size_hint = (0.05, 1.0)))
-			line.add_widget(CancelableButton(text = '-', on_release = self.__updateLayers, id = 'dec#' + name,
-				size_hint = (0.05, 1.0)))
+			line = BoxLayout(orientation = 'horizontal', id = 'line_' + name, **lineSize)
+			line.add_widget(AlignedLabel(text = name, **descriptorLabelDefault))
+			line.add_widget(CancelableButton(text = '+Priority', on_release = self.__updateLayers, id = 'inc#' + name,
+				**descriptorButtonDefault))
+			line.add_widget(CancelableButton(text = '-Priority', on_release = self.__updateLayers, id = 'dec#' + name,
+				**descriptorButtonDefault))
 			if (name != 'default'):
-				line.add_widget(CancelableButton(text = 'x', on_release = self.__updateLayers, id = 'rem#' + name,
-					size_hint = (0.05, 1.0)))
+				line.add_widget(CancelableButton(text = 'Remove', on_release = self.__updateLayers, id = 'rem#' + name,
+					**descriptorButtonDefault))
 			else:
-				line.add_widget(AlignedLabel(text='', size_hint = (0.05, 1.0)))
+				line.add_widget(AlignedLabel(text='', **descriptorButtonDefault))
 			self.__layout.add_widget(line)
 
-		self.__layout.add_widget(AlignedLabel(text = '', size_hint = (1.0, 0.85 - (len(layerList) * 0.05))))
+		self.__layout.add_widget(self._separator)
 
 		if (len(layerList) == self.__maxLayers):
 			self.__layout.add_widget(AlignedLabel(text = 'Maximum number of layers (%u) reached.' %
-				(self.__maxLayers, ), size_hint = (1.0, 0.05)))
+				(self.__maxLayers, ), **descriptorLabelDefault))
 		else:
 			self.__reaplyFocus()
 			self.__layout.add_widget(self.__inputBar)
 
-		self.__layout.add_widget(AlignedLabel(text = '', size_hint = (1.0, 0.05)))
+		self.__layout.add_widget(AlignedLabel(text = '', **lineSize))
 		self.__layout.add_widget(self.__closeLine)
 
 	def __init__(self):
-		super(LayerEditorPopup, self).__init__()
+		super(self.__class__, self).__init__()
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__closeButton = CancelableButton(text = 'close', on_release = self.__close, size_hint = (0.1, 1.0))
-		self.__closeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.05))
-		self.__closeLine.add_widget(AlignedLabel(
-			text =  'Hint: Lower priority (closer to the top of the window) are drawn\n'\
-			'first, hence they will be drawn under the ones with higher priority.',
-			size_hint = (0.9, 1.0))
+		doubleLineSize = {
+			'height' : defaultFontSize * 2,
+			'size_hint' : (1.0, None)
+		}
+		addButtonSize = {
+			'height' : inputDefault['height'],
+			'width' : descriptorButtonDefault['width'],
+			'size_hint' : (None, None),
+		}
+
+		self.__closeButton = CancelableButton(text = 'Done', on_release = self.close, **descriptorButtonDefault)
+		self.__closeLine = BoxLayout(orientation = 'horizontal', **lineSize)
+		self.__closeLine.add_widget(
+			AlignedLabel(
+				text =  'Hint: Lower priority (closer to the top of the window) are drawn\n'\
+				'first, hence they will be drawn under the ones with higher priority.',
+				**doubleLineSize
+			)
 		)
 		self.__closeLine.add_widget(self.__closeButton)
 
-		self.__inputBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.05))
-		self.__layerNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0),
-			on_text_validate = self.__processAddLayer, focus = False)
-		self.__layerAddButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0),
-			on_release = self.__processAddLayer)
-
+		self.__inputBar = BoxLayout(orientation = 'horizontal', **inputDefault)
+		self.__layerNameInput = TextInput(on_text_validate = self.__processAddLayer, **inputDefault)
+		self.__layerAddButton = CancelableButton(text = 'Add', on_release = self.__processAddLayer, 
+			**addButtonSize)
 
 		self.__popup = Popup(title = 'Groups Editor', content = self.__layout, auto_dismiss = False)
 		self.__maxLayers = 16
@@ -166,15 +178,40 @@ class LayerEditorPopup(KeyboardAccess):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.__render()
 		self.__popup.open()
+	
+	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
+		ModulesAccess.get('LayerInformation').update()
+		self.__popup.dismiss()
 
-class LayerInformationPopup(KeyboardAccess):
+
+class LayerInformationPopup(KeyboardAccess, SeparatorLabel):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			self.close()
 
-	def close(self, *args):
-		KeyboardGuardian.Instance().dropKeyboard(self)
-		self.__popup.dismiss()
+		elif (len(self.__buttonList) != 1 and keycode[1] in ['up', 'down']):
+			index = self.__getSelectedButtonIndex()
+			if (index == -1):
+				self.__buttonList[0].state = 'down'
+				return
+
+			if (keycode[1] == 'up'):
+				newIndex = (index + 1) % len(self.__buttonList)
+			else:
+				newIndex = (index - 1) % len(self.__buttonList)
+
+			self.__buttonList[index].state = 'normal'
+			self.__buttonList[newIndex].state = 'down'
+		
+		elif (keycode[1] == 'enter'):
+			self.__save()
+
+	def __getSelectedButtonIndex(self):
+		for i in range(len(self.__buttonList)):
+			if (self.__buttonList[i].state == 'down'):
+				return i
+		return -1
 
 	def __save(self, *args):
 		newLayer = None
@@ -195,6 +232,7 @@ class LayerInformationPopup(KeyboardAccess):
 				obj.setLayer(newLayer)
 
 			ModulesAccess.get('SceneHandler').redraw()
+			ModulesAccess.get('ObjectDescriptor').update()
 			self.close()
 
 	def __getLayerNameIfAllEqual(self):
@@ -208,9 +246,11 @@ class LayerInformationPopup(KeyboardAccess):
 	def __render(self):
 		self.__layout.clear_widgets()
 		if (len(self.__objectsList) == 1):
-			self.__layout.add_widget(AlignedLabel(text = 'Select the new group for the object:', size_hint = (1.0, 0.05)))
+			self.__layout.add_widget(AlignedLabel(text = 'Select the new group for the object:', 
+				**descriptorLabelDefault))
 		else:
-			self.__layout.add_widget(AlignedLabel(text = 'Select the new group for the objects:', size_hint = (1.0, 0.05)))
+			self.__layout.add_widget(AlignedLabel(text = 'Select the new group for the objects:', 
+				**descriptorLabelDefault))
 
 		self.__buttonList = []
 		layerToMark = self.__getLayerNameIfAllEqual()
@@ -221,11 +261,11 @@ class LayerInformationPopup(KeyboardAccess):
 			else:
 				state = 'normal'
 			layerButton = AlignedToggleButton(text = layer.getName(), group = 'layers', state = state,
-					size_hint = (1.0, 0.05), height = 20, shorten = True, shorten_from = 'left')
+					**descriptorLabelDefault)
 			self.__layout.add_widget(layerButton)
 			self.__buttonList.append(layerButton)
 
-		self.__layout.add_widget(AlignedLabel(text = '', size_hint = (1.0, 0.05 * (18 - len(layerList)))))
+		self.__layout.add_widget(self._separator)
 		self.__layout.add_widget(self.__bottomLine)
 
 	def __init__(self):
@@ -235,13 +275,13 @@ class LayerInformationPopup(KeyboardAccess):
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__objectsList = None
 
-		self.__bottomLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.05))
-		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.close)
-		self.__doneButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0), on_release = self.__save)
-		self.__editLayersButton = CancelableButton(text = 'Edit groups', size_hint = (0.2, 1.0),
-			on_release = self.__editFlagsPopup.open)
+		self.__bottomLine = BoxLayout(orientation = 'horizontal', **lineSize)
+		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, **descriptorButtonDefault)
+		self.__doneButton = CancelableButton(text = 'Done', on_release = self.__save, **descriptorButtonDefault)
+		self.__editLayersButton = CancelableButton(text = 'Edit groups', on_release = self.__editFlagsPopup.open, 
+			**descriptorButtonDefault)
 		self.__bottomLine.add_widget(self.__editLayersButton)
-		self.__bottomLine.add_widget(AlignedLabel(text = '', size_hint = (0.6, 1.0)))
+		self.__bottomLine.add_widget(AlignedLabel(text = '', **lineSize))
 		self.__bottomLine.add_widget(self.__cancelButton)
 		self.__bottomLine.add_widget(self.__doneButton)
 		self.__popup.content = self.__layout
@@ -264,4 +304,8 @@ class LayerInformationPopup(KeyboardAccess):
 			self.__render()
 			KeyboardGuardian.Instance().acquireKeyboard(self)
 			self.__popup.open()
+	
+	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
+		self.__popup.dismiss()
 

@@ -16,7 +16,7 @@ from os.path import sep as pathSeparator
 from os import getcwd
 from math import sqrt
 
-from uisizes import buttonDefault, defaultFontSize, warningSize
+from uisizes import buttonDefault, defaultFontSize, warningSize, lineSize
 
 class NumberInput(TextInput):
 	modulesDict = {}
@@ -125,7 +125,7 @@ class AlignedToggleButton(ToggleButton, AutoAlign):
 		super(AlignedToggleButton, self).__init__(**kwargs)
 		self.bind(size = self._set_on_size)
 
-class BaseWarnMethods(KeyboardAccess):
+class BaseWarnMethods(KeyboardAccess, SeparatorLabel):
 	def _setButtonSize(self, button, new_size):
 		if (button.texture_size[0] != 0 and button.texture_size[1] != 0):
 			button.unbind(size=self._setButtonSize)
@@ -141,6 +141,31 @@ class BaseWarnMethods(KeyboardAccess):
 
 	def setText(self, value):
 		self.mainPopUpText.text = value
+
+	def _finishLayout(self):
+		self.mainPopUpBox.add_widget(self.bottomLine)
+		self.mainPopUp.content = self.mainPopUpBox
+
+	def __init__(self, title, text, **kwargs):
+		super(BaseWarnMethods, self).__init__(**kwargs)
+		self.mainPopUp = Popup(
+			title = title,
+			auto_dismiss = False,
+			**warningSize
+		)
+		self.mainPopUpBox = BoxLayout(orientation = 'vertical')
+		if (text.count('\n') >= 1):
+			multilineSize = lineSize.copy()
+			multilineSize['height'] = defaultFontSize * (text.count('\n') + 1)
+			self.mainPopUpText = AlignedLabel(text = text, **multilineSize)
+		else:
+			self.mainPopUpText = AlignedLabel(text = text, **lineSize)
+		
+		self.bottomLine = BoxLayout(orientation = 'horizontal', **lineSize)
+		self.bottomLine.add_widget(Label(text = '', **lineSize))
+
+		self.mainPopUpBox.add_widget(self.mainPopUpText)
+		self.mainPopUpBox.add_widget(self._separator)
 
 class Dialog(BaseWarnMethods):
 	def __doNothing(self, notUsed = None):
@@ -163,13 +188,9 @@ class Dialog(BaseWarnMethods):
 		if (self.__afterOkAction is not None):
 			self.__afterOkAction()
 
-	def __init__(self, okMethod = None, dialogTitle = '', dialogText = '', dialogOkButtonText = '',
-			dialogCancelButtonText = '', afterOkAction = None, afterCancelAction = None):
-
-		self.mainPopUp = Popup(title = dialogTitle, auto_dismiss = False, size_hint = (0.7, 0.5))
-		self.mainPopUpText = Label(text = dialogText)
-		popUpLayout = BoxLayout(orientation = 'vertical')
-		yesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.3))
+	def __init__(self, okMethod = None, title = '', text = '', dialogOkButtonText = '',
+			dialogCancelButtonText = '', afterOkAction = None, afterCancelAction = None, **kwargs):
+		super(self.__class__, self).__init__(title, text, **kwargs)
 
 		if (okMethod is None):
 			self.__okMethod = self.__doNothing
@@ -179,14 +200,17 @@ class Dialog(BaseWarnMethods):
 		self.__afterOkAction = afterOkAction
 		self.__afterCancelAction = afterCancelAction
 
-		self.__dialogOkButton = CancelableButton(text = dialogOkButtonText, on_release = self.__processOk)
-		popUpLayout.add_widget(self.mainPopUpText)
-		yesNoLayout.add_widget(self.__dialogOkButton)
-		yesNoLayout.add_widget(CancelableButton(text = dialogCancelButtonText, on_release = self.__processCancel))
-		popUpLayout.add_widget(yesNoLayout)
-		self.mainPopUp.content = popUpLayout
+		okButton = CancelableButton(text = dialogOkButtonText, on_release = self.__processOk, **buttonDefault)
+		okButton.bind(size = self._setButtonSize)
+		cancelButton = CancelableButton(text = dialogCancelButtonText, on_release = self.__processCancel, 
+			**buttonDefault)
+		cancelButton.bind(size = self._setButtonSize)
+		
+		self.bottomLine.add_widget(okButton)
+		self.bottomLine.add_widget(cancelButton)
+		self._finishLayout()
 
-class Alert(BaseWarnMethods, SeparatorLabel):
+class Alert(BaseWarnMethods):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			self.__processClose()
@@ -197,38 +221,15 @@ class Alert(BaseWarnMethods, SeparatorLabel):
 		if (self.__processCloseAction is not None):
 			self.__processCloseAction()
 
-	def __init__(self, alertTitle = '', alertText = '', closeButtonText = '', processCloseAction = None):
-		super(self.__class__, self).__init__()
-		self.mainPopUp = Popup(
-			title = alertTitle,
-			auto_dismiss = False,
-			**warningSize
-		)
+	def __init__(self, title = '', text = '', closeButtonText = '', processCloseAction = None, **kwargs):
+		super(self.__class__, self).__init__(title, text, **kwargs)
+		
 		self.__processCloseAction = processCloseAction
-
-		lineSize = {
-			'height' : defaultFontSize,
-			'size_hint' : (1.0, None)
-		}
-		mainPopUpBox = BoxLayout(orientation = 'vertical')
-		if (alertText.count('\n') > 1):
-			multilineSize = lineSize.copy()
-			multilineSize['height'] = defaultFontSize * alertText.count('\n')
-			self.mainPopUpText = AlignedLabel(text = alertText, **multilineSize)
-		else:
-			self.mainPopUpText = AlignedLabel(text = alertText, **lineSize)
-
-		okLine = BoxLayout(orientation = 'horizontal', **lineSize)
 		finalButton = CancelableButton(text = closeButtonText, on_release = self.__processClose, **buttonDefault)
-		finalButton.bind(size=self._setButtonSize)
-
-		mainPopUpBox.add_widget(self.mainPopUpText)
-		mainPopUpBox.add_widget(self._separator)
-		okLine.add_widget(Label(text = '', **lineSize))
-		okLine.add_widget(finalButton)
-		mainPopUpBox.add_widget(okLine)
-
-		self.mainPopUp.content = mainPopUpBox
+		finalButton.bind(size = self._setButtonSize)
+		
+		self.bottomLine.add_widget(finalButton)
+		self._finishLayout()
 
 class FileSelectionPopup:
 	def __setFilenameWithoutTheFullPath(self, entry, notUsed = None):

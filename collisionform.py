@@ -504,8 +504,8 @@ class CollisionFlagFormEditorPopup:
 				on_release = self.__saveAndClose)
 		self.__tooltipLabel = Label(text='', size_hint = (0.6, 1.0))
 		self.__meshErrorAlert = Alert(
-			alertTitle = 'Error',
-			alertText = 'The mesh must be a convex polygon.\nThe mesh will be green when it is convex.',
+			title = 'Error',
+			text = 'The mesh must be a convex polygon.\nThe mesh will be green when it is convex.',
 			closeButtonText = 'Ok.',
 		)
 

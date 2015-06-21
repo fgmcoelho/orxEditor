@@ -264,3 +264,6 @@ class ObjectDescriptor(LayoutGetter):
 	def getCurrentObject(self):
 		return self._currentSelected
 
+	def update(self):
+		self.set(self._currentSelected)
+
