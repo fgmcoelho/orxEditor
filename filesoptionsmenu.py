@@ -1,6 +1,5 @@
 from singleton import Singleton
 
-from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from editorutils import Dialog, Alert
 from kivy.uix.popup import Popup
@@ -8,17 +7,21 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.checkbox import CheckBox
 
-from editorutils import CancelableButton, NumberInput
+from editorutils import CancelableButton, NumberInput, AlignedLabel, inputDefault
+from editorheritage import SeparatorLabel
+from uisizes import optionsMenuSize, lineSize, newSceneSize
 from tilemapfiles import FilesManager
-from os import getcwd
-from os.path import isfile, join, abspath, sep as pathSeparator
 from communicationobjects import FileOptionsMenuToScene
 from keyboard import KeyboardAccess, KeyboardGuardian
 from layerinfo import LayerGuardian
 from collisioninfo import CollisionGuardian
 from scene import SceneAttributes
+from modulesaccess import ModulesAccess
 
-class NewScenePopup(KeyboardAccess):
+from os import getcwd
+from os.path import isfile, join, abspath, sep as pathSeparator
+
+class NewScenePopup(KeyboardAccess, SeparatorLabel):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			self.close()
@@ -74,7 +77,8 @@ class NewScenePopup(KeyboardAccess):
 		self.close()
 
 	def __init__(self):
-		self.__popup = Popup(title = 'New Scene Attributes', size_hint = (0.5, 0.5), auto_dismiss = False)
+		super(NewScenePopup, self).__init__()
+		self.__popup = Popup(title = 'New Scene Attributes', auto_dismiss = False, **newSceneSize)
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		self.__tileSizeInput = NumberInput(module = 'NewScene', size_hint = (0.3, 1.0))
 		self.__xTilesInput = NumberInput(module = 'NewScene', size_hint = (0.3, 1.0))
@@ -85,27 +89,27 @@ class NewScenePopup(KeyboardAccess):
 		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, size_hint = (0.2, 1.0))
 
 		tilesSizeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
-		tilesSizeLine.add_widget(Label(text = 'Size of the tiles:', size_hint = (0.7, 1.0)))
+		tilesSizeLine.add_widget(AlignedLabel(text = 'Size of the tiles:', size_hint = (0.7, 1.0)))
 		tilesSizeLine.add_widget(self.__tileSizeInput)
 
 		xNumberOfTilesLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
-		xNumberOfTilesLine.add_widget(Label(text = 'Number of tiles on X:', size_hint = (0.7, 1.0)))
+		xNumberOfTilesLine.add_widget(AlignedLabel(text = 'Number of tiles on X:', size_hint = (0.7, 1.0)))
 		xNumberOfTilesLine.add_widget(self.__xTilesInput)
 
 		yNumberOfTilesLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
-		yNumberOfTilesLine.add_widget(Label(text = 'Number of tiles on Y:', size_hint = (0.7, 1.0)))
+		yNumberOfTilesLine.add_widget(AlignedLabel(text = 'Number of tiles on Y:', size_hint = (0.7, 1.0)))
 		yNumberOfTilesLine.add_widget(self.__yTilesInput)
 
 		keepCollisionFlagsLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		keepCollisionFlagsLine.add_widget(self.__keepCollisionFlags)
-		keepCollisionFlagsLine.add_widget(Label(text = 'Keep collision flags.'))
+		keepCollisionFlagsLine.add_widget(AlignedLabel(text = 'Keep collision flags.'))
 
 		keepGroupsLine = BoxLayout (orientation = 'horizontal', size_hint = (1.0, 0.1))
 		keepGroupsLine.add_widget(self.__keepGroupsFlags)
-		keepGroupsLine.add_widget(Label(text = 'Keep layer groups.'))
+		keepGroupsLine.add_widget(AlignedLabel(text = 'Keep layer groups.'))
 
 		confirmLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		confirmLine.add_widget(Label(text = '', size_hint = (0.6, 1.0)))
+		confirmLine.add_widget(AlignedLabel(text = '', size_hint = (0.6, 1.0)))
 		confirmLine.add_widget(self.__okButton)
 		confirmLine.add_widget(self.__cancelButton)
 
@@ -114,7 +118,7 @@ class NewScenePopup(KeyboardAccess):
 		self.__layout.add_widget(yNumberOfTilesLine)
 		self.__layout.add_widget(keepCollisionFlagsLine)
 		self.__layout.add_widget(keepGroupsLine)
-		self.__layout.add_widget(Label(text = 'Any unsaved changes will be lost.', size_hint = (1.0, 0.1)))
+		self.__layout.add_widget(AlignedLabel(text = 'Any unsaved changes will be lost.', size_hint = (1.0, 0.1)))
 		self.__layout.add_widget(confirmLine)
 
 		self.__popup.content = self.__layout
@@ -181,13 +185,13 @@ class FileSelectorPopup(KeyboardAccess):
 		self.__fileChooser = FileChooserIconView(size_hint = (1.0, 0.9))
 		if (directoriesOnly == True):
 			self.__fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0), readonly = True)
-			self.__fileChooserInputLayout.add_widget(Label(text = 'Directory:', size_hint = (0.3, 1.0)))
+			self.__fileChooserInputLayout.add_widget(AlignedLabel(text = 'Directory:', size_hint = (0.3, 1.0)))
 			self.__filters = [''] # we want to cut out all the files in this case
 			self.__fileChooser.dirselect = True
 			self.__fileChooser.bind(path = self.__setDirectory)
 		else:
 			self.__fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0))
-			self.__fileChooserInputLayout.add_widget(Label(text = 'File:', size_hint = (0.3, 1.0)))
+			self.__fileChooserInputLayout.add_widget(AlignedLabel(text = 'File:', size_hint = (0.3, 1.0)))
 			self.__fileChooser.on_submit = self.__submit
 			self.__filters = filters
 
@@ -205,7 +209,6 @@ class FileSelectorPopup(KeyboardAccess):
 		self.__fileChooserLayout.add_widget(self.__fileChooserYesNoLayout)
 		self.__fileChooserPopUp.content = self.__fileChooserLayout
 
-
 	def open(self, *args):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.__fileChooser.path = self.__lastPath
@@ -213,7 +216,6 @@ class FileSelectorPopup(KeyboardAccess):
 		self.__selected = None
 		self.__fileChooser.filters = [self.__filters[0] + 'aaaa'] # this forces the file list to reload
 		self.__fileChooser.filters = self.__filters
-
 
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
@@ -265,7 +267,7 @@ class FileChooserUser(object):
 		self._fileChooserPopUp = Popup(auto_dismiss = False, title = 'Select the file:')
 		self._fileChooserInputLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		self._fileChooserInput = TextInput(multiline = False, size_hint = (0.7, 1.0))
-		self._fileChooserInputLayout.add_widget(Label(text = 'File:', size_hint = (0.3, 1.0)))
+		self._fileChooserInputLayout.add_widget(AlignedLabel(text = 'File:', size_hint = (0.3, 1.0)))
 		self._fileChooserInputLayout.add_widget(self._fileChooserInput)
 		self._fileChooser = FileChooserIconView(size_hint = (1.0, 0.9))
 		self._fileChooser.on_submit = self._submitMethod
@@ -428,26 +430,26 @@ class ExportScenePopup (KeyboardAccess):
 
 		self.__filenameLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__filenameLine.add_widget(self.__filenameDescription)
-		self.__filenameLine.add_widget(Label(text = '', size_hint = (0.1, 1.0)))
+		self.__filenameLine.add_widget(AlignedLabel(text = '', size_hint = (0.1, 1.0)))
 		self.__filenameLine.add_widget(self.__chooseFilenameButton)
 
 		self.__assetsPathLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__assetsPathLine.add_widget(self.__assetsPathDescription)
-		self.__assetsPathLine.add_widget(Label(size_hint = (0.1, 1.0), text = ''))
+		self.__assetsPathLine.add_widget(AlignedLabel(size_hint = (0.1, 1.0), text = ''))
 		self.__assetsPathLine.add_widget(self.__assetsPathButton)
 
 		self.__smoothLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
 		self.__smoothLine.add_widget(self.__smoothCheckBox)
-		self.__smoothLine.add_widget(Label(text = 'Turn on graphics smoothing', size_hint = (0.8, 1.0)))
+		self.__smoothLine.add_widget(AlignedLabel(text = 'Turn on graphics smoothing', size_hint = (0.8, 1.0)))
 
 		self.__confirmLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
-		self.__confirmLine.add_widget(Label(text = '', size_hint = (0.6, 0.2)))
+		self.__confirmLine.add_widget(AlignedLabel(text = '', size_hint = (0.6, 0.2)))
 		self.__confirmLine.add_widget(self.__okButton)
 		self.__confirmLine.add_widget(self.__cancelButton)
 
-		self.__layout.add_widget(Label(text = 'Ini file to export the scene:', size_hint = (1.0, 0.1)))
+		self.__layout.add_widget(AlignedLabel(text = 'Ini file to export the scene:', size_hint = (1.0, 0.1)))
 		self.__layout.add_widget(self.__filenameLine)
-		self.__layout.add_widget(Label(text = 'Directory to save the assets:', size_hint = (1.0, 0.1)))
+		self.__layout.add_widget(AlignedLabel(text = 'Directory to save the assets:', size_hint = (1.0, 0.1)))
 		self.__layout.add_widget(self.__assetsPathLine)
 		self.__layout.add_widget(self.__smoothLine)
 		self.__layout.add_widget(self.__confirmLine)
@@ -469,38 +471,43 @@ class ExportScenePopup (KeyboardAccess):
 		self.__assetsPath = None
 		self.__popup.open()
 
-@Singleton
-class FilesOptionsMenu:
+class FilesOptionsMenu(SeparatorLabel, KeyboardAccess):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.close()
+
 	def __startBasicButtonsLayout(self):
+
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__newButton = CancelableButton(text = 'New Scene', size_hint = (1.0, 0.25),
-			on_release = self.__newScenePopup.open)
-		self.__loadButton = CancelableButton(text = 'Load Scene', size_hint = (1.0, 0.25),
-			on_release = self.__loadScenePopup.open)
-		self.__saveButton = CancelableButton(text = 'Save Scene', size_hint = (1.0, 0.25),
-			on_release = self.__saveScenePopup.open)
-		self.__exportButton = CancelableButton(text = 'Export Scene', size_hint = (1.0, 0.25),
-			on_release = self.__exportPopup.open)
+		self.__newButton = CancelableButton(text = 'New Scene', on_release = self.__newScenePopup.open, **lineSize)
+		self.__loadButton = CancelableButton(text = 'Load Scene', on_release = self.__loadScenePopup.open, **lineSize)
+		self.__saveButton = CancelableButton(text = 'Save Scene', on_release = self.__saveScenePopup.open, **lineSize)
+		self.__exportButton = CancelableButton(text = 'Export Scene', on_release = self.__exportPopup.open, **lineSize)
+		self.__closeButton = CancelableButton(text = 'Close', on_release = self.close, **lineSize)
 
 		self.__layout.add_widget(self.__newButton)
 		self.__layout.add_widget(self.__loadButton)
 		self.__layout.add_widget(self.__saveButton)
 		self.__layout.add_widget(self.__exportButton)
+		self.__layout.add_widget(self._separator)
+		self.__layout.add_widget(self.__closeButton)
 
-	def __init__(self, accordionItem):
+		self.__popup = Popup(title = 'Scene Options', content = self.__layout, auto_dismiss = False, **optionsMenuSize)
+
+	def __init__(self):
+		super(FilesOptionsMenu, self).__init__()
 		self.__newScenePopup = NewScenePopup()
 		self.__saveScenePopup = SaveScenePopup()
 		self.__loadScenePopup = LoadScenePopup()
 		self.__exportPopup = ExportScenePopup()
-
 		self.__startBasicButtonsLayout()
-		self.__accordionItemReference = accordionItem
-		self.__accordionItemReference.add_widget(self.__layout)
+		ModulesAccess.add('FilesOptions', self)
 
-	def getLayout(self):
-		return self.__layout
+	def open(self, *args):
+		KeyboardGuardian.Instance().acquireKeyboard(self)
+		self.__popup.open()
 
-	def setActive(self):
-		self.__accordionItemReference.collapse = False
-
+	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
+		self.__popup.dismiss()
 

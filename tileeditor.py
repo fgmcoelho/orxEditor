@@ -27,12 +27,16 @@ from objectsmenu import NewBaseObjectDisplay, NewBaseObjectsMenu
 from objectdescriptor import ObjectDescriptor
 from modulesaccess import ModulesAccess
 from editorutils import AlignedLabel
+from filesoptionsmenu import FilesOptionsMenu
 
 class TileEditor(App, KeyboardAccess):
 
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl']):
 			self.__sceneHandler.processKeyUp(keycode)
+
+		if (keycode[1] == 'escape'):
+			ModulesAccess.get('FilesOptions').open()
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
@@ -111,6 +115,8 @@ class TileEditor(App, KeyboardAccess):
 
 		# Scene Editor handlers:
 		SceneMiniMap()
+
+		FilesOptionsMenu()
 
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())

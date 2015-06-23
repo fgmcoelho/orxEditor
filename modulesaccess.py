@@ -1,4 +1,3 @@
-
 class ModulesAccess:
 	modulesDict = {}
 	@staticmethod

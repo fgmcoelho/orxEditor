@@ -64,3 +64,13 @@ lineSize = {
 	'height' : defaultFontSize,
 	'size_hint' : (1.0, None),
 }
+
+optionsMenuSize = {
+	'size' : (200, 300),
+	'size_hint' : (None, None),
+}
+
+newSceneSize = {
+	'size' : (300, 400),
+	'size_hint' : (None, None),
+}
