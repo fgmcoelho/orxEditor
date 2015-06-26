@@ -614,6 +614,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		self._layout.clear_widgets()
 		self._layout.add_widget(newScene.getLayout())
 		self.__sceneList[self.__currentIndex] = newScene
+		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
+		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def getCurrentSceneAttributes(self):
 		return self.__sceneList[self.__currentIndex].getSceneAttributes()

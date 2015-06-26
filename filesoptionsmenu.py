@@ -7,11 +7,10 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.checkbox import CheckBox
 
-from editorutils import CancelableButton, NumberInput, AlignedLabel, inputDefault
+from editorutils import CancelableButton, NumberInput, AlignedLabel
 from editorheritage import SeparatorLabel
-from uisizes import optionsMenuSize, lineSize, newSceneSize
+from uisizes import optionsMenuSize, lineSize, newSceneSize, inputDefault, defaultFontSize, descriptorButtonDefault
 from tilemapfiles import FilesManager
-from communicationobjects import FileOptionsMenuToScene
 from keyboard import KeyboardAccess, KeyboardGuardian
 from layerinfo import LayerGuardian
 from collisioninfo import CollisionGuardian
@@ -72,53 +71,66 @@ class NewScenePopup(KeyboardAccess, SeparatorLabel):
 			ModulesAccess.get('LayerGuardian').reset()
 
 		newSceneAttributes = SceneAttributes(tilesSize, tilesOnX, tilesOnY)
-		FileOptionsMenuToScene.Instance().newScene(newSceneAttributes)
+		ModulesAccess.get('SceneHandler').newScene(newSceneAttributes)
 
 		self.close()
+		ModulesAccess.get('FilesOptions').close()
 
 	def __init__(self):
 		super(NewScenePopup, self).__init__()
+		inputSize = inputDefault.copy()
+		inputSize['size_hint'] = (None, None)
+		inputSize['width'] = 100
+
+		labelInputSize = inputDefault.copy()
+		checkboxSize = {
+			'width' : 25,
+			'height' : defaultFontSize,
+			'size_hint' : (None, None)
+		}
+
 		self.__popup = Popup(title = 'New Scene Attributes', auto_dismiss = False, **newSceneSize)
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__tileSizeInput = NumberInput(module = 'NewScene', size_hint = (0.3, 1.0))
-		self.__xTilesInput = NumberInput(module = 'NewScene', size_hint = (0.3, 1.0))
-		self.__yTilesInput = NumberInput(module = 'NewScene', size_hint = (0.3, 1.0))
-		self.__keepCollisionFlags = CheckBox(size_hint = (0.1, 1.0))
-		self.__keepGroupsFlags = CheckBox(size_hint = (0.1, 1.0))
-		self.__okButton = CancelableButton(text = 'Ok', on_release = self.__confirm, size_hint = (0.2, 1.0))
-		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, size_hint = (0.2, 1.0))
+		self.__tileSizeInput = NumberInput(module = 'NewScene', **inputSize)
+		self.__xTilesInput = NumberInput(module = 'NewScene', **inputSize)
+		self.__yTilesInput = NumberInput(module = 'NewScene', **inputSize)
+		self.__keepCollisionFlags = CheckBox(**checkboxSize)
+		self.__keepGroupsFlags = CheckBox(**checkboxSize)
+		self.__okButton = CancelableButton(text = 'Ok', on_release = self.__confirm, **descriptorButtonDefault)
+		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, **descriptorButtonDefault)
 
-		tilesSizeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
-		tilesSizeLine.add_widget(AlignedLabel(text = 'Size of the tiles:', size_hint = (0.7, 1.0)))
+		tilesSizeLine = BoxLayout(orientation = 'horizontal', **labelInputSize)
+		tilesSizeLine.add_widget(AlignedLabel(text = 'Size of the tiles:', **labelInputSize))
 		tilesSizeLine.add_widget(self.__tileSizeInput)
 
-		xNumberOfTilesLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
-		xNumberOfTilesLine.add_widget(AlignedLabel(text = 'Number of tiles on X:', size_hint = (0.7, 1.0)))
+		xNumberOfTilesLine = BoxLayout(orientation = 'horizontal', **labelInputSize)
+		xNumberOfTilesLine.add_widget(AlignedLabel(text = 'Number of tiles on X:', **labelInputSize))
 		xNumberOfTilesLine.add_widget(self.__xTilesInput)
 
-		yNumberOfTilesLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.2))
-		yNumberOfTilesLine.add_widget(AlignedLabel(text = 'Number of tiles on Y:', size_hint = (0.7, 1.0)))
+		yNumberOfTilesLine = BoxLayout(orientation = 'horizontal', **labelInputSize)
+		yNumberOfTilesLine.add_widget(AlignedLabel(text = 'Number of tiles on Y:', **labelInputSize))
 		yNumberOfTilesLine.add_widget(self.__yTilesInput)
 
-		keepCollisionFlagsLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
+		keepCollisionFlagsLine = BoxLayout(orientation = 'horizontal', **lineSize)
 		keepCollisionFlagsLine.add_widget(self.__keepCollisionFlags)
-		keepCollisionFlagsLine.add_widget(AlignedLabel(text = 'Keep collision flags.'))
+		keepCollisionFlagsLine.add_widget(AlignedLabel(text = 'Keep collision flags.', **lineSize))
 
-		keepGroupsLine = BoxLayout (orientation = 'horizontal', size_hint = (1.0, 0.1))
+		keepGroupsLine = BoxLayout (orientation = 'horizontal', **lineSize)
 		keepGroupsLine.add_widget(self.__keepGroupsFlags)
-		keepGroupsLine.add_widget(AlignedLabel(text = 'Keep layer groups.'))
+		keepGroupsLine.add_widget(AlignedLabel(text = 'Keep layer groups.', **lineSize))
 
-		confirmLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		confirmLine.add_widget(AlignedLabel(text = '', size_hint = (0.6, 1.0)))
+		confirmLine = BoxLayout(orientation = 'horizontal', **lineSize)
+		confirmLine.add_widget(AlignedLabel(text = ''))
 		confirmLine.add_widget(self.__okButton)
 		confirmLine.add_widget(self.__cancelButton)
 
 		self.__layout.add_widget(tilesSizeLine)
 		self.__layout.add_widget(xNumberOfTilesLine)
 		self.__layout.add_widget(yNumberOfTilesLine)
+		self.__layout.add_widget(self._separator)
 		self.__layout.add_widget(keepCollisionFlagsLine)
 		self.__layout.add_widget(keepGroupsLine)
-		self.__layout.add_widget(AlignedLabel(text = 'Any unsaved changes will be lost.', size_hint = (1.0, 0.1)))
+		self.__layout.add_widget(AlignedLabel(text = 'Any unsaved changes will be lost.', **lineSize))
 		self.__layout.add_widget(confirmLine)
 
 		self.__popup.content = self.__layout
