@@ -1,5 +1,3 @@
-from singleton import Singleton
-
 from kivy.uix.boxlayout import BoxLayout
 from editorutils import Dialog, Alert
 from kivy.uix.popup import Popup
@@ -10,10 +8,9 @@ from kivy.uix.checkbox import CheckBox
 from editorutils import CancelableButton, NumberInput, AlignedLabel
 from editorheritage import SeparatorLabel
 from uisizes import optionsMenuSize, defaultLineSize, newSceneSize, defaultInputSize, defaultFontSize, \
-		defaultSmallButtonSize, defaultLabelSize
+		defaultSmallButtonSize, defaultLabelSize, exportSceneSize
 from tilemapfiles import FilesManager
 from keyboard import KeyboardAccess, KeyboardGuardian
-from layerinfo import LayerGuardian
 from collisioninfo import CollisionGuardian
 from scene import SceneAttributes
 from modulesaccess import ModulesAccess
@@ -487,7 +484,7 @@ class ExportScenePopup (KeyboardAccess, FileOptionsConfig, SeparatorLabel):
 		self.__layout.add_widget(self.__smoothLine)
 		self.__layout.add_widget(self.__confirmLine)
 
-		self.__popup = Popup(auto_dismiss = False, title = 'Export Scene', content = self.__layout, **newSceneSize)
+		self.__popup = Popup(auto_dismiss = False, title = 'Export Scene', content = self.__layout, **exportSceneSize)
 		self.__errorPopup = Alert('Error', '', 'Ok')
 		self.__successPopup = Alert('Success', 'The scene was successfully exported.', 'Ok')
 

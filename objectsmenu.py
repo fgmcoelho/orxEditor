@@ -1,19 +1,15 @@
-from singleton import Singleton
-
 from os.path import join, relpath, split, sep as pathSeparator
 from os import listdir, getcwd
 
 from kivy.uix.image import Image
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.uix.treeview import TreeView, TreeViewLabel, TreeViewNode
+from kivy.uix.treeview import TreeView, TreeViewNode
 from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
 
 from editorobjects import BaseObject
 from editorutils import EmptyScrollEffect, createSpriteImage, AlignedLabel
-from communicationobjects import SceneToObjectsMenu
 from splittedimagemap import SplittedImageImporter
 from modulesaccess import ModulesAccess
 from uisizes import mainLayoutSize, defaultLabelSize

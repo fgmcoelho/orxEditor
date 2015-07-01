@@ -70,3 +70,9 @@ newSceneSize = {
 	'size' : (300, 400),
 	'size_hint' : (None, None),
 }
+
+exportSceneSize = {
+	'size' : (400, 300),
+	'size_hint' : (None, None),
+
+}

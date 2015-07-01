@@ -8,11 +8,9 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 from kivy.core.window import Window
 
-
 from uisizes import mainLayoutSize, defaultLabelSize, sceneMiniMapSize
 from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler, SceneMiniMap
-from optionsmenu import OptionsMenu
 from tilemapfiles import FilesManager
 from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
 from resourceloader import ResourceLoaderPopup
@@ -117,7 +115,6 @@ class TileEditor(App, KeyboardAccess):
 		SceneMiniMap()
 
 		FilesOptionsMenu()
-
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
 		KeyboardGuardian.Instance().acquireKeyboard(self)
@@ -127,10 +124,11 @@ class TileEditor(App, KeyboardAccess):
 		CollisionFlagFormEditorPopup.Instance()
 		CollisionInformationPopup.Instance()
 		CollisionFlagsEditor.Instance()
+		# ResourceLoader
+		self.__resourcePopup = ResourceLoaderPopup()
+
 
 		# Bottom Menu Handler
-		#OptionsMenu.Instance(self.rightScreen)
-
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())
 		bottomMenu = BoxLayout(orientation = 'horizontal', height = mainLayoutSize['bottomMenuHeight'],
@@ -146,9 +144,6 @@ class TileEditor(App, KeyboardAccess):
 		rightBottomMenu.add_widget(AlignedLabel(text = 'MiniMap', **defaultLabelSize))
 		rightBottomMenu.add_widget(ModulesAccess.get('MiniMap').getLayout())
 		bottomMenu.add_widget(rightBottomMenu)
-
-		# ResourceLoader
-		self.__resourcePopup = ResourceLoaderPopup()
 
 		# Communication Objects
 		CollisionToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
