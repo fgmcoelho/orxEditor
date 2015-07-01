@@ -7,7 +7,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
-from uisizes import resourceLoderSize, descriptorLabelDefault, buttonDefault, inputDefault
+from uisizes import resourceLoderSize, defaultLabelSize, defaultButtonSize, defaultInputSize
 from editorheritage import SeparatorLabel, LayoutGetter, MouseModifiers
 from editorutils import CancelableButton, AutoReloadTexture, Alert, Dialog, convertKivyCoordToOrxCoord
 from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
@@ -375,10 +375,10 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 					NumberInput.selectInputByFocus(self.__state)
 				else:
 					NumberInput.selectInputByFocus(self.__state, reverse = True)
-		
+
 		elif (keycode[1] == 'enter'):
 			self.__splitImage()
-			
+
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
@@ -440,27 +440,29 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 
 	def __createLeftMenuUi(self):
 		# x divisions
-		self.__xDivisionsInput = NumberInput(text = '0', module = 'divisions', **inputDefault)
-		self.__yDivisionsInput = NumberInput(text = '0', module = 'divisions', **inputDefault)
+		inputOptions = defaultInputSize.copy()
+		inputOptions['multiline'] = False
+		self.__xDivisionsInput = NumberInput(text = '0', module = 'divisions', **inputOptions)
+		self.__yDivisionsInput = NumberInput(text = '0', module = 'divisions', **inputOptions)
 
 		# size divisions
-		self.__xSizeInput = NumberInput(text = '0', module = 'size', **inputDefault)
-		self.__ySizeInput = NumberInput(text = '0', module = 'size', **inputDefault)
-		self.__xSkipInput = NumberInput(text = '0', module = 'size', **inputDefault)
-		self.__ySkipInput = NumberInput(text = '0', module = 'size', **inputDefault)
+		self.__xSizeInput = NumberInput(text = '0', module = 'size', **inputOptions)
+		self.__ySizeInput = NumberInput(text = '0', module = 'size', **inputOptions)
+		self.__xSkipInput = NumberInput(text = '0', module = 'size', **inputOptions)
+		self.__ySkipInput = NumberInput(text = '0', module = 'size', **inputOptions)
 
 		# buttons, mostly shared
-		self.__cancelButton = CancelableButton(on_release = self.__processCancel, text = 'Cancel', **buttonDefault)
-		self.__doneButton = CancelableButton(on_release = self.__processDone, text = 'Done', **buttonDefault)
-		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', **buttonDefault)
+		self.__cancelButton = CancelableButton(on_release = self.__processCancel, text = 'Cancel', **defaultButtonSize)
+		self.__doneButton = CancelableButton(on_release = self.__processDone, text = 'Done', **defaultButtonSize)
+		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', **defaultButtonSize)
 		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
-			**buttonDefault)
+			**defaultButtonSize)
 
 	def __loadDivisionLeftMenu(self, focusIndex = None):
 		self.__leftMenu.clear_widgets()
-		self.__leftMenu.add_widget(AlignedLabel(text = 'Divisions on x', **descriptorLabelDefault))
+		self.__leftMenu.add_widget(AlignedLabel(text = 'Divisions on x', **defaultLabelSize))
 		self.__leftMenu.add_widget(self.__xDivisionsInput)
-		self.__leftMenu.add_widget(AlignedLabel(text = 'Divisions on y', **descriptorLabelDefault))
+		self.__leftMenu.add_widget(AlignedLabel(text = 'Divisions on y', **defaultLabelSize))
 		self.__leftMenu.add_widget(self.__yDivisionsInput)
 		self.__leftMenu.add_widget(self._separator)
 		self.__leftMenu.add_widget(self.__switchButton)
@@ -470,13 +472,13 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 
 	def __loadSizeLeftMenu(self):
 		self.__leftMenu.clear_widgets()
-		self.__leftMenu.add_widget(AlignedLabel(text = 'Size on x', **descriptorLabelDefault))
+		self.__leftMenu.add_widget(AlignedLabel(text = 'Size on x', **defaultLabelSize))
 		self.__leftMenu.add_widget(self.__xSizeInput)
-		self.__leftMenu.add_widget(AlignedLabel(text = 'Size on y', **descriptorLabelDefault))
+		self.__leftMenu.add_widget(AlignedLabel(text = 'Size on y', **defaultLabelSize))
 		self.__leftMenu.add_widget(self.__ySizeInput)
-		self.__leftMenu.add_widget(AlignedLabel(text = 'Skip on x', **descriptorLabelDefault))
+		self.__leftMenu.add_widget(AlignedLabel(text = 'Skip on x', **defaultLabelSize))
 		self.__leftMenu.add_widget(self.__xSkipInput)
-		self.__leftMenu.add_widget(AlignedLabel(text = 'Skip on y', **descriptorLabelDefault))
+		self.__leftMenu.add_widget(AlignedLabel(text = 'Skip on y', **defaultLabelSize))
 		self.__leftMenu.add_widget(self.__ySkipInput)
 		self.__leftMenu.add_widget(self._separator)
 		self.__leftMenu.add_widget(self.__switchButton)
@@ -540,15 +542,15 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	def __createRightMenuUi(self):
 		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 0.75), showMethod = self.__showSelection)
 		self.__addFullSelection = CancelableButton(text = 'Add as one', on_release = self.__processAddSelection,
-			**descriptorLabelDefault)
+			**defaultLabelSize)
 		self.__addPartSelection = CancelableButton(text = 'Add parts', on_release = self.__processAddPartsSelection,
-			**descriptorLabelDefault)
+			**defaultLabelSize)
 		self.__showSelection = CancelableButton(text = 'Show', on_release = self.__showSelection,
-			**descriptorLabelDefault)
+			**defaultLabelSize)
 		self.__removeCurrent = CancelableButton(text = 'Remove', on_release = self.__processRemoveFromSelection,
-			**descriptorLabelDefault)
+			**defaultLabelSize)
 		self.__clearSelection = CancelableButton(text = 'Clear', on_release = self.__processClearSelection,
-			**descriptorLabelDefault)
+			**defaultLabelSize)
 
 		self.__rightMenu.add_widget(self.__selectionTree.getLayout())
 		self.__rightMenu.add_widget(self.__addFullSelection)

@@ -4,17 +4,17 @@ from editorobjects import BaseObject, RenderedObject
 from editorutils import CancelableButton, Alert, AlignedLabel
 from modulesaccess import ModulesAccess
 from editorheritage import LayoutGetter, SeparatorLabel
-from uisizes import descriptorSize, descriptorLabelDefault, descriptorButtonDefault, descriptorButtonDoubleSize
+from uisizes import descriptorSize, defaultLabelSize, defaultSmallButtonSize, defaultLargeButtonSize
 
 class DescriptorLinesConfigs(object):
 	def __init__(self):
 		super(DescriptorLinesConfigs, self).__init__()
-		self._halfLineLabel = descriptorLabelDefault.copy()
+		self._halfLineLabel = defaultLabelSize.copy()
 		self._halfLineLabel['size_hint'] = (0.5, None)
 		self._halfLineLayout = {
 			'orientation' : 'horizontal',
 			'size_hint' : (1.0, None),
-			'height' : descriptorLabelDefault['height'],
+			'height' : defaultLabelSize['height'],
 		}
 
 class DescriptorButtons(DescriptorLinesConfigs):
@@ -31,31 +31,31 @@ class DescriptorButtons(DescriptorLinesConfigs):
 
 		self._linesList = []
 		self._copyLeftButton = CancelableButton(text = 'Copy left (a)', on_release = self._call_on_press,
-			**descriptorButtonDoubleSize)
+			**defaultLargeButtonSize)
 		self._copyRightButton = CancelableButton(text = 'Copy right (d)', on_release = self._call_on_press,
-			**descriptorButtonDoubleSize)
+			**defaultLargeButtonSize)
 		self._copyUpButton = CancelableButton(text = 'Copy up (w)', on_release = self._call_on_press,
-			**descriptorButtonDoubleSize)
+			**defaultLargeButtonSize)
 		self._copyDownButton = CancelableButton(text = 'Copy down (s)', on_release = self._call_on_press,
-			**descriptorButtonDoubleSize)
+			**defaultLargeButtonSize)
 		self._unselectButton = CancelableButton(text = 'Unselect (e)', on_release = self._call_on_press,
-			**descriptorButtonDoubleSize)
+			**defaultLargeButtonSize)
 		self._alignButton = CancelableButton(text = 'Align (q)', on_release = self._call_on_press,
-			**descriptorButtonDefault)
+			**defaultSmallButtonSize)
 		self._editCollisionButton = CancelableButton(text = 'Edit collision',
-			**descriptorButtonDoubleSize)
+			**defaultLargeButtonSize)
 		self._editGroupButton = CancelableButton(text = 'Edit Group',
 			on_release = ModulesAccess.get('LayerInformation').open,
-			**descriptorButtonDefault
+			**defaultSmallButtonSize
 		)
 		self._flipXButton = CancelableButton(text = 'Flip X (f)', on_release = self._call_on_press,
-			**descriptorButtonDefault)
+			**defaultSmallButtonSize)
 		self._flipYButton = CancelableButton(text = 'Flip Y (g)', on_release = self._call_on_press,
-			**descriptorButtonDefault)
+			**defaultSmallButtonSize)
 		self._undoButton = CancelableButton(text = 'Undo (z)', on_release = self._call_on_press,
-			**descriptorButtonDefault)
+			**defaultSmallButtonSize)
 		self._redoButton = CancelableButton(text = 'Redo (y)', on_release = self._call_on_press,
-			**descriptorButtonDefault)
+			**defaultSmallButtonSize)
 
 		# Lines:
 		self._linesList.append(BoxLayout(**self._halfLineLabel))
@@ -97,7 +97,7 @@ class ObjectDescriptGeneric(object):
 
 	def __init__(self):
 		super(ObjectDescriptGeneric, self).__init__()
-		self._pathLabel = AlignedLabel(text = 'Path: ', **descriptorLabelDefault)
+		self._pathLabel = AlignedLabel(text = 'Path: ', **defaultLabelSize)
 		self._describedObject = None
 
 class MultipleSelectionDescriptor(CleanDescriptorLayoutGetter, SeparatorLabel, DescriptorButtons,
@@ -124,7 +124,7 @@ class MultipleSelectionDescriptor(CleanDescriptorLayoutGetter, SeparatorLabel, D
 
 	def __init__(self):
 		super(MultipleSelectionDescriptor, self).__init__()
-		self._selectedLabel = AlignedLabel(text = 'Selected: 0', **descriptorLabelDefault)
+		self._selectedLabel = AlignedLabel(text = 'Selected: 0', **defaultLabelSize)
 
 	def set(self, objects = None):
 		layout = self._getParentLayout()
@@ -155,7 +155,7 @@ class RenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGette
 	def __init__(self):
 		super(RenderedObjectDescriptor, self).__init__()
 
-		self._nameLabel = AlignedLabel(text = 'Name: ', **descriptorLabelDefault)
+		self._nameLabel = AlignedLabel(text = 'Name: ', **defaultLabelSize)
 
 		self._flipBox = BoxLayout(**self._halfLineLayout)
 		self._flipxLabel = AlignedLabel(text = 'Flipped on X: ', **self._halfLineLabel)
@@ -171,9 +171,9 @@ class RenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGette
 		self._sizeScaleBox.add_widget(self._scaleLabel)
 
 		self._scaleUpButton = CancelableButton(text = 'Scale+ (r)', on_release = self._call_on_press,
-			**descriptorButtonDefault)
+			**defaultSmallButtonSize)
 		self._scaleDownButton = CancelableButton(text = 'Scale- (t)', on_release = self._call_on_press,
-			**descriptorButtonDefault)
+			**defaultSmallButtonSize)
 
 		self._linesList[2].add_widget(self._scaleUpButton)
 		self._linesList[3].add_widget(self._scaleDownButton)
@@ -208,12 +208,12 @@ class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter
 
 	def __init__(self):
 		super(NewBaseObjectDescriptor, self).__init__()
-		self._sizeLabel = AlignedLabel(text = 'Size: ', **descriptorLabelDefault)
-		self._loaderLine = BoxLayout(orientation = 'horizontal', height = descriptorLabelDefault['height'])
+		self._sizeLabel = AlignedLabel(text = 'Size: ', **defaultLabelSize)
+		self._loaderLine = BoxLayout(orientation = 'horizontal', height = defaultLabelSize['height'])
 		self._loaderLine.add_widget(CancelableButton(text = 'Resource Loader', on_release = self._openResourceLoader,
-			**descriptorButtonDoubleSize))
+			**defaultLargeButtonSize))
 		self._loaderLine.add_widget(CancelableButton(text = 'Draw', on_release = self.__draw,
-			**descriptorButtonDefault))
+			**defaultSmallButtonSize))
 
 	def set(self, obj = None):
 		layout = self._getParentLayout()

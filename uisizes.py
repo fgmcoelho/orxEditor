@@ -1,26 +1,14 @@
-mainLayoutSize = {
-	'leftMenuWidth' : 200,
-	'leftMenuSizeHint' : (None, 1.0),
-	'bottomMenuHeight' : 220
-}
-
-options_menu_size = {
-	'objectSize' : (mainLayoutSize['leftMenuWidth'] * 0.9, mainLayoutSize['leftMenuWidth'] * 0.9),
-	'padding' : 3,
-}
-
+# General defaults:
 defaultFontSize = 20
 
-descriptorSize = {'height' : 200 }
-
-descriptorLabelDefault = {
+defaultLabelSize = {
 	'height' : defaultFontSize,
 	'shorten' : True,
 	'shorten_from' : 'left',
 	'size_hint' : (1.0, None)
 }
 
-descriptorButtonDefault = {
+defaultSmallButtonSize = {
 	'height' : defaultFontSize,
 	'width' : 80,
 	'shorten' : True,
@@ -28,7 +16,7 @@ descriptorButtonDefault = {
 	'size_hint' : (None, None)
 }
 
-descriptorButtonDoubleSize = {
+defaultLargeButtonSize = {
 	'height' : defaultFontSize,
 	'width' : 160,
 	'shorten' : True,
@@ -36,16 +24,29 @@ descriptorButtonDoubleSize = {
 	'size_hint' : (None, None)
 }
 
-buttonDefault = {
+defaultInputSize = {
+	'height' : defaultFontSize + 10,
+	'size_hint' : (1.0, None),
+}
+
+defaultButtonSize = {
 	'height' : defaultFontSize,
 	'size_hint' : (1.0, None)
 }
 
-inputDefault = {
-	'height' : defaultFontSize + 10,
+defaultLineSize = {
+	'height' : defaultFontSize,
 	'size_hint' : (1.0, None),
-	'multiline' : False
 }
+
+# Modules specifics:
+mainLayoutSize = {
+	'leftMenuWidth' : 200,
+	'leftMenuSizeHint' : (None, 1.0),
+	'bottomMenuHeight' : 220
+}
+
+descriptorSize = {'height' : 200 }
 
 sceneMiniMapSize = {
 	'size' : (200, 200),
@@ -58,11 +59,6 @@ resourceLoderSize = {
 warningSize = {
 	'size' : (400, 200),
 	'size_hint' : (None, None),
-}
-
-lineSize = {
-	'height' : defaultFontSize,
-	'size_hint' : (1.0, None),
 }
 
 optionsMenuSize = {

@@ -16,7 +16,7 @@ from os.path import sep as pathSeparator
 from os import getcwd
 from math import sqrt
 
-from uisizes import buttonDefault, defaultFontSize, warningSize, lineSize
+from uisizes import defaultButtonSize, defaultFontSize, warningSize, defaultLineSize
 
 class NumberInput(TextInput):
 	modulesDict = {}
@@ -155,14 +155,14 @@ class BaseWarnMethods(KeyboardAccess, SeparatorLabel):
 		)
 		self.mainPopUpBox = BoxLayout(orientation = 'vertical')
 		if (text.count('\n') >= 1):
-			multilineSize = lineSize.copy()
+			multilineSize = defaultLineSize.copy()
 			multilineSize['height'] = defaultFontSize * (text.count('\n') + 1)
 			self.mainPopUpText = AlignedLabel(text = text, **multilineSize)
 		else:
-			self.mainPopUpText = AlignedLabel(text = text, **lineSize)
-		
-		self.bottomLine = BoxLayout(orientation = 'horizontal', **lineSize)
-		self.bottomLine.add_widget(Label(text = '', **lineSize))
+			self.mainPopUpText = AlignedLabel(text = text, **defaultLineSize)
+
+		self.bottomLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		self.bottomLine.add_widget(Label(text = '', **defaultLineSize))
 
 		self.mainPopUpBox.add_widget(self.mainPopUpText)
 		self.mainPopUpBox.add_widget(self._separator)
@@ -200,12 +200,12 @@ class Dialog(BaseWarnMethods):
 		self.__afterOkAction = afterOkAction
 		self.__afterCancelAction = afterCancelAction
 
-		okButton = CancelableButton(text = dialogOkButtonText, on_release = self.__processOk, **buttonDefault)
+		okButton = CancelableButton(text = dialogOkButtonText, on_release = self.__processOk, **defaultButtonSize)
 		okButton.bind(size = self._setButtonSize)
-		cancelButton = CancelableButton(text = dialogCancelButtonText, on_release = self.__processCancel, 
-			**buttonDefault)
+		cancelButton = CancelableButton(text = dialogCancelButtonText, on_release = self.__processCancel,
+			**defaultButtonSize)
 		cancelButton.bind(size = self._setButtonSize)
-		
+
 		self.bottomLine.add_widget(okButton)
 		self.bottomLine.add_widget(cancelButton)
 		self._finishLayout()
@@ -223,11 +223,11 @@ class Alert(BaseWarnMethods):
 
 	def __init__(self, title = '', text = '', closeButtonText = '', processCloseAction = None, **kwargs):
 		super(self.__class__, self).__init__(title, text, **kwargs)
-		
+
 		self.__processCloseAction = processCloseAction
-		finalButton = CancelableButton(text = closeButtonText, on_release = self.__processClose, **buttonDefault)
+		finalButton = CancelableButton(text = closeButtonText, on_release = self.__processClose, **defaultButtonSize)
 		finalButton.bind(size = self._setButtonSize)
-		
+
 		self.bottomLine.add_widget(finalButton)
 		self._finishLayout()
 

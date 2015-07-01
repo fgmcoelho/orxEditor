@@ -16,7 +16,7 @@ from editorutils import EmptyScrollEffect, createSpriteImage, AlignedLabel
 from communicationobjects import SceneToObjectsMenu
 from splittedimagemap import SplittedImageImporter
 from modulesaccess import ModulesAccess
-from uisizes import mainLayoutSize, descriptorLabelDefault
+from uisizes import mainLayoutSize, defaultLabelSize
 from editorheritage import IgnoreTouch, LayoutGetter
 from time import time
 
@@ -39,9 +39,9 @@ class NewBaseObjectDisplay(LayoutGetter):
 	def __init__(self):
 		ModulesAccess.add('BaseObjectDisplay', self)
 		self._displaySize = (mainLayoutSize['leftMenuWidth'], mainLayoutSize['leftMenuWidth'])
-		totalSize = (self._displaySize[0], self._displaySize[1] + descriptorLabelDefault['height'])
+		totalSize = (self._displaySize[0], self._displaySize[1] + defaultLabelSize['height'])
 		self._layout = BoxLayout(orientation = 'vertical', size = totalSize, size_hint = (1.0, None))
-		self._nameLabel =  AlignedLabel(text = 'Preview', **descriptorLabelDefault)
+		self._nameLabel =  AlignedLabel(text = 'Preview', **defaultLabelSize)
 		self._currentObject = None
 		self._layout.add_widget(self._nameLabel)
 		self._layout.add_widget(Image(size = self._displaySize, color = (0, 0, 0, 0)))

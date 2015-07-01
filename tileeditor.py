@@ -9,7 +9,7 @@ from kivy.config import Config
 from kivy.core.window import Window
 
 
-from uisizes import mainLayoutSize, descriptorLabelDefault, sceneMiniMapSize
+from uisizes import mainLayoutSize, defaultLabelSize, sceneMiniMapSize
 from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler, SceneMiniMap
 from optionsmenu import OptionsMenu
@@ -138,12 +138,12 @@ class TileEditor(App, KeyboardAccess):
 		self.rightScreen.add_widget(bottomMenu)
 
 		leftBottomMenu = BoxLayout(orientation = 'vertical')
-		leftBottomMenu.add_widget(AlignedLabel(text = 'Object descriptor', **descriptorLabelDefault))
+		leftBottomMenu.add_widget(AlignedLabel(text = 'Object descriptor', **defaultLabelSize))
 		leftBottomMenu.add_widget(ModulesAccess.get('ObjectDescriptor').getLayout())
 		bottomMenu.add_widget(leftBottomMenu)
 
 		rightBottomMenu = BoxLayout(orientation = 'vertical', width = sceneMiniMapSize['size'][0], size_hint_x = None)
-		rightBottomMenu.add_widget(AlignedLabel(text = 'MiniMap', **descriptorLabelDefault))
+		rightBottomMenu.add_widget(AlignedLabel(text = 'MiniMap', **defaultLabelSize))
 		rightBottomMenu.add_widget(ModulesAccess.get('MiniMap').getLayout())
 		bottomMenu.add_widget(rightBottomMenu)
 

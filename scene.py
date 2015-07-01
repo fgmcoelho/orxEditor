@@ -33,8 +33,8 @@ class SceneMiniMap(LayoutGetter):
 
 			hbar = ModulesAccess.get('SceneHandler').getLayout().hbar
 			vbar = ModulesAccess.get('SceneHandler').getLayout().vbar
-			print 'Hbar: ',hbar, 'vbar: ', vbar
-			print ModulesAccess.get('SceneHandler').getLayout().scroll_x, ModulesAccess.get('SceneHandler').getLayout().scroll_y
+			#print 'Hbar: ',hbar, 'vbar: ', vbar
+			#print ModulesAccess.get('SceneHandler').getLayout().scroll_x, ModulesAccess.get('SceneHandler').getLayout().scroll_y
 			px = 200 - sx
 			py = 200 - sy
 
