@@ -12,14 +12,13 @@ from uisizes import mainLayoutSize, defaultLabelSize, sceneMiniMapSize
 from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler, SceneMiniMap
 from tilemapfiles import FilesManager
-from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
+from collision import CollisionFlagEditorPopup, CollisionEditorPopup
+from collisionform import CollisionFormEditorPopup
+from collisioninfo import CollisionGuardian
 from resourceloader import ResourceLoaderPopup
 from layer import LayerInformationPopup
 from layerinfo import LayerGuardian
 from editorobjects import BaseObject
-from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
-from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder, LayerToSceneCommunication
-from communicationobjects import FileOptionsMenuToScene
 
 from objectsmenu import NewBaseObjectDisplay, NewBaseObjectsMenu
 from objectdescriptor import ObjectDescriptor
@@ -101,9 +100,18 @@ class TileEditor(App, KeyboardAccess):
 		#Keyboard handler:
 		KeyboardGuardian.Instance()
 
-		# Left Menu Handler
+		# Global Guardians
 		LayerGuardian()
+		CollisionGuardian()
+
+		# Popup Modules
 		LayerInformationPopup()
+		CollisionFlagEditorPopup()
+		CollisionEditorPopup()
+		CollisionFormEditorPopup()
+		ResourceLoaderPopup()
+
+		# Left Menu Handler
 		NewBaseObjectDisplay()
 		NewBaseObjectsMenu()
 		ObjectDescriptor()
@@ -118,15 +126,6 @@ class TileEditor(App, KeyboardAccess):
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
 		KeyboardGuardian.Instance().acquireKeyboard(self)
-
-		# Collision Handlers:
-		CollisionGuardian.Instance()
-		CollisionFlagFormEditorPopup.Instance()
-		CollisionInformationPopup.Instance()
-		CollisionFlagsEditor.Instance()
-		# ResourceLoader
-		self.__resourcePopup = ResourceLoaderPopup()
-
 
 		# Bottom Menu Handler
 		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
@@ -144,20 +143,6 @@ class TileEditor(App, KeyboardAccess):
 		rightBottomMenu.add_widget(AlignedLabel(text = 'MiniMap', **defaultLabelSize))
 		rightBottomMenu.add_widget(ModulesAccess.get('MiniMap').getLayout())
 		bottomMenu.add_widget(rightBottomMenu)
-
-		# Communication Objects
-		CollisionToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
-			self.__sceneHandler.getAllObjects)
-		SceneToObjectsMenu.Instance(self.__sceneHandler.draw)
-		SceneToFilesManager.Instance(self.__sceneHandler.getCurrentSceneObjects,
-			self.__sceneHandler.getCurrentSceneAttributes, self.__sceneHandler.newScene,
-			self.__sceneHandler.addObjectByInfo, self.__sceneHandler.setSceneObjectId,
-			self.__sceneHandler.getSceneObjectId)
-		CollisionToCollisionForm.Instance(CollisionInformationPopup.Instance().callPreview)
-		ObjectDescriptorToResourceLoarder.Instance(self.__resourcePopup.open)
-		LayerToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
-			self.__sceneHandler.getAllObjects, self.__sceneHandler.redraw)
-		FileOptionsMenuToScene.Instance(self.__sceneHandler.newScene)
 
 		# Periodic functions:
 		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)

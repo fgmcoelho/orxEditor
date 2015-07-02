@@ -15,23 +15,18 @@ from string import letters, digits
 from math import floor, ceil
 
 from editorutils import Alert, Dialog, EmptyScrollEffect, CancelableButton, distance
-from communicationobjects import CollisionToSceneCommunication
 from keyboard import KeyboardAccess, KeyboardGuardian
-from collisioninfo import CollisionGuardian, CollisionPartInformation, CollisionInformation
-from collisionform import CollisionPartDisplay, CollisionFlagFormEditorPopup
+from collisioninfo import CollisionPartInformation, CollisionInformation
+from collisionform import CollisionPartDisplay
+from modulesaccess import ModulesAccess
 
-class CollisionFlagsEditorKeyboardHandler(KeyboardAccess):
+class CollisionFlagEditorPopup(KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
-			CollisionFlagsEditor.Instance().close()
+			self.close()
 
-	def __init__(self):
-		pass
-
-@Singleton
-class CollisionFlagsEditor:
 	def __reaplyFocus(self):
-		flagsList = CollisionGuardian.Instance().getFlags()
+		flagsList = ModulesAccess.get('CollisionGuardian').getFlags()
 		if (len(flagsList) != self.__maxCollisionFlags):
 			self.__inputBar.clear_widgets()
 			oldText = self.__flagNameInput.text
@@ -44,7 +39,7 @@ class CollisionFlagsEditor:
 		self.__layout.clear_widgets()
 		self.__layout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
 
-		flagsList = CollisionGuardian.Instance().getFlags()
+		flagsList = ModulesAccess.get('CollisionGuardian').getFlags()
 		for flag in flagsList:
 			flagLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
 			flagLine.add_widget(Label(text = flag.getName(), size_hint = (0.9, 1.0)))
@@ -64,7 +59,7 @@ class CollisionFlagsEditor:
 		self.__layout.add_widget(self.__bottomBar)
 
 	def __removeFlagsFromPartsList(self, partsList):
-		flagObject = CollisionGuardian.Instance().getFlagByName(self.__flagToRemove)
+		flagObject = ModulesAccess.get('CollisionGuardian').getFlagByName(self.__flagToRemove)
 		for part in partsList:
 			if (flagObject in part.getSelfFlags()):
 				part.removeFlagFromSelfFlags(self.__flagToRemove)
@@ -73,31 +68,31 @@ class CollisionFlagsEditor:
 				part.removeFlagFromCheckMask(self.__flagToRemove)
 
 	def __isPartsListAffected(self, partsList):
-		flagObject = CollisionGuardian.Instance().getFlagByName(self.__flagToRemove)
+		flagObject = ModulesAccess.get('CollisionGuardian').getFlagByName(self.__flagToRemove)
 		for part in partsList:
 			if (flagObject in part.getSelfFlags() or flagObject in part.getCheckMask()):
 				return 1
 		return 0
 
 	def __doRemoveFlag(self, *args):
-		objectsList = CollisionToSceneCommunication.Instance().getAllObjects()
+		objectsList = ModulesAccess.get('SceneHandler').getAllObjects()
 		for obj in objectsList:
 			collisionInfo = obj.getCollisionInfo()
 			if (collisionInfo is not None):
 				self.__removeFlagsFromPartsList(collisionInfo.getPartsList())
 
-		for collisionInfo in CollisionInformationPopup.Instance().getCopiesDictAsList():
+		for collisionInfo in ModulesAccess.get('CollisionEditor').getCopiesDictAsList():
 			self.__removeFlagsFromPartsList(collisionInfo.getPartsList())
 
-		for partsList in CollisionInformationPopup.Instance().getExtraPartsDictAsList():
+		for partsList in ModulesAccess.get('CollisionEditor').getExtraPartsDictAsList():
 			self.__removeFlagsFromPartsList(partsList)
 
-		CollisionGuardian.Instance().removeFlag(self.__flagToRemove)
+		ModulesAccess.get('CollisionGuardian').removeFlag(self.__flagToRemove)
 		self.__flagToRemove = None
 		self.__render()
 
 	def __processRemoveFlag(self, buttonPressed, touch):
-		objectsList = CollisionToSceneCommunication.Instance().getAllObjects()
+		objectsList = ModulesAccess.get('SceneHandler').getAllObjects()
 		existingObjectsCount = 0
 		editingObjectsCount = 0
 		self.__flagToRemove = buttonPressed.id.split('#')[1]
@@ -106,10 +101,10 @@ class CollisionFlagsEditor:
 			if (collisionInfo is not None):
 				existingObjectsCount += self.__isPartsListAffected(collisionInfo.getPartsList())
 
-		for collisionInfo in CollisionInformationPopup.Instance().getCopiesDictAsList():
+		for collisionInfo in ModulesAccess.get('CollisionEditor').getCopiesDictAsList():
 		 	editingObjectsCount += self.__isPartsListAffected(collisionInfo.getPartsList())
 
-		for partsList in CollisionInformationPopup.Instance().getExtraPartsDictAsList():
+		for partsList in ModulesAccess.get('CollisionEditor').getExtraPartsDictAsList():
 			editingObjectsCount += self.__isPartsListAffected(partsList)
 
 		if (existingObjectsCount == 0 and editingObjectsCount == 0):
@@ -155,7 +150,7 @@ class CollisionFlagsEditor:
 			error.open()
 			return
 
-		if (CollisionGuardian.Instance().getFlagByName(self.__flagNameInput.text) is not None):
+		if (ModulesAccess.get('CollisionGuardian').getFlagByName(self.__flagNameInput.text) is not None):
 			error = Alert('Error', 'This name has already been used.', 'Ok', self.__reaplyFocus)
 			error.open()
 			return
@@ -171,11 +166,12 @@ class CollisionFlagsEditor:
 			error.open()
 			return
 
-		CollisionGuardian.Instance().addNewFlag(self.__flagNameInput.text)
+		ModulesAccess.get('CollisionGuardian').addNewFlag(self.__flagNameInput.text)
 		self.__flagNameInput.text = ''
 		self.__render()
 
 	def __init__(self):
+		ModulesAccess.add('CollisionFlagEditor', self)
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__popup = Popup (title = 'Collision flags editor', auto_dismiss = False, content = self.__layout)
 
@@ -207,16 +203,15 @@ class CollisionFlagsEditor:
 		self.__flagRemoveWarning = Dialog(self.__doRemoveFlag, 'Confirmation',
 			'This will affect existing objects.\nAre you sure you want to remove this flag?', 'Yes', 'No',
 			self.__reaplyFocus, self.__reaplyFocus)
-		self.__keyboardHandler = CollisionFlagsEditorKeyboardHandler()
 
 	def close(self, *args):
 		self.__flagNameInput.focus = False
-		CollisionInformationPopup.Instance().updateLayout()
+		KeyboardGuardian.Instance().dropKeyboard(self)
+		ModulesAccess.get('CollisionEditor').updateLayout()
 		self.__popup.dismiss()
-		KeyboardGuardian.Instance().dropKeyboard(self.__keyboardHandler)
 
-	def showPopUp(self, *args):
-		KeyboardGuardian.Instance().acquireKeyboard(self.__keyboardHandler)
+	def open(self, *args):
+		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.__render()
 		self.__popup.open()
 
@@ -225,18 +220,26 @@ class CollisionPartLayout:
 		buttonInfo = buttonObject.id.split('#')
 		if (buttonObject.state == 'normal'):
 			if (buttonInfo[1] == 'selfflags'):
-				self.__part.removeFlagFromSelfFlags(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
+				self.__part.removeFlagFromSelfFlags(
+					ModulesAccess.get('CollisionGuardian').getFlagByName(buttonInfo[2])
+				)
 			else:
-				self.__part.removeFlagFromCheckMask(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
+				self.__part.removeFlagFromCheckMask(
+					ModulesAccess.get('CollisionGuardian').getFlagByName(buttonInfo[2])
+				)
 		else:
 			if (buttonInfo[1] == 'selfflags'):
-				self.__part.addFlagToSelfFlags(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
+				self.__part.addFlagToSelfFlags(
+					ModulesAccess.get('CollisionGuardian').getFlagByName(buttonInfo[2])
+				)
 			else:
-				self.__part.addFlagToCheckMask(CollisionGuardian.Instance().getFlagByName(buttonInfo[2]))
+				self.__part.addFlagToCheckMask(
+					ModulesAccess.get('CollisionGuardian').getFlagByName(buttonInfo[2])
+				)
 
 	def __doUpdateFormType(self):
 		self.__part.setFormType(self.__formToSet)
-		CollisionInformationPopup.Instance().callPreview()
+		ModulesAccess.get('CollisionEditor').preview()
 
 	def __restoreFormCheckbox(self):
 		form = self.__part.getFormType()
@@ -276,7 +279,7 @@ class CollisionPartLayout:
 	def __render(self, part, obj):
 		self.__obj = obj
 		self.__part = part
-		flagsList = CollisionGuardian.Instance().getFlags()
+		flagsList = ModulesAccess.get('CollisionGuardian').getFlags()
 		numberOfFlags = len(flagsList)
 
 		partSelfFlags = []
@@ -347,7 +350,7 @@ class CollisionPartLayout:
 		self.__typeLine.add_widget(Label(text = 'Mesh'))
 
 	def __callFormEditPopup(self, *args):
-		CollisionFlagFormEditorPopup.Instance().showPopUp(self.__part, self.__obj)
+		ModulesAccess.get('CollisionFormEditor').open(self.__part, self.__obj)
 
 	def __init__(self):
 		self.__layout = BoxLayout(orientation = 'horizontal')
@@ -403,16 +406,11 @@ class CollisionPartLayout:
 	def getPart(self):
 		return self.__part
 
-class CollisionInformationPopupKeyboardHandler(KeyboardAccess):
+class CollisionEditorPopup(KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
-			CollisionInformationPopup.Instance().dismissPopUp()
+			self.close()
 
-	def __init__(self):
-		pass
-
-@Singleton
-class CollisionInformationPopup:
 	def __createTemporatyCopies(self):
 		for obj in self.__objectsList:
 			if (obj.getCollisionInfo() is not None):
@@ -433,7 +431,7 @@ class CollisionInformationPopup:
 		newPart = self.__extraPartsDict[currentId].pop(0)
 		self.__copiesDict[currentId].addPart(newPart)
 		self.__render()
-		self.callPreview()
+		self.preview()
 
 	def __doDeleteCurrentPart(self, *args):
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
@@ -489,12 +487,12 @@ class CollisionInformationPopup:
 	def __selectNextObject(self, *args):
 		self.__objectsListIndex = (self.__objectsListIndex + 1) % len(self.__objectsList)
 		self.__render()
-		self.callPreview()
+		self.preview()
 
 	def __selectPreviousObject(self, *args):
 		self.__objectsListIndex = (self.__objectsListIndex - 1) % len(self.__objectsList)
 		self.__render()
-		self.callPreview()
+		self.preview()
 
 	def __reloadObjectsCollisionDisplay(self, expandLevel = 1.0):
 		self.__objectsCollisionDisplay.clear_widgets()
@@ -521,7 +519,7 @@ class CollisionInformationPopup:
 		self.__renderLowerPart(args[0].text)
 
 	def __createPannedHeader(self, text, content, index):
-		th = TabbedPanelHeader(text = text, on_press = self.__changeTabs, on_release = self.callPreview,
+		th = TabbedPanelHeader(text = text, on_press = self.__changeTabs, on_release = self.preview,
 			id = 'tab#' + str(index))
 		th.content = content
 		return th
@@ -585,7 +583,7 @@ class CollisionInformationPopup:
 					obj.setCollisionInfo(self.__copiesDict[currentId])
 			else:
 				obj.setCollisionInfo(self.__copiesDict[currentId])
-		self.dismissPopUp()
+		self.close()
 
 	def __needToOversizePreview(self, part):
 		overSizeNeeded = False
@@ -621,6 +619,7 @@ class CollisionInformationPopup:
 		self.__copiesDict[idToUse].setHighSpeed(value)
 
 	def __init__(self):
+		ModulesAccess.add('CollisionEditor', self)
 		self.__baseHeight = 0.05
 
 		self.__copiesDict = {}
@@ -672,7 +671,7 @@ class CollisionInformationPopup:
 
 		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0),
 			on_release=self.__createOrEditCollisionInfo)
-		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.dismissPopUp)
+		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.close)
 		self.__addButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__addPart)
 		self.__applyToAllButton = CancelableButton(text = 'Copy info to all', size_hint = (0.2, 1.0),
 			on_release = self.__applyChangesToAll)
@@ -683,7 +682,7 @@ class CollisionInformationPopup:
 		self.__nextObjectButton = CancelableButton(text = 'Next', size_hint = (0.1, 1.0),
 			on_release = self.__selectNextObject)
 		self.__editFlagsButton = CancelableButton(text = 'Edit Flags', size_hint = (0.1, 1.0),
-			on_release = CollisionFlagsEditor.Instance().showPopUp)
+			on_release = ModulesAccess.get('CollisionFlagEditor').open)
 
 		self.__mainLayout.add_widget(Label(text = '', size_hint = (1.0, self.__baseHeight)))
 		self.__mainLayout.add_widget(self.__lowerBox)
@@ -698,9 +697,8 @@ class CollisionInformationPopup:
 			'This will replace information of other objects.', 'Yes', 'No')
 		self.__errorPopUp = Alert('Error', 'No Object selected!\nYou need to select one object from the scene.',
 			'Ok')
-		self.__keyboardHandler = CollisionInformationPopupKeyboardHandler()
 
-	def callPreview(self, *args):
+	def preview(self, *args):
 		if (len(args) > 0 and isinstance(args[0], TabbedPanelHeader)):
 			i = int(args[0].id.split('#')[1])
 		else:
@@ -739,8 +737,8 @@ class CollisionInformationPopup:
 	def getExtraPartsDictAsList(self):
 		return self.__extraPartsDict.values()
 
-	def showPopUp(self, *args):
-		objList = CollisionToSceneCommunication.Instance().getSelectedObjects()
+	def open(self, *args):
+		objList = ModulesAccess.get('SceneHandler').getCurrentSelection()
 		if (objList == []):
 			self.__errorPopUp.setText('No object is selected!\nYou need to select at least one object from the scene.')
 			self.__errorPopUp.open()
@@ -756,16 +754,16 @@ class CollisionInformationPopup:
 					self.__errorPopUp.open()
 					return
 
-			KeyboardGuardian.Instance().acquireKeyboard(self.__keyboardHandler)
+			KeyboardGuardian.Instance().acquireKeyboard(self)
 			self.__objectsList = objList
 			self.__copiesDict = {}
 			self.__extraPartsDict = {}
 			self.__objectsListIndex = 0
 			self.__createTemporatyCopies()
 			self.__render()
-			self.callPreview()
+			self.preview()
 			self.__collisionPopUp.open()
 
-	def dismissPopUp(self, *args):
-		KeyboardGuardian.Instance().dropKeyboard(self.__keyboardHandler)
+	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__collisionPopUp.dismiss()

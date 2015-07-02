@@ -42,9 +42,12 @@ class DescriptorButtons(DescriptorLinesConfigs):
 			**defaultLargeButtonSize)
 		self._alignButton = CancelableButton(text = 'Align (q)', on_release = self._call_on_press,
 			**defaultSmallButtonSize)
-		self._editCollisionButton = CancelableButton(text = 'Edit collision',
+		self._editCollisionButton = CancelableButton(
+			text = 'Edit collision',
+			on_release = ModulesAccess.get('CollisionEditor').open,
 			**defaultLargeButtonSize)
-		self._editGroupButton = CancelableButton(text = 'Edit Group',
+		self._editGroupButton = CancelableButton(
+			text = 'Edit Group',
 			on_release = ModulesAccess.get('LayerInformation').open,
 			**defaultSmallButtonSize
 		)

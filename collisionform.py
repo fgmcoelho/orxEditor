@@ -1,5 +1,3 @@
-from singleton import Singleton
-
 from kivy.uix.popup import Popup
 from kivy.uix.scatter import Scatter
 from kivy.uix.relativelayout import RelativeLayout
@@ -15,7 +13,7 @@ from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, di
 from editorheritage import SpecialScrollControl, SpaceLimitedObject
 from collisioninfo import CollisionPartInformation
 from keyboard import KeyboardAccess, KeyboardGuardian
-from communicationobjects import CollisionToCollisionForm
+from modulesaccess import ModulesAccess
 
 class CollisionPartDisplay(RelativeLayout):
 	def __init__(self, obj, expandLevel = 1.0):
@@ -313,7 +311,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 				self.__updatePoints(None)
 
 		elif(keycode[1] == 'escape'):
-			CollisionFlagFormEditorPopup.Instance().dismissPopUp()
+			ModulesAccess.get('CollisionFormEditor').close()
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
@@ -484,22 +482,22 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		self._scrollView.scroll_x = 0.5
 		self.__lastPointPressed = None
 
-@Singleton
-class CollisionFlagFormEditorPopup:
+class CollisionFormEditorPopup:
 	def __saveAndClose(self, *args):
 		if (self.__mainScreen.savePoints() == False):
 			self.__meshErrorAlert.open()
 		else:
-			CollisionToCollisionForm.Instance().preview()
-			self.dismissPopUp()
+			ModulesAccess.get('CollisionEditor').preview()
+			self.close()
 
 	def __init__(self):
+		ModulesAccess.add('CollisionFormEditor', self)
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout, auto_dismiss = False)
 		self.__mainScreen = CollisionFlagFormEditorLayout()
 		self.__bottomMenu = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
 		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.15, 1.0),
-				on_release = self.dismissPopUp)
+				on_release = self.close)
 		self.__doneButton = CancelableButton(text = 'Done', size_hint = (0.15, 1.0),
 				on_release = self.__saveAndClose)
 		self.__tooltipLabel = Label(text='', size_hint = (0.6, 1.0))
@@ -517,11 +515,11 @@ class CollisionFlagFormEditorPopup:
 		self.__layout.add_widget(self.__mainScreen.getLayout())
 		self.__layout.add_widget(self.__bottomMenu)
 
-	def dismissPopUp(self, *args):
+	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self.__mainScreen)
 		self.__popup.dismiss()
 
-	def showPopUp(self, part, obj):
+	def open(self, part, obj):
 		KeyboardGuardian.Instance().acquireKeyboard(self.__mainScreen)
 		if (part.getFormType() == 'mesh'):
 			self.__tooltipLabel.text = 'Ctrl + Double click to Add a point.\n'\
