@@ -1,5 +1,3 @@
-from singleton import Singleton
-
 from kivy.uix.popup import Popup
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -11,7 +9,6 @@ from kivy.uix.switch import Switch
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelHeader
 from kivy.uix.togglebutton import ToggleButton
 
-from string import letters, digits
 from math import floor, ceil
 
 from editorutils import Alert, Dialog, EmptyScrollEffect, CancelableButton, distance
@@ -21,18 +18,14 @@ from collisionform import CollisionPartDisplay
 from modulesaccess import ModulesAccess
 
 class CollisionFlagEditorPopup(KeyboardAccess):
-	def _processKeyUp(self, keyboard, keycode):
-		if (keycode[1] == 'escape'):
-			self.close()
-
 	def __reaplyFocus(self):
 		flagsList = ModulesAccess.get('CollisionGuardian').getFlags()
 		if (len(flagsList) != self.__maxCollisionFlags):
 			self.__inputBar.clear_widgets()
-			oldText = self.__flagNameInput.text
-			self.__flagNameInput = TextInput(text = oldText, multiline = False, size_hint = (0.9, 1.0),
+			oldText = self._autoFocusInput.text
+			self._autoFocusInput = TextInput(text = oldText, multiline = False, size_hint = (0.9, 1.0),
 				on_text_validate = self.__processAddFlag, focus = True)
-			self.__inputBar.add_widget(self.__flagNameInput)
+			self.__inputBar.add_widget(self._autoFocusInput)
 			self.__inputBar.add_widget(self.__flagAddButton)
 
 	def __render(self):
@@ -145,19 +138,19 @@ class CollisionFlagEditorPopup(KeyboardAccess):
 		self.__flagRemoveWarning.open()
 
 	def __processAddFlag(self, *args):
-		if (self.__flagNameInput.text == ''):
+		if (self._autoFocusInput.text == ''):
 			error = Alert('Error', 'Flag name can\'t be empty.', 'Ok', self.__reaplyFocus)
 			error.open()
 			return
 
-		if (ModulesAccess.get('CollisionGuardian').getFlagByName(self.__flagNameInput.text) is not None):
+		if (ModulesAccess.get('CollisionGuardian').getFlagByName(self._autoFocusInput.text) is not None):
 			error = Alert('Error', 'This name has already been used.', 'Ok', self.__reaplyFocus)
 			error.open()
 			return
 
 		invalidSet = []
-		for char in self.__flagNameInput.text:
-			if (char not in self.__validCharacters):
+		for char in self._autoFocusInput.text:
+			if (char not in self._validCharacters):
 				invalidSet.append(char)
 
 		if (invalidSet != []):
@@ -166,8 +159,8 @@ class CollisionFlagEditorPopup(KeyboardAccess):
 			error.open()
 			return
 
-		ModulesAccess.get('CollisionGuardian').addNewFlag(self.__flagNameInput.text)
-		self.__flagNameInput.text = ''
+		ModulesAccess.get('CollisionGuardian').addNewFlag(self._autoFocusInput.text)
+		self._autoFocusInput.text = ''
 		self.__render()
 
 	def __init__(self):
@@ -175,19 +168,18 @@ class CollisionFlagEditorPopup(KeyboardAccess):
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__popup = Popup (title = 'Collision flags editor', auto_dismiss = False, content = self.__layout)
 
-		self.__validCharacters = letters + digits
 		self.__maxCollisionFlags = 16
 		self.__baseHeight = 0.05
 
 		emptyLabel = Label(text = '', size_hint = (0.9, 1.0))
 
 		self.__inputBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		self.__flagNameInput = TextInput(multiline = False, size_hint = (0.9, 1.0),
+		self._autoFocusInput = TextInput(multiline = False, size_hint = (0.9, 1.0),
 			on_text_validate = self.__processAddFlag, focus = False)
 		self.__flagAddButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0),
 			on_release = self.__processAddFlag)
 
-		self.__inputBar.add_widget(self.__flagNameInput)
+		self.__inputBar.add_widget(self._autoFocusInput)
 		self.__inputBar.add_widget(self.__flagAddButton)
 
 		self.__bottomBar = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
@@ -205,7 +197,7 @@ class CollisionFlagEditorPopup(KeyboardAccess):
 			self.__reaplyFocus, self.__reaplyFocus)
 
 	def close(self, *args):
-		self.__flagNameInput.focus = False
+		self._autoFocusInput.focus = False
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		ModulesAccess.get('CollisionEditor').updateLayout()
 		self.__popup.dismiss()

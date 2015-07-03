@@ -298,7 +298,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		if (keycode[1] == 'shift'):
 			self.setIsShiftPressed(False)
 
-		elif (keycode[1] == 'ctrl'):
+		elif ('ctrl' in keycode[1]):
 			self.setIsCtrlPressed(False)
 			CollisionFormEditorPoints.setMoveAll(False)
 
@@ -318,7 +318,7 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		if (keycode[1] == 'shift'):
 			self.setIsShiftPressed(True)
 
-		elif (keycode[1] == 'ctrl'):
+		elif ('ctrl' in keycode[1]):
 			self.setIsCtrlPressed(True)
 			CollisionFormEditorPoints.setMoveAll(True)
 

@@ -1,4 +1,4 @@
-from editorutils import strToDoubleIntTuple, boolToStr, strToBool
+from editorutils import strToDoubleIntTuple
 
 from ConfigParser import ConfigParser
 from os.path import isfile

@@ -4,9 +4,7 @@ from kivy.graphics.vertex_instructions import Line
 from kivy.graphics.fbo import Fbo
 from kivy.graphics import Color, Canvas, Rectangle, ClearColor, ClearBuffers, Scale, Translate, InstructionGroup
 from kivy.core.window import Window
-from kivy.uix.popup import Popup
 from kivy.uix.image import Image
-from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import ObjectProperty, NumericProperty
@@ -260,7 +258,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		ModulesAccess.get('ObjectDescriptor').set(flippedObjects)
 
 	def removeObject(self):
-		deletedObjects = self._renderGuardian.deleteSelection()
+		self._renderGuardian.deleteSelection()
 		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
 
 	def alignToGrid(self):

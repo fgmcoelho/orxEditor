@@ -4,23 +4,13 @@ from kivy.uix.textinput import TextInput
 from kivy.clock import Clock
 
 from editorutils import CancelableButton, Alert, Dialog, AlignedLabel, AlignedToggleButton
-from editorheritage import SeparatorLabel
+from editorheritage import SeparatorLabel, AutoFocusInputUser
 from keyboard import KeyboardAccess, KeyboardGuardian
 from uisizes import defaultLabelSize, defaultLineSize, defaultSmallButtonSize, defaultInputSize, defaultFontSize
 from modulesaccess import ModulesAccess
 
-from string import letters, digits
 
-class LayerEditorPopup(KeyboardAccess, SeparatorLabel):
-	# Overloaded method
-	def _processKeyUp(self, keyboard, keycode):
-		if (keycode[1] == 'escape'):
-			self.close()
-
-		elif (keycode[1] in self.__validCharacters and self.__layerNameInput.focus == False):
-			self.__layerNameInput.insert_text(keycode[1])
-			self.__layerNameInput.focus = True
-
+class LayerEditorPopup(KeyboardAccess, SeparatorLabel, AutoFocusInputUser):
 	def __doDeleteLayer(self):
 		if (self.__layerToRemoveName is not None):
 			ModulesAccess.get('LayerGuardian').deleteLayerByName(self.__layerToRemoveName)
@@ -71,7 +61,7 @@ class LayerEditorPopup(KeyboardAccess, SeparatorLabel):
 				warn.open()
 
 	def __processAddLayer(self, *args):
-		newLayer = self.__layerNameInput.text.strip()
+		newLayer = self._autoFocusInput.text.strip()
 		if (newLayer == ''):
 			error = Alert('Error', 'Layer name can\'t be empty.', 'Ok', self.__reaplyFocus)
 			error.open()
@@ -86,7 +76,7 @@ class LayerEditorPopup(KeyboardAccess, SeparatorLabel):
 
 		invalidSet = []
 		for char in newLayer:
-			if (char not in self.__validCharacters):
+			if (char not in self._validCharacters):
 				invalidSet.append(char)
 
 		if (invalidSet != []):
@@ -96,19 +86,16 @@ class LayerEditorPopup(KeyboardAccess, SeparatorLabel):
 			return
 
 		ModulesAccess.get('LayerGuardian').addNewLayer(newLayer)
-		self.__layerNameInput.text = ''
+		self._autoFocusInput.text = ''
 		self.__render()
-
-	def __delayedFocus(self, *args):
-		self.__layerNameInput.focus = True
 
 	def __reaplyFocus(self):
 		layerList = ModulesAccess.get('LayerGuardian').getLayerList()
 		if (len(layerList) != self.__maxLayers):
 			self.__inputBar.clear_widgets()
-			self.__inputBar.add_widget(self.__layerNameInput)
+			self.__inputBar.add_widget(self._autoFocusInput)
 			self.__inputBar.add_widget(self.__layerAddButton)
-			Clock.schedule_once(self.__delayedFocus, 0)
+			Clock.schedule_once(self._delayedFocus, 0)
 
 	def __render(self):
 		self.__layout.clear_widgets()
@@ -141,7 +128,8 @@ class LayerEditorPopup(KeyboardAccess, SeparatorLabel):
 		self.__layout.add_widget(self.__closeLine)
 
 	def __init__(self):
-		super(self.__class__, self).__init__()
+		super(LayerEditorPopup, self).__init__()
+		self._processKeyUp = super(AutoFocusInputUser, self)._processKeyUp
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		doubleLineSize = {
 			'height' : defaultFontSize * 2,
@@ -165,14 +153,12 @@ class LayerEditorPopup(KeyboardAccess, SeparatorLabel):
 		self.__closeLine.add_widget(self.__closeButton)
 
 		self.__inputBar = BoxLayout(orientation = 'horizontal', **defaultInputSize)
-		self.__layerNameInput = TextInput(on_text_validate = self.__processAddLayer, multiline = False,
-			**defaultInputSize)
+		self._autoFocusInput.bind(on_text_validate = self.__processAddLayer)
 		self.__layerAddButton = CancelableButton(text = 'Add', on_release = self.__processAddLayer,
 			**addButtonSize)
 
 		self.__popup = Popup(title = 'Groups Editor', content = self.__layout, auto_dismiss = False)
 		self.__maxLayers = 16
-		self.__validCharacters = letters + digits
 		self.__layerToRemoveName = None
 
 	def open(self, *args):

@@ -9,9 +9,7 @@ from editorutils import CancelableButton, NumberInput, AlignedLabel
 from editorheritage import SeparatorLabel
 from uisizes import optionsMenuSize, defaultLineSize, newSceneSize, defaultInputSize, defaultFontSize, \
 		defaultSmallButtonSize, defaultLabelSize, exportSceneSize
-from tilemapfiles import FilesManager
 from keyboard import KeyboardAccess, KeyboardGuardian
-from collisioninfo import CollisionGuardian
 from scene import SceneAttributes
 from modulesaccess import ModulesAccess
 
@@ -76,7 +74,7 @@ class NewScenePopup(KeyboardAccess, SeparatorLabel, FileOptionsConfig):
 			return alert.open()
 
 		if (self.__keepCollisionFlags.active == False):
-			CollisionGuardian.Instance().reset()
+			ModulesAccess.get('CollisionGuardian').reset()
 
 		if (self.__keepGroupsFlags.active == False):
 			ModulesAccess.get('LayerGuardian').reset()
@@ -325,7 +323,7 @@ class SaveScenePopup(KeyboardAccess, FileChooserUser):
 			filename += '.osf'
 
 		self._closePopUpsAndShowResult(
-			FilesManager.Instance().saveScene,
+			ModulesAccess.get('FilesManager').saveScene,
 			join(self._fileChooser.path, filename),
 			'saving'
 		)
@@ -378,7 +376,7 @@ class LoadScenePopup(KeyboardAccess, FileChooserUser):
 
 	def __loadSceneFinish(self, *args):
 		self._closePopUpsAndShowResult(
-			FilesManager.Instance().loadScene,
+			ModulesAccess.get('FilesManager').loadScene,
 			join(self._fileChooser.path, self._fileChooserInput.text),
 			'loading'
 		)
@@ -413,7 +411,11 @@ class ExportScenePopup (KeyboardAccess, FileOptionsConfig, SeparatorLabel):
 
 		alertSuccess = True
 		try:
-			FilesManager.Instance().exportScene(self.__filename, self.__assetsPath, bool(self.__smoothCheckBox.active))
+			ModulesAccess.get('FilesManager').exportScene(
+				self.__filename,
+				self.__assetsPath,
+				bool(self.__smoothCheckBox.active)
+			)
 		except Exception, e:
 			errorText = str(e)
 			alertSuccess = False

@@ -27,7 +27,6 @@ from editorutils import AlignedLabel
 from filesoptionsmenu import FilesOptionsMenu
 
 class TileEditor(App, KeyboardAccess):
-
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl']):
 			self.__sceneHandler.processKeyUp(keycode)
@@ -40,13 +39,11 @@ class TileEditor(App, KeyboardAccess):
 		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcvy') or
 				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete']):
 			self.__sceneHandler.processKeyDown(keycode, modifiers)
-
 		#elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):
 		#	if ('ctrl' in modifiers):
 		#		ObjectsMenu.Instance().setShortcut(keycode[1])
 		#	else:
 		#		ObjectsMenu.Instance().processShortcut(keycode[1])
-
 		elif (keycode[1] == 'spacebar'):
 			obj = ModulesAccess.get('ObjectDescriptor').getCurrentObject()
 			if (isinstance(obj, BaseObject) == True):
@@ -117,7 +114,7 @@ class TileEditor(App, KeyboardAccess):
 		ObjectDescriptor()
 
 		# Files handlers
-		FilesManager.Instance()
+		FilesManager()
 
 		# Scene Editor handlers:
 		SceneMiniMap()

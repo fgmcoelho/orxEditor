@@ -78,10 +78,8 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def __handleTouchMove(self, touch):
 		if (self._layout.collide_point(*touch.pos) == False):
 			return
-
 		if(touch.button == 'left'):
 			self.updateSelection(touch)
-
 		if (touch.button == 'right'):
 			self.__defaultTouchMove(touch)
 
@@ -379,14 +377,13 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		elif (keycode[1] == 'enter'):
 			self.__splitImage()
 
+		elif (keycode[1] == 'escape'):
+			self.close()
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
 		if (keycode[1] == 'shift'):
 			self.__isShiftPressed = True
-
-		elif (keycode[1] == 'escape'):
-			self.close()
 
 	def __splitImage(self, *args):
 		if (self.__state == 'divisions'):

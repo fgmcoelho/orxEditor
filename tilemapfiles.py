@@ -1,20 +1,16 @@
-from singleton import Singleton
-
 from kivy.uix.image import Image
 
 from editorutils import vector2ToVector3String, strToDoubleFloatTuple, boolToStr, convertKivyCoordToOrxCoord, distance
 from editorutils import isClockWise, createSpriteImage, strToDoubleIntTuple, strToBool
 from editorobjects import BaseObject
-from communicationobjects import SceneToFilesManager
 from ConfigParser import ConfigParser
-from collisioninfo import CollisionGuardian, CollisionInformation, CollisionPartInformation
+from collisioninfo import CollisionInformation, CollisionPartInformation
 from modulesaccess import ModulesAccess
 from scene import SceneAttributes
 
 from os.path import sep, isfile, join
 from shutil import copyfile
 
-@Singleton
 class FilesManager:
 	def __compileObjListWithName(self, listToCompile):
 		l = []
@@ -31,7 +27,7 @@ class FilesManager:
 	def __loadCollisionFlagsList(self, parser, sectionName, attribute):
 		l = []
 		for flag in parser.get(sectionName, attribute).split('#'):
-			flagObj = CollisionGuardian.Instance().getFlagByName(flag)
+			flagObj = ModulesAccess.get('CollisionGuardian').getFlagByName(flag)
 			assert flagObj is not None, \
 				'collision flag ' + flag + ' from section ' + sectionName + 'was not loaded.'
 			l.append(flagObj)
@@ -43,6 +39,7 @@ class FilesManager:
 		return convertKivyCoordToOrxCoord((x + posAdjust[0], y + sy - posAdjust[1]), sceneMaxY)
 
 	def __init__(self):
+		ModulesAccess.add('FilesManager', self)
 		self.__tileEditorSectionName = 'TileEditor'
 		self.__assetsSectionName = 'Assets'
 		self.__objectListName = 'ObjectList'
@@ -53,7 +50,7 @@ class FilesManager:
 		parser = ConfigParser()
 		parser.optionxform = str
 
-		sceneAttributes = SceneToFilesManager.Instance().getSceneAttributes()
+		sceneAttributes = ModulesAccess.get('SceneHandler').getCurrentSceneAttributes()
 		parser.add_section(self.__tileEditorSectionName)
 		parser.set(self.__tileEditorSectionName, 'MaxX', sceneAttributes.getValue('TilesMaxX'))
 		parser.set(self.__tileEditorSectionName, 'MaxY', sceneAttributes.getValue('TilesMaxY'))
@@ -69,17 +66,17 @@ class FilesManager:
 
 		parser.add_section(self.__collisionListName)
 		parser.set(self.__collisionListName, 'Flags',
-			self.__compileObjListWithName(CollisionGuardian.Instance().getFlags())
+			self.__compileObjListWithName(ModulesAccess.get('CollisionGuardian').getFlags())
 		)
 
-		renderedObjects = SceneToFilesManager.Instance().getSceneObjects()
+		renderedObjects = ModulesAccess.get('SceneHandler').getAllObjects()
 		objectsInScene = []
 		for obj in renderedObjects:
 			objectsInScene.append(obj.getName())
 
 		parser.add_section(self.__objectListName)
 		parser.set(self.__objectListName, 'ObjectNames', '#'.join(objectsInScene))
-		parser.set(self.__objectListName, 'LastId', str(SceneToFilesManager.Instance().getSceneObjectId()))
+		parser.set(self.__objectListName, 'LastId', str(ModulesAccess.get('SceneHandler').getSceneObjectId()))
 
 		for obj in renderedObjects:
 			newSectionName = obj.getName()
@@ -131,7 +128,7 @@ class FilesManager:
 						parser.set(partSectionName, 'Points', '#'.join(strPoints))
 					i += 1
 
-		parser.set(self.__objectListName, 'LastId', str(SceneToFilesManager.Instance().getSceneObjectId()))
+		parser.set(self.__objectListName, 'LastId', str(ModulesAccess.get('SceneHandler').getSceneObjectId()))
 
 		f = open(filename, 'w')
 		parser.write(f)
@@ -199,11 +196,11 @@ class FilesManager:
 			raise Exception('Error creating the layer groups: ' + str(e))
 
 		try:
-			CollisionGuardian.Instance().reset()
+			ModulesAccess.get('CollisionGuardian').reset()
 			for collisionFlag in parser.get(self.__collisionListName, 'Flags').split('#'):
 				collisionFlag = collisionFlag.strip()
 				if (collisionFlag != ''):
-					CollisionGuardian.Instance().addNewFlag(collisionFlag)
+					ModulesAccess.get('CollisionGuardian').addNewFlag(collisionFlag)
 
 		except Exception, e:
 			raise Exception('Error creating the collision flags: ' + str(e))
@@ -218,7 +215,7 @@ class FilesManager:
 
 		try:
 			newSceneAttributes = SceneAttributes(tilesSize, tilesOnX, tilesOnY)
-			SceneToFilesManager.Instance().newScene(newSceneAttributes)
+			ModulesAccess.get('SceneHandler').getAllObjects().newScene(newSceneAttributes)
 		except Exception, e:
 			raise Exception('Error creating the base scene to load: ' + str(e))
 
@@ -262,13 +259,13 @@ class FilesManager:
 						newPart = CollisionPartInformation(checkMask, selfFlags, solid, formType, points)
 						collisionInfo.addPart(newPart)
 
-				SceneToFilesManager.Instance().addObjectByInfo(tempBaseObjects[(fullPath, coords)],	identifier,
+				ModulesAccess.get('SceneHandler').addObjectByInfo(tempBaseObjects[(fullPath, coords)], identifier,
 					position, scale, flipX, flipY, layer, collisionInfo)
 
 		except Exception, e:
 			raise Exception('Error loading the objecs to the list:' + str(e))
 
-		SceneToFilesManager.Instance().setSceneObjectId(int(parser.get(self.__objectListName, 'LastId')))
+		ModulesAccess.get('SceneHandler').setSceneObjectId(int(parser.get(self.__objectListName, 'LastId')))
 
 	def exportScene(self, filename, assetsPath, shouldSmooth):
 		parser = ConfigParser()
@@ -276,13 +273,13 @@ class FilesManager:
 
 		parser.add_section('General')
 		parser.set('General', 'CollisionFlagList', self.__compileObjListWithName(
-			CollisionGuardian.Instance().getFlags())
+			ModulesAccess.get('CollisionGuardian').getFlags())
 		)
 		parser.set('General', 'GroupList', self.__compileObjListWithName(
 			ModulesAccess.get('LayerGuardian').getLayerList())
 		)
 
-		renderedObjectsList = SceneToFilesManager.Instance().getSceneObjects()
+		renderedObjectsList = ModulesAccess.get('SceneHandler').getAllObjects()
 		numberOfLists = 1 + len(renderedObjectsList)/64
 		if (len(renderedObjectsList) % 64 == 0):
 			numberOfLists -= 1
@@ -303,7 +300,7 @@ class FilesManager:
 				parser.set('General', 'ObjectList_' + str(j), '#'.join(objectsInScene))
 
 		assetsDict = {}
-		sceneAttributes = SceneToFilesManager.Instance().getSceneAttributes()
+		sceneAttributes = ModulesAccess.get('SceneHandler').getCurrentSceneAttributes()
 		sceneMaxY = sceneAttributes.getValue('TilesMaxY') * sceneAttributes.getValue('TilesSize')
 		for obj in renderedObjectsList:
 			# Needed data

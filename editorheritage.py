@@ -1,6 +1,10 @@
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.scatter import Scatter
 from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
+
+from string import letters, digits
+from uisizes import defaultInputSize
 
 class SpaceLimitedObject (object):
 	def ajustPositionByLimits(self, x, y, sx, sy, maxX, maxY):
@@ -122,4 +126,21 @@ class SpecialScrollControl (KeyboardModifiers):
 
 	def getLayout(self):
 		return self._scrollView
+
+class AutoFocusInputUser(object):
+	# Overloaded method
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.close()
+
+		elif (keycode[1] in self._validCharacters and self._autoFocusInput.focus == False):
+			self._autoFocusInput.insert_text(keycode[1])
+			self._autoFocusInput.focus = True
+
+	def __init__(self):
+		self._validCharacters = letters + digits
+		self._autoFocusInput = TextInput(multiline = False, **defaultInputSize)
+
+	def _delayedFocus(self, *args):
+		self._autoFocusInput.focus = True
 
