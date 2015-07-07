@@ -133,7 +133,7 @@ class MultipleSelectionDescriptor(CleanDescriptorLayoutGetter, SeparatorLabel, D
 		layout = self._getParentLayout()
 		layout.add_widget(self._selectedLabel)
 		layout.add_widget(self._layerCollisionBox)
-		layout.add_widget(self._separator)
+		layout.add_widget(self.getSeparator())
 		self._add_buttons(layout)
 		if (objects is None):
 			self.__setValues()
@@ -188,7 +188,7 @@ class RenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGette
 		layout.add_widget(self._flipBox)
 		layout.add_widget(self._sizeScaleBox)
 		layout.add_widget(self._layerCollisionBox)
-		layout.add_widget(self._separator)
+		layout.add_widget(self.getSeparator())
 		self._add_buttons(layout)
 
 		self._describedObject = obj
@@ -222,7 +222,7 @@ class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter
 		layout = self._getParentLayout()
 		layout.add_widget(self._pathLabel)
 		layout.add_widget(self._sizeLabel)
-		layout.add_widget(self._separator)
+		layout.add_widget(self.getSeparator())
 		layout.add_widget(self._loaderLine)
 		self._describedObject = obj
 		if (obj is not None):

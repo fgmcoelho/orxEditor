@@ -10,7 +10,7 @@ from uisizes import defaultLabelSize, defaultLineSize, defaultSmallButtonSize, d
 from modulesaccess import ModulesAccess
 
 
-class LayerEditorPopup(KeyboardAccess, SeparatorLabel, AutoFocusInputUser):
+class LayerEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAccess):
 	def __doDeleteLayer(self):
 		if (self.__layerToRemoveName is not None):
 			ModulesAccess.get('LayerGuardian').deleteLayerByName(self.__layerToRemoveName)
@@ -115,7 +115,7 @@ class LayerEditorPopup(KeyboardAccess, SeparatorLabel, AutoFocusInputUser):
 				line.add_widget(AlignedLabel(text='', **defaultSmallButtonSize))
 			self.__layout.add_widget(line)
 
-		self.__layout.add_widget(self._separator)
+		self.__layout.add_widget(self.getSeparator())
 
 		if (len(layerList) == self.__maxLayers):
 			self.__layout.add_widget(AlignedLabel(text = 'Maximum number of layers (%u) reached.' %
@@ -129,16 +129,10 @@ class LayerEditorPopup(KeyboardAccess, SeparatorLabel, AutoFocusInputUser):
 
 	def __init__(self):
 		super(LayerEditorPopup, self).__init__()
-		self._processKeyUp = super(AutoFocusInputUser, self)._processKeyUp
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
 		doubleLineSize = {
 			'height' : defaultFontSize * 2,
 			'size_hint' : (1.0, None)
-		}
-		addButtonSize = {
-			'height' : defaultInputSize['height'],
-			'width' : defaultSmallButtonSize['width'],
-			'size_hint' : (None, None),
 		}
 
 		self.__closeButton = CancelableButton(text = 'Done', on_release = self.close, **defaultSmallButtonSize)
@@ -155,7 +149,7 @@ class LayerEditorPopup(KeyboardAccess, SeparatorLabel, AutoFocusInputUser):
 		self.__inputBar = BoxLayout(orientation = 'horizontal', **defaultInputSize)
 		self._autoFocusInput.bind(on_text_validate = self.__processAddLayer)
 		self.__layerAddButton = CancelableButton(text = 'Add', on_release = self.__processAddLayer,
-			**addButtonSize)
+			**self._addButtonSize)
 
 		self.__popup = Popup(title = 'Groups Editor', content = self.__layout, auto_dismiss = False)
 		self.__maxLayers = 16
@@ -252,7 +246,7 @@ class LayerInformationPopup(KeyboardAccess, SeparatorLabel):
 			self.__layout.add_widget(layerButton)
 			self.__buttonList.append(layerButton)
 
-		self.__layout.add_widget(self._separator)
+		self.__layout.add_widget(self.getSeparator())
 		self.__layout.add_widget(self.__bottomLine)
 
 	def __init__(self):

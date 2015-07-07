@@ -4,7 +4,7 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 
 from string import letters, digits
-from uisizes import defaultInputSize
+from uisizes import defaultInputSize, defaultSmallButtonSize
 
 class SpaceLimitedObject (object):
 	def ajustPositionByLimits(self, x, y, sx, sy, maxX, maxY):
@@ -29,9 +29,18 @@ class LayoutGetter(object):
 		return self._layout
 
 class SeparatorLabel(object):
+	def getSeparator(self):
+		for separator in self._separatorList:
+			if (separator.parent == None):
+				return separator
+
+		newSeparator = Label(text = '', size_hint = (1.0, 1.0))
+		self._separatorList.append(newSeparator)
+		return newSeparator
+
 	def __init__(self):
 		super(SeparatorLabel, self).__init__()
-		self._separator = Label(text = '', size_hint = (1.0, 1.0))
+		self._separatorList = []
 
 class KeyboardModifiers(object):
 	def __init__(self, **kwargs):
@@ -138,9 +147,14 @@ class AutoFocusInputUser(object):
 			self._autoFocusInput.focus = True
 
 	def __init__(self):
+		super(AutoFocusInputUser, self).__init__()
 		self._validCharacters = letters + digits
 		self._autoFocusInput = TextInput(multiline = False, **defaultInputSize)
+		self._addButtonSize = {
+			'height' : defaultInputSize['height'],
+			'width' : defaultSmallButtonSize['width'],
+			'size_hint' : (None, None),
+		}
 
 	def _delayedFocus(self, *args):
 		self._autoFocusInput.focus = True
-

@@ -165,7 +165,7 @@ class BaseWarnMethods(KeyboardAccess, SeparatorLabel):
 		self.bottomLine.add_widget(Label(text = '', **defaultLineSize))
 
 		self.mainPopUpBox.add_widget(self.mainPopUpText)
-		self.mainPopUpBox.add_widget(self._separator)
+		self.mainPopUpBox.add_widget(self.getSeparator())
 
 class Dialog(BaseWarnMethods):
 	def __doNothing(self, notUsed = None):

@@ -8,7 +8,7 @@ from kivy.uix.checkbox import CheckBox
 from editorutils import CancelableButton, NumberInput, AlignedLabel
 from editorheritage import SeparatorLabel
 from uisizes import optionsMenuSize, defaultLineSize, newSceneSize, defaultInputSize, defaultFontSize, \
-		defaultSmallButtonSize, defaultLabelSize, exportSceneSize
+		defaultSmallButtonSize, defaultLabelSize, exportSceneSize, defaultCheckboxSize
 from keyboard import KeyboardAccess, KeyboardGuardian
 from scene import SceneAttributes
 from modulesaccess import ModulesAccess
@@ -22,12 +22,6 @@ class FileOptionsConfig(object):
 		self._fileOrDirectorySize = defaultInputSize.copy()
 		self._fileOrDirectorySize['width'] = 40
 		self._fileOrDirectorySize['size_hint'] = (None, None)
-
-		self._checkboxSize = {
-			'width' : 25,
-			'height' : defaultFontSize,
-			'size_hint' : (None, None)
-		}
 
 class NewScenePopup(KeyboardAccess, SeparatorLabel, FileOptionsConfig):
 	def _processKeyUp(self, keyboard, keycode):
@@ -98,8 +92,8 @@ class NewScenePopup(KeyboardAccess, SeparatorLabel, FileOptionsConfig):
 		self.__tileSizeInput = NumberInput(module = 'NewScene', **inputSize)
 		self.__xTilesInput = NumberInput(module = 'NewScene', **inputSize)
 		self.__yTilesInput = NumberInput(module = 'NewScene', **inputSize)
-		self.__keepCollisionFlags = CheckBox(**self._checkboxSize)
-		self.__keepGroupsFlags = CheckBox(**self._checkboxSize)
+		self.__keepCollisionFlags = CheckBox(**defaultCheckboxSize)
+		self.__keepGroupsFlags = CheckBox(**defaultCheckboxSize)
 		self.__okButton = CancelableButton(text = 'Ok', on_release = self.__confirm, **defaultSmallButtonSize)
 		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, **defaultSmallButtonSize)
 
@@ -124,14 +118,14 @@ class NewScenePopup(KeyboardAccess, SeparatorLabel, FileOptionsConfig):
 		keepGroupsLine.add_widget(AlignedLabel(text = 'Keep layer groups.', **defaultLineSize))
 
 		confirmLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
-		confirmLine.add_widget(AlignedLabel(text = ''))
+		confirmLine.add_widget(self.getSeparator())
 		confirmLine.add_widget(self.__okButton)
 		confirmLine.add_widget(self.__cancelButton)
 
 		self.__layout.add_widget(tilesSizeLine)
 		self.__layout.add_widget(xNumberOfTilesLine)
 		self.__layout.add_widget(yNumberOfTilesLine)
-		self.__layout.add_widget(self._separator)
+		self.__layout.add_widget(self.getSeparator())
 		self.__layout.add_widget(keepCollisionFlagsLine)
 		self.__layout.add_widget(keepGroupsLine)
 		self.__layout.add_widget(AlignedLabel(text = 'Any unsaved changes will be lost.', **defaultLineSize))
@@ -220,7 +214,7 @@ class FileSelectorPopup(KeyboardAccess, FileOptionsConfig, SeparatorLabel):
 			**defaultSmallButtonSize)
 		self.__fileChooserCancelButton = CancelableButton(text = 'Cancel', on_release = self.close,
 			**defaultSmallButtonSize)
-		self.__fileChooserYesNoLayout.add_widget(self._separator)
+		self.__fileChooserYesNoLayout.add_widget(self.getSeparator())
 		self.__fileChooserYesNoLayout.add_widget(self.__fileChooserOkButton)
 		self.__fileChooserYesNoLayout.add_widget(self.__fileChooserCancelButton)
 
@@ -299,7 +293,7 @@ class FileChooserUser(FileOptionsConfig, SeparatorLabel):
 		self._fileChooserCancelButton = CancelableButton(text = 'Cancel', on_release = self.close,
 			**defaultSmallButtonSize)
 
-		self._fileChooserYesNoLayout.add_widget(self._separator)
+		self._fileChooserYesNoLayout.add_widget(self.getSeparator())
 		self._fileChooserYesNoLayout.add_widget(self._fileChooserOkButton)
 		self._fileChooserYesNoLayout.add_widget(self._fileChooserCancelButton)
 
@@ -457,7 +451,7 @@ class ExportScenePopup (KeyboardAccess, FileOptionsConfig, SeparatorLabel):
 		self.__assetsPathDescription = TextInput(text = '', readonly = True, multiline = False, **defaultInputSize)
 		self.__assetsPathButton = CancelableButton(text = 'Choose', on_release = self.__assetsChooser.open,
 			**buttonOptions)
-		self.__smoothCheckBox = CheckBox(active = True, **self._checkboxSize)
+		self.__smoothCheckBox = CheckBox(active = True, **defaultCheckboxSize)
 		self.__okButton = CancelableButton(text = 'Ok', on_release = self.__confirm, **defaultSmallButtonSize)
 		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, **defaultSmallButtonSize)
 
@@ -482,7 +476,7 @@ class ExportScenePopup (KeyboardAccess, FileOptionsConfig, SeparatorLabel):
 		self.__layout.add_widget(self.__filenameLine)
 		self.__layout.add_widget(AlignedLabel(text = 'Directory to save the assets:', **defaultLabelSize))
 		self.__layout.add_widget(self.__assetsPathLine)
-		self.__layout.add_widget(self._separator)
+		self.__layout.add_widget(self.getSeparator())
 		self.__layout.add_widget(self.__smoothLine)
 		self.__layout.add_widget(self.__confirmLine)
 
@@ -523,7 +517,7 @@ class FilesOptionsMenu(SeparatorLabel, KeyboardAccess):
 		self.__layout.add_widget(self.__loadButton)
 		self.__layout.add_widget(self.__saveButton)
 		self.__layout.add_widget(self.__exportButton)
-		self.__layout.add_widget(self._separator)
+		self.__layout.add_widget(self.getSeparator())
 		self.__layout.add_widget(self.__closeButton)
 
 		self.__popup = Popup(title = 'Scene Options', content = self.__layout, auto_dismiss = False, **optionsMenuSize)

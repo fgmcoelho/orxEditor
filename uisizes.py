@@ -74,5 +74,15 @@ newSceneSize = {
 exportSceneSize = {
 	'size' : (400, 300),
 	'size_hint' : (None, None),
+}
 
+defaultCheckboxSize = {
+	'width' : 25,
+	'height' : defaultFontSize,
+	'size_hint' : (None, None)
+}
+
+collisionBodyInfoSize = {
+	'width' : 200,
+	'size_hint' : (None, 1.0),
 }
