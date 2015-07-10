@@ -5,15 +5,16 @@ from kivy.uix.image import Image
 from kivy.graphics.vertex_instructions import Mesh, Line
 from kivy.graphics import Color
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
 
 from math import ceil
 
-from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, distance, isConvexPolygon, Alert
-from editorheritage import SpecialScrollControl, SpaceLimitedObject
+from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, distance, isConvexPolygon, Alert, \
+	AlignedLabel
+from editorheritage import SpecialScrollControl, SpaceLimitedObject, SeparatorLabel
 from collisioninfo import CollisionPartInformation
 from keyboard import KeyboardAccess, KeyboardGuardian
 from modulesaccess import ModulesAccess
+from uisizes import defaultDoubleLineSize, defaultSmallButtonSize
 
 class CollisionPartDisplay(RelativeLayout):
 	def __init__(self, obj, expandLevel = 1.0):
@@ -480,9 +481,12 @@ class CollisionFlagFormEditorLayout(SpecialScrollControl, KeyboardAccess):
 		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 		self._scrollView.scroll_y = 0.5
 		self._scrollView.scroll_x = 0.5
+		self._scrollView._update_effect_x_bounds()
+		self._scrollView._update_effect_y_bounds()
+
 		self.__lastPointPressed = None
 
-class CollisionFormEditorPopup:
+class CollisionFormEditorPopup(SeparatorLabel):
 	def __saveAndClose(self, *args):
 		if (self.__mainScreen.savePoints() == False):
 			self.__meshErrorAlert.open()
@@ -491,16 +495,15 @@ class CollisionFormEditorPopup:
 			self.close()
 
 	def __init__(self):
+		super(CollisionFormEditorPopup, self).__init__()
 		ModulesAccess.add('CollisionFormEditor', self)
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout, auto_dismiss = False)
 		self.__mainScreen = CollisionFlagFormEditorLayout()
-		self.__bottomMenu = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.1))
-		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.15, 1.0),
-				on_release = self.close)
-		self.__doneButton = CancelableButton(text = 'Done', size_hint = (0.15, 1.0),
-				on_release = self.__saveAndClose)
-		self.__tooltipLabel = Label(text='', size_hint = (0.6, 1.0))
+		self.__bottomMenu = BoxLayout(orientation = 'horizontal', **defaultDoubleLineSize)
+		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, **defaultSmallButtonSize)
+		self.__doneButton = CancelableButton(text = 'Done', on_release = self.__saveAndClose, **defaultSmallButtonSize)
+		self.__tooltipLabel = AlignedLabel(text='', **defaultDoubleLineSize)
 		self.__meshErrorAlert = Alert(
 			title = 'Error',
 			text = 'The mesh must be a convex polygon.\nThe mesh will be green when it is convex.',
@@ -508,7 +511,7 @@ class CollisionFormEditorPopup:
 		)
 
 		self.__bottomMenu.add_widget(self.__tooltipLabel)
-		self.__bottomMenu.add_widget(Label(text ='', size_hint = (0.1, 1.0)))
+		self.__bottomMenu.add_widget(self.getSeparator())
 		self.__bottomMenu.add_widget(self.__cancelButton)
 		self.__bottomMenu.add_widget(self.__doneButton)
 

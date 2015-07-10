@@ -16,7 +16,13 @@ from collisioninfo import CollisionPartInformation, CollisionInformation
 from collisionform import CollisionPartDisplay
 from modulesaccess import ModulesAccess
 from uisizes import defaultSmallButtonSize, defaultLineSize, defaultInputSize, defaultLabelSize, defaultCheckboxSize,\
-	collisionBodyInfoSize, defaultFontSize
+	defaultFontSize, defaultSwitchSize, defaultLargeButtonSize, collisionBodyInfoSize, collisionTabbedSize
+
+class CollisionConfig(object):
+	def __init__(self):
+		super(CollisionConfig, self).__init__()
+		self._switchLineSize = defaultLineSize.copy()
+		self._switchLineSize['height'] = defaultSwitchSize['height']
 
 class CollisionFlagEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAccess):
 	def __reaplyFocus(self):
@@ -202,7 +208,7 @@ class CollisionFlagEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAcces
 		self.__render()
 		self.__popup.open()
 
-class CollisionPartLayout:
+class CollisionPartLayout(SeparatorLabel, CollisionConfig):
 	def __togglePartFlag(self, buttonObject):
 		buttonInfo = buttonObject.id.split('#')
 		if (buttonObject.state == 'normal'):
@@ -329,9 +335,12 @@ class CollisionPartLayout:
 		self.__partSolidSwitch.bind(active = self.__updateSolidFlag)
 
 		self.__typeLine.clear_widgets()
-		self.__boxCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#box')
-		self.__sphereCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#sphere')
-		self.__meshCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#mesh')
+		self.__boxCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#box',
+			allow_no_selection = False, **defaultCheckboxSize)
+		self.__sphereCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#sphere',
+			allow_no_selection = False, **defaultCheckboxSize)
+		self.__meshCheckBox = CheckBox(group = 'part_type' + str(id(self)), id = 'checkbox#mesh',
+			allow_no_selection = False, **defaultCheckboxSize)
 
 		formType = part.getFormType()
 		if (formType == "box"):
@@ -356,47 +365,49 @@ class CollisionPartLayout:
 		ModulesAccess.get('CollisionFormEditor').open(self.__part, self.__obj)
 
 	def __init__(self):
+		super(CollisionPartLayout, self).__init__()
 		self.__layout = BoxLayout(orientation = 'horizontal')
-		self.__baseHeight = 0.1
 		self.__part = None
 
+		gridSize = {
+			'height' : 4 * defaultFontSize,
+			'size_hint' : (1.0, None),
+		}
+
+		# left side layout
 		leftLayout = BoxLayout(orientation = 'vertical', size_hint = (0.5, 1.0))
-		rightLayout = BoxLayout(orientation = 'vertical', size_hint = (0.5, 1.0))
 
-		leftLayout.add_widget(AlignedLabel(text = 'Self Flags:', size_hint = (1.0, self.__baseHeight)))
-		self.__selfFlagsGrid = GridLayout(cols = 4, row = 4, size_hint = (1.0, 4 * self.__baseHeight))
-
+		leftLayout.add_widget(AlignedLabel(text = 'Self Flags:', **defaultLabelSize))
+		self.__selfFlagsGrid = GridLayout(cols = 4, row = 4, **gridSize)
 		leftLayout.add_widget(self.__selfFlagsGrid)
+		leftLayout.add_widget(self.getSeparator())
 
-		leftLayout.add_widget(AlignedLabel(text = '', size_hint = (1.0, 1.0 - (self.__baseHeight * 7))))
-
-		solidLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		solidLine.add_widget(AlignedLabel(text = 'Solid:'))
-		self.__partSolidSwitch = Switch(active = False)
+		solidLine = BoxLayout(orientation = 'horizontal', **self._switchLineSize)
+		solidLine.add_widget(AlignedLabel(text = 'Solid:', **defaultLabelSize))
+		self.__partSolidSwitch = Switch(active = False, **defaultSwitchSize)
 		solidLine.add_widget(self.__partSolidSwitch)
 		leftLayout.add_widget(solidLine)
 
-		pointsLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-		self.__pointsText = AlignedLabel(text = 'Have collision points?')
-		self.__pointsButton = CancelableButton(text = 'Edit points', on_release = self.__callFormEditPopup)
+		pointsLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		self.__pointsText = AlignedLabel(text = 'Have collision points?', **defaultLabelSize)
+		self.__pointsButton = CancelableButton(text = 'Edit points', on_release = self.__callFormEditPopup,
+			**defaultSmallButtonSize)
 		pointsLine.add_widget(self.__pointsText)
 		pointsLine.add_widget(self.__pointsButton)
 		leftLayout.add_widget(pointsLine)
 
-		self.__layout.add_widget(leftLayout)
+		# right side layout
+		rightLayout = BoxLayout(orientation = 'vertical', size_hint = (0.5, 1.0))
 
-		rightLayout.add_widget(AlignedLabel(text = 'Check Mask:', size_hint = (1.0, self.__baseHeight)))
-		self.__checkMaskGrid = GridLayout(cols = 4, row = 4, size_hint = (1.0, 4 * self.__baseHeight))
-
+		rightLayout.add_widget(AlignedLabel(text = 'Check Mask:', **defaultLabelSize))
+		self.__checkMaskGrid = GridLayout(cols = 4, row = 4, **gridSize)
 		rightLayout.add_widget(self.__checkMaskGrid)
-
-		rightLayout.add_widget(AlignedLabel(text = '', size_hint = (1.0, 1.0 - (self.__baseHeight * 7))))
-
-		rightLayout.add_widget(AlignedLabel(text = 'Type', size_hint = (1.0, self.__baseHeight)))
-		self.__typeLine = BoxLayout(orientation = 'horizontal', size_hint = (1.0, self.__baseHeight))
-
+		rightLayout.add_widget(self.getSeparator())
+		rightLayout.add_widget(AlignedLabel(text = 'Type', **defaultLineSize))
+		self.__typeLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
 		rightLayout.add_widget(self.__typeLine)
 
+		self.__layout.add_widget(leftLayout)
 		self.__layout.add_widget(rightLayout)
 
 	def getLayout(self):
@@ -409,7 +420,7 @@ class CollisionPartLayout:
 	def getPart(self):
 		return self.__part
 
-class CollisionEditorPopup(KeyboardAccess, SeparatorLabel):
+class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			self.close()
@@ -553,15 +564,15 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel):
 
 		if (len (self.__objectsList) > 1):
 			if (selectedTab is None or selectedTab == 'Edit'):
-				self.__lowerBox.add_widget(AlignedLabel(text = '', size_hint = (0.3, 1.0)))
+				self.__lowerBox.add_widget(self.getSeparator())
 			else:
 				self.__lowerBox.add_widget(self.__applyToAllButton)
-				self.__lowerBox.add_widget(AlignedLabel(text = '', size_hint = (0.1, 1.0)))
+				self.__lowerBox.add_widget(self.getSeparator())
 
 			self.__lowerBox.add_widget(self.__previousObjectButton)
 			self.__lowerBox.add_widget(self.__nextObjectButton)
 		else:
-			self.__lowerBox.add_widget(AlignedLabel(text = '', size_hint = (0.4, 1.0)))
+			self.__lowerBox.add_widget(self.getSeparator())
 
 		self.__lowerBox.add_widget(self.__okButton)
 		self.__lowerBox.add_widget(self.__cancelButton)
@@ -613,21 +624,21 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel):
 	def __startBodyPropertiesLayout(self):
 		self.__bodyInfoBox = BoxLayout(orientation = 'vertical', **collisionBodyInfoSize)
 
-		dynamicInfo = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		dynamicInfo = BoxLayout(orientation = 'horizontal', **self._switchLineSize)
 		dynamicInfo.add_widget(AlignedLabel(text = 'Dynamic', **defaultLabelSize))
-		self.__dynamicSwitch = Switch(active = False, **defaultCheckboxSize)
+		self.__dynamicSwitch = Switch(active = False, **defaultSwitchSize)
 		self.__dynamicSwitch.bind(active = self.__updateDynamicFlag)
 		dynamicInfo.add_widget(self.__dynamicSwitch)
 
-		fixedRotationInfo = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		fixedRotationInfo = BoxLayout(orientation = 'horizontal', **self._switchLineSize)
 		fixedRotationInfo.add_widget(AlignedLabel(text = 'Fixed Rotation', **defaultLabelSize))
-		self.__fixedRotationSwitch = Switch(active = False, **defaultCheckboxSize)
+		self.__fixedRotationSwitch = Switch(active = False, **defaultSwitchSize)
 		self.__fixedRotationSwitch.bind(active = self.__updateFixedRotationFlag)
 		fixedRotationInfo.add_widget(self.__fixedRotationSwitch)
 
-		highSpeedInfo = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		highSpeedInfo = BoxLayout(orientation = 'horizontal', **self._switchLineSize)
 		highSpeedInfo.add_widget(AlignedLabel(text = 'High Speed', **defaultLabelSize))
-		self.__highSpeedSwitch = Switch(active = False, **defaultCheckboxSize)
+		self.__highSpeedSwitch = Switch(active = False, **defaultSwitchSize)
 		self.__highSpeedSwitch.bind(active = self.__updateHighSpeedFlag)
 		highSpeedInfo.add_widget(self.__highSpeedSwitch)
 
@@ -648,58 +659,62 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel):
 		idToUse = self.__objectsList[self.__objectsListIndex].getIdentifier()
 		self.__copiesDict[idToUse].setHighSpeed(value)
 
+	# Part preview and body layout:
+	def __startPreviewAndBodyLayout(self):
+		self.__flagsAndPreviewBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 1.0))
+		self.__objectsCollisionDisplay = ScrollView(effect_cls = EmptyScrollEffect, size_hint = (1.0, 1.0))
+		self.__flagsAndPreviewBox.add_widget(self.__objectsCollisionDisplay)
+		self.__startBodyPropertiesLayout()
+		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
+
+	# TabbedPanel layout:
+	def __startTabbedPartLayout(self):
+		self.__partsLayoutList = []
+		for i in range(8):
+			self.__partsLayoutList.append(CollisionPartLayout())
+		self.__partsPanel = TabbedPanel(do_default_tab = False, **collisionTabbedSize)
+
+	# Start lower box layout
+	def __startLowerBoxLayout(self):
+		self.__lowerBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		self.__okButton = CancelableButton(text = 'Done', on_release=self.__createOrEditCollisionInfo,
+			**defaultSmallButtonSize)
+		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close,
+			**defaultSmallButtonSize)
+		self.__addButton = CancelableButton(text = 'Add', on_release = self.__addPart,
+			**defaultSmallButtonSize)
+		self.__applyToAllButton = CancelableButton(text = 'Copy info to all', on_release = self.__applyChangesToAll,
+			**defaultLargeButtonSize)
+		self.__deleteCurrentButton = CancelableButton(text = 'Delete', on_release = self.__deleteCurrentPart,
+			**defaultSmallButtonSize)
+		self.__previousObjectButton = CancelableButton(text = 'Previous', on_release = self.__selectPreviousObject,
+			**defaultSmallButtonSize)
+		self.__nextObjectButton = CancelableButton(text = 'Next', on_release = self.__selectNextObject,
+			**defaultSmallButtonSize)
+		self.__editFlagsButton = CancelableButton(text = 'Edit Flags',
+			on_release = ModulesAccess.get('CollisionFlagEditor').open, **defaultSmallButtonSize)
+
 	def __init__(self):
 		super(CollisionEditorPopup, self).__init__()
 		ModulesAccess.add('CollisionEditor', self)
-		self.__baseHeight = 0.05
 
 		self.__copiesDict = {}
 		self.__extraPartsDict = {}
 		self.__objectsList = []
 		self.__objectsListIndex = 0
-
-		self.__collisionPopUp = Popup (title = 'Collision configs', auto_dismiss = False)
-		self.__mainLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0),
-			padding = [0, 0, 0, defaultFontSize])
-
-		self.__flagsAndPreviewBox = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 1.0))
-		self.__objectsCollisionDisplay = ScrollView(effect_cls = EmptyScrollEffect)
-		self.__flagsAndPreviewBox.add_widget(self.__objectsCollisionDisplay)
-		self.__startBodyPropertiesLayout()
-		self.__flagsAndPreviewBox.add_widget(self.__bodyInfoBox)
-
-		self.__mainLayout.add_widget(self.__flagsAndPreviewBox)
-
-		self.__partsLayoutList = []
-		for i in range(8):
-			self.__partsLayoutList.append(CollisionPartLayout())
-
-		self.__partsPanel = TabbedPanel(do_default_tab = False, size_hint = (1.0, 0.6))
-
-		self.__mainLayout.add_widget(self.__partsPanel)
-
-		self.__lowerBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
-
-		self.__okButton = CancelableButton(text = 'Done', size_hint = (0.1, 1.0),
-			on_release=self.__createOrEditCollisionInfo)
-		self.__cancelButton = CancelableButton(text = 'Cancel', size_hint = (0.1, 1.0), on_release = self.close)
-		self.__addButton = CancelableButton(text = 'Add', size_hint = (0.1, 1.0), on_release = self.__addPart)
-		self.__applyToAllButton = CancelableButton(text = 'Copy info to all', size_hint = (0.2, 1.0),
-			on_release = self.__applyChangesToAll)
-		self.__deleteCurrentButton = CancelableButton(text = 'Delete', size_hint = (0.1, 1.0),
-			on_release = self.__deleteCurrentPart)
-		self.__previousObjectButton = CancelableButton(text = 'Previous', size_hint = (0.1, 1.0),
-			on_release = self.__selectPreviousObject)
-		self.__nextObjectButton = CancelableButton(text = 'Next', size_hint = (0.1, 1.0),
-			on_release = self.__selectNextObject)
-		self.__editFlagsButton = CancelableButton(text = 'Edit Flags', size_hint = (0.1, 1.0),
-			on_release = ModulesAccess.get('CollisionFlagEditor').open)
-
-		self.__mainLayout.add_widget(AlignedLabel(text = '', size_hint = (1.0, self.__baseHeight)))
-		self.__mainLayout.add_widget(self.__lowerBox)
-
-		self.__collisionPopUp.content = self.__mainLayout
 		self.__editingObject = None
+
+		self.__startPreviewAndBodyLayout()
+		self.__startTabbedPartLayout()
+		self.__startLowerBoxLayout()
+
+		self.__mainLayout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
+		self.__mainLayout.add_widget(self.__flagsAndPreviewBox)
+		self.__mainLayout.add_widget(AlignedLabel(**defaultLineSize))
+		self.__mainLayout.add_widget(self.__partsPanel)
+		self.__mainLayout.add_widget(AlignedLabel(**defaultLineSize))
+		self.__mainLayout.add_widget(self.__lowerBox)
+		self.__collisionPopUp = Popup (title = 'Collision configs', auto_dismiss = False, content = self.__mainLayout)
 
 		self.__warnDelete = Dialog(self.__doDeleteCurrentPart, 'Confirmation',
 			'Are you sure you want to\ndelete this part?', 'Yes', 'No')

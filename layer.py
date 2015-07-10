@@ -6,9 +6,9 @@ from kivy.clock import Clock
 from editorutils import CancelableButton, Alert, Dialog, AlignedLabel, AlignedToggleButton
 from editorheritage import SeparatorLabel, AutoFocusInputUser
 from keyboard import KeyboardAccess, KeyboardGuardian
-from uisizes import defaultLabelSize, defaultLineSize, defaultSmallButtonSize, defaultInputSize, defaultFontSize
+from uisizes import defaultLabelSize, defaultLineSize, defaultSmallButtonSize, defaultInputSize, defaultFontSize,\
+	defaultDoubleLineSize
 from modulesaccess import ModulesAccess
-
 
 class LayerEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAccess):
 	def __doDeleteLayer(self):
@@ -130,10 +130,6 @@ class LayerEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAccess):
 	def __init__(self):
 		super(LayerEditorPopup, self).__init__()
 		self.__layout = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		doubleLineSize = {
-			'height' : defaultFontSize * 2,
-			'size_hint' : (1.0, None)
-		}
 
 		self.__closeButton = CancelableButton(text = 'Done', on_release = self.close, **defaultSmallButtonSize)
 		self.__closeLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
@@ -141,7 +137,7 @@ class LayerEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAccess):
 			AlignedLabel(
 				text =  'Hint: Lower priority (closer to the top of the window) are drawn\n'\
 				'first, hence they will be drawn under the ones with higher priority.',
-				**doubleLineSize
+				**defaultDoubleLineSize
 			)
 		)
 		self.__closeLine.add_widget(self.__closeButton)

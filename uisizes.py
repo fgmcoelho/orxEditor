@@ -39,9 +39,14 @@ defaultLineSize = {
 	'size_hint' : (1.0, None),
 }
 
+defaultDoubleLineSize = {
+	'height' : defaultFontSize * 2,
+	'size_hint' : (1.0, None)
+}
+
 # Modules specifics:
 mainLayoutSize = {
-	'leftMenuWidth' : 200,
+'leftMenuWidth' : 200,
 	'leftMenuSizeHint' : (None, 1.0),
 	'bottomMenuHeight' : 220
 }
@@ -82,7 +87,19 @@ defaultCheckboxSize = {
 	'size_hint' : (None, None)
 }
 
+# INFO: THIS IS CONSTANT BY KIVY, DO NOT CHANGE
+defaultSwitchSize = {
+	'width' : 83,
+	'height' : 32,
+	'size_hint' : (None, None)
+}
+
 collisionBodyInfoSize = {
 	'width' : 200,
 	'size_hint' : (None, 1.0),
+}
+
+collisionTabbedSize = {
+	'height' : 250,
+	'size_hint' : (1.0, None),
 }
