@@ -24,9 +24,15 @@ class IgnoreTouch(object):
 	def _ignoreTouch(self, *args):
 		pass
 
+	def __init__(self):
+		super(IgnoreTouch, self).__init__()
+
 class LayoutGetter(object):
 	def getLayout(self):
 		return self._layout
+
+	def __init__(self):
+		super(LayoutGetter, self).__init__()
 
 class SeparatorLabel(object):
 	def getSeparator(self):
