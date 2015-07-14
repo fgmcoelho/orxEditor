@@ -199,7 +199,6 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 
 	def __checkAndTransform(self, trans, post_multiply=False, anchor=(0, 0)):
 		xBefore, yBefore = self.bbox[0]
-
 		self.__defaultApplyTransform(trans, post_multiply, anchor)
 		x, y = self.bbox[0]
 		if (xBefore == x and yBefore == y):
@@ -236,7 +235,7 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 						point.applyTransform(trans)
 
 	def _updateOnMove(self, touch):
-		if (touch.button == 'right' or self.collide_point(*touch.pos) == False):
+		if (touch.button == 'right' or self.__marked == False):
 			return
 
 		if (CollisionFormEditorPoints.keepRatio[0] == True):
@@ -263,7 +262,7 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 			return False
 
 	def applyTransform(self, trans):
-			self.__defaultApplyTransform(trans)
+		self.__defaultApplyTransform(trans)
 
 	def getPos(self):
 		x, y = self.pos
@@ -280,8 +279,16 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 	def setPropagateMovement(self, value):
 		self.__propagateMovement = value
 
-	def _ignore(self, *args):
-		pass
+	def _markPoint(self, touch):
+		if(touch.button == 'left' and self.collide_point(*touch.pos) == True):
+			self.__marked = True
+			self.__defaultTouchDown(touch)
+
+	def _unmarkPoint(self, touch):
+		if (touch.button == 'left'):
+			if (self.__marked == True):
+				self.__defaultTouchUp(touch)
+			self.__marked = False
 
 	def __init__(self, updateMethod, limits):
 		super(CollisionFormEditorPoints, self).__init__(do_rotation = False, do_scale = False,
@@ -289,11 +296,14 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 			auto_bring_to_front = False)
 
 		self.__propagateMovement = False
+		self.__marked = False
 		self.__updateMethod = updateMethod
 		self.__defaut_touch_move = self.on_touch_move
+		self.__defaultTouchDown = self.on_touch_down
+		self.__defaultTouchUp = self.on_touch_up
 		self.on_touch_move = self._updateOnMove
-		self.on_touch_up = self._ignore
-		self.on_touch_down = self._ignore
+		self.on_touch_down = self._markPoint
+		self.on_touch_up = self._unmarkPoint
 
 		self.__maxX, self.__maxY = limits
 
@@ -382,7 +392,8 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 		return smallestIndex
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
-		if (self._layout.collide_point(*touch.pos) == False):
+		if (self._layout.collide_point(*touch.pos) == False or touch.button == "scrollup" or 
+				touch.button == "scrolldown"):
 			return
 
 		self.updateMouseDown(touch)
@@ -409,26 +420,28 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 		self.__defaultTouchDown(touch)
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		print self._isRightPressed, self._isLeftPressed
+		if (touch.button == "scrollup" or touch.button == "scrolldown"):
+			return
+
+		#print self._isRightPressed, self._isLeftPressed
 		self.updateMouseUp(touch)
-		print self._isRightPressed, self._isLeftPressed
+		#print self._isRightPressed, self._isLeftPressed
 		if (self._isRightPressed == True or self._isLeftPressed == False):
 			self._layout.do_scroll = True
 
-		elif (touch.button == 'right'):
+		if (touch.button == 'right'):
 			self.__defaultTouchUp(touch)
 
 	def __handleTouchMove(self, touch):
-		if (self._layout.collide_point(*touch.pos) == False):
+		if (self._layout.collide_point(*touch.pos) == False or touch.button == "scrollup" or 
+				touch.button == "scrolldown"):
 			return
-
 		if (touch.button == 'right'):
 			self.__defaultTouchMove(touch)
 
 	def __init__(self):
 		super(CollisionFlagFormEditorLayout, self).__init__()
 		self.__lastPointPressed = None
-		print self._isRightPressed, self._isLeftPressed
 
 		self._layout = ScrollView(effect_cls = EmptyScrollEffect, scroll_y = 0.5, scroll_x = 0.5)
 		self._layout._update_effect_x_bounds()
@@ -516,7 +529,7 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 		return True
 
 
-class CollisionFormEditorPopup(SeparatorLabel):
+class CollisionFormEditorPopup:
 	def __saveAndClose(self, *args):
 		if (self.__mainScreen.savePoints() == False):
 			self.__meshErrorAlert.open()
@@ -525,7 +538,6 @@ class CollisionFormEditorPopup(SeparatorLabel):
 			self.close()
 
 	def __init__(self):
-		super(CollisionFormEditorPopup, self).__init__()
 		ModulesAccess.add('CollisionFormEditor', self)
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout, auto_dismiss = False)
@@ -541,7 +553,6 @@ class CollisionFormEditorPopup(SeparatorLabel):
 		)
 
 		self.__bottomMenu.add_widget(self.__tooltipLabel)
-		self.__bottomMenu.add_widget(self.getSeparator())
 		self.__bottomMenu.add_widget(self.__cancelButton)
 		self.__bottomMenu.add_widget(self.__doneButton)
 
@@ -555,10 +566,10 @@ class CollisionFormEditorPopup(SeparatorLabel):
 	def open(self, part, obj):
 		KeyboardGuardian.Instance().acquireKeyboard(self.__mainScreen)
 		if (part.getFormType() == 'mesh'):
-			self.__tooltipLabel.text = 'Ctrl + Double click to Add a point.\n'\
-				'Press delete to remove the last used point.'
+			self.__tooltipLabel.text = 'Hold Ctrl: Move all. Hold Shift: Keep ratio.\n' \
+				'Ctrl + Double click: Add a point. Delete: remove last used point.'
 		else:
-			self.__tooltipLabel.text = ''
+			self.__tooltipLabel.text = 'Hold Ctrl: Move all. Hold Shift: Keep ratio.'
 
 		self.__mainScreen.render(part, obj)
 		self.__popup.open()
