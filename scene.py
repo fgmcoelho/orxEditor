@@ -444,7 +444,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def __scheduleTextureUpdate(self, *args):
-		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
+		#ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
+		pass
 
 	def __getSelectedObjectByClick(self, touch):
 		clickedObjectsList = []

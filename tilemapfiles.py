@@ -267,9 +267,15 @@ class FilesManager:
 
 		ModulesAccess.get('SceneHandler').setSceneObjectId(int(parser.get(self.__objectListName, 'LastId')))
 
-	def exportScene(self, filename, assetsPath, shouldSmooth):
+	def exportScene(self, filename, assetsPath, shouldSmooth, defaults = None):
 		parser = ConfigParser()
 		parser.optionxform = str
+
+		if (defaults is not None):
+			for section in defaults.keys():
+				parser.add_section(section)
+				for option, value in defaults[section].iteritems():
+					parser.set(section, option, value)
 
 		parser.add_section('General')
 		parser.set('General', 'CollisionFlagList', self.__compileObjListWithName(
@@ -332,7 +338,6 @@ class FilesManager:
 
 			if (float(scale[0]) != 1.0 or float(scale[1]) != 1.0):
 				parser.set(newSectionName, 'Scale', vector2ToVector3String(scale, 1))
-
 
 			if (collisionInfo is not None):
 				parser.set(newSectionName, 'Body', bodySectionName)

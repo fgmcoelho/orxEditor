@@ -19,7 +19,7 @@ from resourceloader import ResourceLoaderPopup
 from layer import LayerInformationPopup
 from layerinfo import LayerGuardian
 from editorobjects import BaseObject
-
+from orxviewer import OrxViewer
 from objectsmenu import NewBaseObjectDisplay, NewBaseObjectsMenu
 from objectdescriptor import ObjectDescriptor
 from modulesaccess import ModulesAccess
@@ -52,6 +52,8 @@ class TileEditor(App, KeyboardAccess):
 		elif (keycode[1] in ['up', 'down', 'left', 'right']):
 			if ('ctrl' in modifiers):
 				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode(keycode[1])
+		elif (keycode[1] == "f5"):
+			ModulesAccess.get("OrxViewer").launch()
 
 	def confirm_exit(self, *args):
 		print 'We got exit confirmation: ', args
@@ -115,11 +117,13 @@ class TileEditor(App, KeyboardAccess):
 
 		# Files handlers
 		FilesManager()
+		OrxViewer()
 
 		# Scene Editor handlers:
 		SceneMiniMap()
 
 		FilesOptionsMenu()
+
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
 		KeyboardGuardian.Instance().acquireKeyboard(self)
