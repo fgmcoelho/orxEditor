@@ -103,3 +103,9 @@ collisionTabbedSize = {
 	'height' : 250,
 	'size_hint' : (1.0, None),
 }
+
+orxViewerSize = {
+	'size' : (300, 400),
+	'size_hint' : (None, None),
+}
+

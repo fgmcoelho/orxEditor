@@ -53,7 +53,7 @@ class TileEditor(App, KeyboardAccess):
 			if ('ctrl' in modifiers):
 				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode(keycode[1])
 		elif (keycode[1] == "f5"):
-			ModulesAccess.get("OrxViewer").launch()
+			ModulesAccess.get("OrxViewer").open()
 
 	def confirm_exit(self, *args):
 		print 'We got exit confirmation: ', args

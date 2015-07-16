@@ -3,7 +3,6 @@ from kivy.core.window import Window
 
 @Singleton
 class KeyboardGuardian:
-
 	def acquireKeyboard(self, obj):
 		assert (isinstance(obj, KeyboardAccess))
 		if (self.__stack != []):
