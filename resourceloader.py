@@ -122,7 +122,7 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def __doDrawGrid(self, xInc, yInc, xSkip = 0, ySkip = 0):
 		self.__clearSelectionGrid()
 		self.__xSize = xInc
-		self.__ySize = xInc
+		self.__ySize = yInc
 		self.__xSkip = xSkip
 		self.__ySkip = ySkip
 

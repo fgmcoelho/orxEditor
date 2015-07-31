@@ -11,11 +11,12 @@ from uisizes import defaultLineSize, defaultLabelSize, defaultSmallButtonSize, o
 from keyboard import KeyboardAccess, KeyboardGuardian
 
 from platform import system, machine
-from os import fork, execve, environ, chdir, mkdir, unlink, chmod
+from os import environ, chdir, mkdir, unlink, chmod, spawnve, P_NOWAITO
 from os.path import join, isfile, exists, abspath, dirname
 from sys import argv
 from modulesaccess import ModulesAccess
 from zipfile import ZipFile
+
 
 class ViewerConfigs(object):
 	def __init__(self):
@@ -146,16 +147,17 @@ class OrxViewer(ViewerConfigs, SeparatorLabel, KeyboardAccess):
 
 		try:
 			ModulesAccess.get("FilesManager").exportScene(
-				join(self.__currentPath, "bin", self.__filename + ".ini"),
+				join(self.__currentPath, "bin", self.__iniName),
 				join(self.__currentPath, "tiles"),
 				True,
 				self._defaults
 			)
 
-			pid = fork()
-			if (pid != 0):
-				chdir("bin")
-				execve(self.__filename, [self.__filename], self.__environ)
+			chdir("bin")
+			spawnve(P_NOWAITO, self.__filename, [self.__filename], self.__environ)
+			chdir("..")
+			
+
 		except Exception, e:
 			print "Error launching the application: " + str(e)
 
@@ -181,6 +183,9 @@ class OrxViewer(ViewerConfigs, SeparatorLabel, KeyboardAccess):
 		else:
 			self.__usedLib = "liborxd.dll"
 		self.__filename = "viewer_" + self.__system + "_" + self.__arch
+		self.__iniName = self.__filename + '.ini'
+		if (self.__system == "windows"):
+			self.__filename += ".exe"
 
 	def __startUi(self):
 		self.__layout = BoxLayout(orientation = "vertical")
