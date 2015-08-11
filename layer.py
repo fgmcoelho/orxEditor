@@ -1,13 +1,11 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
-from kivy.uix.textinput import TextInput
 from kivy.clock import Clock
 
 from editorutils import CancelableButton, Alert, Dialog, AlignedLabel, AlignedToggleButton
 from editorheritage import SeparatorLabel, AutoFocusInputUser
 from keyboard import KeyboardAccess, KeyboardGuardian
-from uisizes import defaultLabelSize, defaultLineSize, defaultSmallButtonSize, defaultInputSize, defaultFontSize,\
-	defaultDoubleLineSize
+from uisizes import defaultLabelSize, defaultLineSize, defaultSmallButtonSize, defaultInputSize, defaultDoubleLineSize
 from modulesaccess import ModulesAccess
 
 class LayerEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAccess):

@@ -317,21 +317,21 @@ class FilesManager:
 
 			# Object
 			parser.add_section(newSectionName)
-			scale = (obj.getScale(), obj.getScale())
 			parser.set(newSectionName, 'Graphic', graphicSectionName)
 			parser.set(newSectionName, 'Group', obj.getLayer())
 			renderedSize = obj.getSize()
 			if(obj.getFlipX() == True and obj.getFlipY() == True):
-				parser.set(newSectionName, 'Flip', 'both')
 				posAdjust = renderedSize
+				scale = (-obj.getScale(), -obj.getScale())
 			elif (obj.getFlipX() == True):
-				parser.set(newSectionName, 'Flip', 'x')
 				posAdjust = (renderedSize[0], 0)
+				scale = (-obj.getScale(), obj.getScale())
 			elif (obj.getFlipY() == True):
-				parser.set(newSectionName, 'Flip', 'y')
 				posAdjust = (0, renderedSize[1])
+				scale = (obj.getScale(), -obj.getScale())
 			else:
 				posAdjust = (0, 0)
+				scale = (obj.getScale(), obj.getScale())
 
 			parser.set(newSectionName, 'Position',
 				vector2ToVector3String(self.__convertObjectPosition(obj, sceneMaxY, posAdjust), 1.0))

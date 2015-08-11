@@ -494,11 +494,13 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		self.__defaultTouchUp(touch)
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
-		if (touch.button == 'scrollup' and self._isCtrlPressed):
-			ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('down')
+		if (touch.button == 'scrollup'):
+			if(self._isCtrlPressed == True):
+				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('down')
 			return
-		elif (touch.button == 'scrolldown' and self._isCtrlPressed):
-			ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('up')
+		elif (touch.button == 'scrolldown'):
+			if (self._isCtrlPressed == True):
+				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('up')
 			return
 		elif (touch.button == 'middle'):
 			ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('leftright')

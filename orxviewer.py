@@ -96,7 +96,6 @@ class OrxViewer(ViewerConfigs, SeparatorLabel, KeyboardAccess):
 			zipFile = ZipFile(zipFilePath)
 			assert zipFile.testzip() is None, "Corrupted zip file."
 			filesList = zipFile.namelist()
-			print filesList, self.__usedLib, self.__filename
 			assert len(filesList) == 2 and self.__usedLib in filesList and self.__filename in filesList,\
 				"Zip file content is invalid."
 			zipFile.extractall(binDir)
@@ -156,7 +155,7 @@ class OrxViewer(ViewerConfigs, SeparatorLabel, KeyboardAccess):
 			chdir("bin")
 			spawnve(P_NOWAITO, self.__filename, [self.__filename], self.__environ)
 			chdir("..")
-			
+
 
 		except Exception, e:
 			print "Error launching the application: " + str(e)

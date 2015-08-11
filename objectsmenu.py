@@ -21,7 +21,7 @@ class TempScrollView(ScrollView):
 	# the dev version only.
 	def scroll_to(self, widget, padding=10, animate=True):
 		from kivy.animation import Animation
-		from kivy.metrics import sp, dp
+		from kivy.metrics import dp
 		'''Scrolls the viewport to ensure that the given widget is visible,
 		optionally with padding and animation. If animate is True (the
 		default), then the default animation parameters will be used.
@@ -65,7 +65,7 @@ class TempScrollView(ScrollView):
 			self.scroll_y = syp
 
 	def __init__(self, **kwargs):
-		super(TempScrollView, self).__init__(**kwargs)			
+		super(TempScrollView, self).__init__(**kwargs)
 
 class ShortcutHandler:
 	def __init__(self):

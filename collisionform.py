@@ -11,7 +11,7 @@ from math import ceil
 
 from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, distance, isConvexPolygon, Alert, \
 	AlignedLabel, EmptyScrollEffect
-from editorheritage import SpaceLimitedObject, SeparatorLabel, LayoutGetter, MouseModifiers, KeyboardModifiers
+from editorheritage import SpaceLimitedObject, LayoutGetter, MouseModifiers, KeyboardModifiers
 from collisioninfo import CollisionPartInformation
 from keyboard import KeyboardAccess, KeyboardGuardian
 from modulesaccess import ModulesAccess
@@ -392,7 +392,7 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 		return smallestIndex
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
-		if (self._layout.collide_point(*touch.pos) == False or touch.button == "scrollup" or 
+		if (self._layout.collide_point(*touch.pos) == False or touch.button == "scrollup" or
 				touch.button == "scrolldown"):
 			return
 
@@ -433,7 +433,7 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 			self.__defaultTouchUp(touch)
 
 	def __handleTouchMove(self, touch):
-		if (self._layout.collide_point(*touch.pos) == False or touch.button == "scrollup" or 
+		if (self._layout.collide_point(*touch.pos) == False or touch.button == "scrollup" or
 				touch.button == "scrolldown"):
 			return
 		if (touch.button == 'right'):
