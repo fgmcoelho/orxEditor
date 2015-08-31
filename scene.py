@@ -31,20 +31,17 @@ class SceneMiniMap(LayoutGetter):
 
 			hbar = ModulesAccess.get('SceneHandler').getLayout().hbar
 			vbar = ModulesAccess.get('SceneHandler').getLayout().vbar
-			#print 'Hbar: ',hbar, 'vbar: ', vbar
-			#print ModulesAccess.get('SceneHandler').getLayout().scroll_x, ModulesAccess.get('SceneHandler').getLayout().scroll_y
-			px = 200 - sx
-			py = 200 - sy
-
+			sx = self._size[0] * hbar[1]
+			sy = self._size[1] * vbar[1]
+			px = self._size[0] * hbar[0]
+			py = self._size[1] * vbar[0]
 			with self._layout.canvas:
 				Color(1., 0., 0., 0.1)
-				self._rectangle = Rectangle(size = (sx, sy), pos = (0, 100))
-
-				#self._rectangle = Rectangle(size = (sx, sy), pos = pos)
-				#self._image.canvas.add(Color(1., 0., 0.))
-				#self._image.canvas.add(self._rectangle)
+				self._rectangle = Rectangle(size = (sx, sy), pos = (px, py))
 
 	def __init__(self):
+		super(SceneMiniMap, self).__init__()
+
 		self._size = sceneMiniMapSize['size']
 		self._layout = RelativeLayout(size = self._size, size_hint = (None, None))
 		self._image = Image(size = self._size)
@@ -76,10 +73,11 @@ class SceneMiniMap(LayoutGetter):
 	def processTouchMove(self, touch):
 		if (self._image.collide_point(*touch.pos) == True and self._moving == True):
 			posToScroll = self._image.to_local(touch.pos[0], touch.pos[1], True)
+			print posToScroll
 			args = [posToScroll[0], posToScroll[1], self._size[0], self._size[1]]
 			ModulesAccess.get('SceneHandler').scrollFromMiniMap(*args)
 
-class OrderSceneObjects:
+class OrderSceneObjects(object):
 	def _order_objects(self, objectDict):
 		objectsList = []
 		nameToPriorityDict = ModulesAccess.get('LayerGuardian').getNameToPriorityDict()
@@ -94,6 +92,9 @@ class OrderSceneObjects:
 
 		objectsOrderedList = sorted(objectsList, key=itemgetter(1, 2))
 		return objectsOrderedList
+
+	def __init__(self):
+		super(OrderSceneObjects, self).__init__()
 
 class SceneAttributes:
 	def __init__(self, tileSize, numberOfTilesX, numberOfTilesY):
@@ -524,6 +525,10 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 	def __handleScrollAndPassMoveToChildren(self, touch):
 		self.__defaultTouchMove(touch)
 
+	def __scrollMove(self, *args):
+		self.__defaultScroll(*args)
+		ModulesAccess.get("MiniMap").updateQuad()
+
 	def __init__(self):
 		super(SceneHandler, self).__init__()
 		self._layout = ScrollView(
@@ -532,10 +537,12 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		self.__defaultTouchMove = self._layout.on_touch_move
 		self.__defaultTouchDown = self._layout.on_touch_down
 		self.__defaultTouchUp = self._layout.on_touch_up
+		self.__defaultScroll = self._layout.on_scroll_move
 
 		self._layout.on_touch_move = self.__handleScrollAndPassMoveToChildren
 		self._layout.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 		self._layout.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
+		self._layout.on_scroll_move = self.__scrollMove
 
 		self.__sceneList = []
 		self.__sceneList.append(Scene())
