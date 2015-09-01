@@ -1,43 +1,49 @@
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics.fbo import Fbo
-from kivy.graphics import Color, Canvas, Rectangle, ClearColor, ClearBuffers, Scale, Translate, InstructionGroup
+from kivy.graphics import Color, Rectangle, ClearColor, ClearBuffers, InstructionGroup
 from kivy.core.window import Window
 from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.boxlayout import BoxLayout
-from kivy.properties import ObjectProperty, NumericProperty
 from kivy.clock import Clock
 
 from operator import itemgetter
 
 from editorheritage import LayoutGetter, KeyboardModifiers, MouseModifiers
 from editorobjects import RenderObjectGuardian
-from editorutils import Alert, AutoReloadTexture, EmptyScrollEffect
+from editorutils import Alert, EmptyScrollEffect
 from modulesaccess import ModulesAccess
 from uisizes import sceneMiniMapSize
+from math import ceil
 
 class SceneMiniMap(LayoutGetter):
-	def updateQuad(self, *args):
-		if (self._representedSize is not None):
-			viewPortSize = tuple(ModulesAccess.get('SceneHandler').getLayout().size)
-			x = min(viewPortSize[0] / self._representedSize[0], 1.0)
-			y = min(viewPortSize[1] / self._representedSize[1], 1.0)
-			sx = self._size[0] * x
-			sy = self._size[1] * y
-			if (self._rectangle is not None):
-				self._layout.canvas.remove(self._rectangle)
+	def _scrollCoords(self, pos, rectangleSize, mapSize):
+		if (pos <= rectangleSize/2.0):
+			return 0.0
+		elif (pos >= (mapSize - (rectangleSize/2.0))):
+			return 1.0
+		else:
+			return (pos - rectangleSize/2.0)/(mapSize - rectangleSize)
 
-			hbar = ModulesAccess.get('SceneHandler').getLayout().hbar
-			vbar = ModulesAccess.get('SceneHandler').getLayout().vbar
-			sx = self._size[0] * hbar[1]
-			sy = self._size[1] * vbar[1]
-			px = self._size[0] * hbar[0]
-			py = self._size[1] * vbar[0]
-			with self._layout.canvas:
-				Color(1., 0., 0., 0.1)
-				self._rectangle = Rectangle(size = (sx, sy), pos = (px, py))
+	def _scrollByTouch(self, touch):
+		x, y = self._image.to_local(touch.pos[0], touch.pos[1], True)
+		xToScroll = self._scrollCoords(x, self._rectangleSx, self._size[0])
+		yToScroll = self._scrollCoords(y, self._rectangleSy, self._size[1])
+		ModulesAccess.get('SceneHandler').scrollFromMiniMap(xToScroll, yToScroll)
+		self.updateQuad()
+
+	def _processTouchUp(self, touch):
+		if (self._moving == True):
+			self._moving = False
+
+	def _processTouchDown(self, touch):
+		if (self._image.collide_point(*touch.pos) == True):
+			self._moving = True
+			self._scrollByTouch(touch)
+
+	def _processTouchMove(self, touch):
+		if (self._image.collide_point(*touch.pos) == True and self._moving == True):
+			self._scrollByTouch(touch)
 
 	def __init__(self):
 		super(SceneMiniMap, self).__init__()
@@ -51,9 +57,27 @@ class SceneMiniMap(LayoutGetter):
 		self._representedSize = None
 		self._moving = True
 		ModulesAccess.add('MiniMap', self)
-		self._image.on_touch_move = self.processTouchMove
-		self._image.on_touch_down = self.processTouchDown
-		self._image.on_touch_up = self.processTouchUp
+		self._image.on_touch_move = self._processTouchMove
+		self._image.on_touch_down = self._processTouchDown
+		self._image.on_touch_up = self._processTouchUp
+
+	def updateQuad(self, *args):
+		if (self._representedSize is not None):
+			if (self._rectangle is not None):
+				self._layout.canvas.remove(self._rectangle)
+
+			hbar = ModulesAccess.get('SceneHandler').getLayout().hbar
+			vbar = ModulesAccess.get('SceneHandler').getLayout().vbar
+			self._rectangleSx = ceil(self._size[0] * hbar[1])
+			self._rectangleSy = ceil(self._size[1] * vbar[1])
+			self._rectanglePx = ceil(self._size[0] * hbar[0])
+			self._rectanglePy = ceil(self._size[1] * vbar[0])
+			with self._layout.canvas:
+				Color(1., 0., 0., 0.3)
+				self._rectangle = Rectangle(
+					size = (self._rectangleSx, self._rectangleSy),
+					pos = (self._rectanglePx, self._rectanglePy)
+				)
 
 	def updateMinimap(self, newTexture):
 		self._image.texture = newTexture
@@ -61,21 +85,6 @@ class SceneMiniMap(LayoutGetter):
 			self._representedId = newTexture.id
 			self._representedSize = tuple(newTexture.size)
 			self.updateQuad()
-
-	def processTouchUp(self, touch):
-		if (self._moving == True):
-			self._moving = False
-
-	def processTouchDown(self, touch):
-		if (self._image.collide_point(*touch.pos) == True):
-			self._moving = True
-
-	def processTouchMove(self, touch):
-		if (self._image.collide_point(*touch.pos) == True and self._moving == True):
-			posToScroll = self._image.to_local(touch.pos[0], touch.pos[1], True)
-			print posToScroll
-			args = [posToScroll[0], posToScroll[1], self._size[0], self._size[1]]
-			ModulesAccess.get('SceneHandler').scrollFromMiniMap(*args)
 
 class OrderSceneObjects(object):
 	def _order_objects(self, objectDict):
@@ -554,19 +563,9 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		minimap.updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
 		self._layout.bind(size = minimap.updateQuad)
 
-	def scrollFromMiniMap(self, x, y, miniMapX, miniMapY):
-		if (miniMapX != 0):
-			relativeX = x / miniMapX
-		else:
-			relativeX = 0
-
-		if (miniMapY != 0):
-			relativeY = y / miniMapY
-		else:
-			relativeY = 0
-
-		self._layout.scroll_x = relativeX
-		self._layout.scroll_y = relativeY
+	def scrollFromMiniMap(self, x, y):
+		self._layout.scroll_x = x
+		self._layout.scroll_y = y
 		self._layout._update_effect_x_bounds()
 		self._layout._update_effect_y_bounds()
 
