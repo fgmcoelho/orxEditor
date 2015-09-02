@@ -448,7 +448,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		elif (keycode[1] == '\\'):
 			self.__sceneList[self.__currentIndex].redo()
 
-		if (keycode[1] not in ['ctrl', 'lctrl', 'rctrl']):
+		if (keycode[1] not in ['ctrl', 'lctrl', 'rctrl'] and keycode[1] != 'shift'):
 			Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def __scheduleTextureUpdate(self, *args):

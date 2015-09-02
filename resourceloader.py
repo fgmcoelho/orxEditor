@@ -377,6 +377,55 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		elif (keycode[1] == 'enter'):
 			self.__splitImage()
 
+		elif (keycode[1] == 'up' and self.__state == 'size' and self.__checkAnyHasFocus('size') == False):
+			try:
+				ySize = int(self.__ySizeInput.text)
+				ySkip = int(self.__ySkipInput.text)
+				assert ySize != 0
+			except:
+				return
+			ySkip -= 1
+			ySkip = ySkip % ySize
+			self.__ySkipInput.text = str(ySkip)
+			self.__splitImage()
+		
+		elif (keycode[1] == 'down' and self.__state == 'size' and self.__checkAnyHasFocus('size') == False):
+			try:
+				ySize = int(self.__ySizeInput.text)
+				ySkip = int(self.__ySkipInput.text)
+				assert ySize != 0
+			except:
+				return
+			ySkip += 1
+			ySkip = ySkip % ySize
+			self.__ySkipInput.text = str(ySkip)
+			self.__splitImage()
+		
+		elif (keycode[1] == 'left' and self.__state == 'size' and self.__checkAnyHasFocus('size') == False):
+			try:
+				xSize = int(self.__xSizeInput.text)
+				xSkip = int(self.__xSkipInput.text)
+				assert xSize != 0
+			except:
+				return
+			xSkip -= 1
+			xSkip = xSkip % xSize
+			self.__xSkipInput.text = str(xSkip)
+			self.__splitImage()
+		
+		elif (keycode[1] == 'right' and self.__state == 'size' and self.__checkAnyHasFocus('size') == False):
+			try:
+				xSize = int(self.__xSizeInput.text)
+				xSkip = int(self.__xSkipInput.text)
+				assert xSize != 0
+			except:
+				return
+			xSkip += 1
+			xSkip = xSkip % xSize
+			self.__xSkipInput.text = str(xSkip)
+			self.__splitImage()
+			
+
 		elif (keycode[1] == 'escape'):
 			self.close()
 
@@ -384,6 +433,13 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
 		if (keycode[1] == 'shift'):
 			self.__isShiftPressed = True
+
+	def __checkAnyHasFocus(self, state):
+		if (state == 'divisions'):
+			return self.__xDivisionsInput.focus or self.__yDivisionsInput.focus
+		else:
+			return (self.__xSizeInput.focus or self.__ySizeInput.focus or
+				self.__xSkipInput.focus or self.__ySkipInput.focus)
 
 	def __splitImage(self, *args):
 		if (self.__state == 'divisions'):
