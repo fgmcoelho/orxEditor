@@ -61,19 +61,22 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 				cell.unselect()
 
 	def __posToGridCoords(self, x, y):
-		i, j = int((x + self.__xSkip) / self.__xSize), int((y - self.__ySkip) / self.__ySize)
+		i, j = (x - self.__xSkip) / self.__xSize, (y - self.__ySkip) / self.__ySize
 		if (i < 0):
-			i = 0
+			return (None, None)
 		elif (i >= self.__columns):
-			i = self.__columns - 1
+			return (None, None)
 
+		print y, self.__ySkip, y - self.__ySkip, (y - self.__ySkip) / self.__ySize
 		j = self.__rows - j - 1
+		print j
 		if (j < 0):
-			j = 0
-		elif (j >= self.__rows):
-			j = self.__rows - 1
+			return (None, None)
 
-		return (j, i)
+		if (j >= self.__rows):
+			return (None, None)
+
+		return (int(j), int(i))
 
 	def __handleTouchMove(self, touch):
 		if (self._layout.collide_point(*touch.pos) == False):
@@ -168,9 +171,12 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def startSelection(self, touch):
 		if (self.__currentImage is not None and self.__gridGraphics != [] and self.__selectionStarted == False):
 			self.__clearGraphicGrid()
+			posToUse = self.__currentImage.to_widget(*touch.pos)
+			sj, si = self.__posToGridCoords(*posToUse)
+			if (sj == None or si == None):
+				return
+			self.__selectionStartPos = posToUse
 			self.__selectionStarted = True
-			self.__selectionStartPos = self.__currentImage.to_widget(*touch.pos)
-			sj, si = self.__posToGridCoords(*self.__selectionStartPos)
 			self.__gridGraphics[sj][si].select()
 
 	def finishSelection(self, touch):
@@ -178,6 +184,8 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 			pos = self.__currentImage.to_widget(*touch.pos)
 			fj, fi = self.__posToGridCoords(*pos)
 			sj, si = self.__posToGridCoords(*self.__selectionStartPos)
+			if (fj == None or fi == None or sj == None or si == None):
+				return
 			loopStartIndexI = min(si, fi)
 			loopStartIndexJ = min(sj, fj)
 			loopFinalIndexI = max(si, fi)
@@ -211,8 +219,13 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		im = Image(source = path)
 		self.__texture = AutoReloadTexture(im.texture.size, im)
 		self.__currentImage = Image(size = im.texture.size, texture = self.__texture.getTexture())
-		self._scrollLayout.size = im.texture.size
+		#self._scrollLayout.size = (im.texture.size[0] * 2, im.texture.size[1] * 2)
+		self._scrollLayout.size = (im.texture.size[0], im.texture.size[1])
 		self._scrollLayout.add_widget(self.__currentImage)
+		#from kivy.graphics.context_instructions import Scale, Translate
+		#self._scrollLayout.canvas.before.add(Translate(-im.texture.size[0], -im.texture.size[1], 0))
+		#self._scrollLayout.canvas.before.add(Scale(2.))
+
 
 	def drawGridByDivisions(self, xDivisions, yDivisions):
 		xInc = int(self._scrollLayout.size[0] / xDivisions)
@@ -388,7 +401,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 			ySkip = ySkip % ySize
 			self.__ySkipInput.text = str(ySkip)
 			self.__splitImage()
-		
+
 		elif (keycode[1] == 'down' and self.__state == 'size' and self.__checkAnyHasFocus('size') == False):
 			try:
 				ySize = int(self.__ySizeInput.text)
@@ -400,7 +413,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 			ySkip = ySkip % ySize
 			self.__ySkipInput.text = str(ySkip)
 			self.__splitImage()
-		
+
 		elif (keycode[1] == 'left' and self.__state == 'size' and self.__checkAnyHasFocus('size') == False):
 			try:
 				xSize = int(self.__xSizeInput.text)
@@ -412,7 +425,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 			xSkip = xSkip % xSize
 			self.__xSkipInput.text = str(xSkip)
 			self.__splitImage()
-		
+
 		elif (keycode[1] == 'right' and self.__state == 'size' and self.__checkAnyHasFocus('size') == False):
 			try:
 				xSize = int(self.__xSizeInput.text)
@@ -424,7 +437,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 			xSkip = xSkip % xSize
 			self.__xSkipInput.text = str(xSkip)
 			self.__splitImage()
-			
+
 
 		elif (keycode[1] == 'escape'):
 			self.close()
