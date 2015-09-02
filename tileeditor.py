@@ -36,7 +36,7 @@ class TileEditor(App, KeyboardAccess):
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
-		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcvy') or
+		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcv') or
 				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete']):
 			self.__sceneHandler.processKeyDown(keycode, modifiers)
 		#elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):

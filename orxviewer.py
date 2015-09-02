@@ -85,6 +85,13 @@ class OrxViewer(ViewerConfigs, SeparatorLabel, KeyboardAccess):
 		else:
 			return False
 
+	def _removeDownloadedFile(self, zipFilePath):
+		if (exists(zipFilePath) == True):
+			try:
+				unlink(zipFilePath)
+			except:
+				print "Error trying to remove the zip file. I will try again later."
+
 	def _download_finish(self, *args):
 		if (self.__request.is_finished == False):
 			print "Not Finished!"
@@ -95,19 +102,24 @@ class OrxViewer(ViewerConfigs, SeparatorLabel, KeyboardAccess):
 			zipFilePath = join(tmpDir, "tmp_viewer.zip")
 			zipFile = ZipFile(zipFilePath)
 			assert zipFile.testzip() is None, "Corrupted zip file."
-			filesList = zipFile.namelist()
-			assert len(filesList) == 2 and self.__usedLib in filesList and self.__filename in filesList,\
-				"Zip file content is invalid."
+			if (self.__system == "windows"):
+				filesList = zipFile.namelist()
+				assert len(filesList) == 4 and self.__usedLib in filesList and self.__filename in filesList,\
+					"Zip file content is invalid."
+			else:
+				filesList = zipFile.namelist()
+				assert len(filesList) == 2 and self.__usedLib in filesList and self.__filename in filesList,\
+					"Zip file content is invalid."
 			zipFile.extractall(binDir)
 			if (self.__system == 'linux'):
 				chmod(join(binDir, self.__filename), 0755)
 				chmod(join(binDir, self.__usedLib), 0700)
 
+			self._removeDownloadedFile(zipFilePath)
+
 		except Exception, e:
 			print "Error getting the viewer_file: " + str(e)
 
-		if (exists(zipFilePath) == True):
-			unlink(zipFilePath)
 
 		self.__renderLaunch()
 
@@ -143,6 +155,10 @@ class OrxViewer(ViewerConfigs, SeparatorLabel, KeyboardAccess):
 		self._defaults["Physics"]["ShowDebug"] = boolToStr(self.__debugPhysicsCheckbox.active)
 		self._defaults["Camera"]["Position"] = "(" + str(int(self.__widthInput.text) / 2) + ", " + \
 				str(int(self.__heightInput.text) / 2) + ", 0)"
+		
+		tmpDir = join(self.__currentPath, "tmp")
+		zipFilePath = join(tmpDir, "tmp_viewer.zip")
+		self._removeDownloadedFile(zipFilePath)
 
 		try:
 			ModulesAccess.get("FilesManager").exportScene(
@@ -180,7 +196,7 @@ class OrxViewer(ViewerConfigs, SeparatorLabel, KeyboardAccess):
 		if (self.__system == "linux"):
 			self.__usedLib = "liborxd.so"
 		else:
-			self.__usedLib = "liborxd.dll"
+			self.__usedLib = "orxd.dll"
 		self.__filename = "viewer_" + self.__system + "_" + self.__arch
 		self.__iniName = self.__filename + '.ini'
 		if (self.__system == "windows"):

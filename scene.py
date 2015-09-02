@@ -448,10 +448,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		elif (keycode[1] == '\\'):
 			self.__sceneList[self.__currentIndex].redo()
 
-		elif (keycode[1] == 'y'):
-			print self._layout.size
-
-		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
+		if (keycode[1] not in ['ctrl', 'lctrl', 'rctrl']):
+			Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def __scheduleTextureUpdate(self, *args):
 		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
@@ -479,8 +477,12 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 	def __selectObject(self, objectToSelect):
 		if (self._isCtrlPressed == False):
-			ModulesAccess.get('ObjectDescriptor').set(objectToSelect)
-			self.__sceneList[self.__currentIndex].getRenderGuardian().setSingleSelectionObject(objectToSelect)
+			selectedList = self.__sceneList[self.__currentIndex].getRenderGuardian().getSelection()
+			if (objectToSelect in selectedList):
+				return
+			else:
+				ModulesAccess.get('ObjectDescriptor').set(objectToSelect)
+				self.__sceneList[self.__currentIndex].getRenderGuardian().setSingleSelectionObject(objectToSelect)
 		else:
 			selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().addObjectToSelection(
 				objectToSelect
@@ -527,6 +529,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 						self.__selectObject(selectedObject)
 					else:
 						self.__unselectObject(selectedObject)
+				elif (touch.is_double_tap == True):
+					self.__sceneList[self.__currentIndex].unselectAll()
 
 			return self.__defaultTouchDown(touch)
 
