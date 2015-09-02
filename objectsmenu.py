@@ -63,6 +63,8 @@ class TempScrollView(ScrollView):
 		else:
 			self.scroll_x = sxp
 			self.scroll_y = syp
+			self._update_effect_x_bounds()
+			self._update_effect_y_bounds()
 
 	def __init__(self, **kwargs):
 		super(TempScrollView, self).__init__(**kwargs)
@@ -229,7 +231,7 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 				self._loadPng(item)
 
 	def __scrollUpdate(self, dt):
-		self._layout.scroll_to(self._tree.selected_node)
+		self._layout.scroll_to(self._tree.selected_node, animate = False)
 
 	def _adjustTreeSize(self, *args):
 		self._scrollLayout.size[1] = self._tree.minimum_height
@@ -266,10 +268,10 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		if (self._tree.selected_node is None and len(self._tree.children) > 0):
 			if (command == 'up'):
 				self._tree.select_node(self._tree.children[0])
-				self._layout.scroll_to(self._tree.children[0])
+				self._layout.scroll_to(self._tree.children[0], animate = False)
 			elif (command == 'down'):
 				self._tree.select_node(self._tree.children[-1])
-				self._layout.scroll_to(self._tree.children[-1])
+				self._layout.scroll_to(self._tree.children[-1], animate = False)
 		else:
 			if (command in ('up', 'down')):
 				if (command == 'up'):
@@ -278,14 +280,14 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 					op = -1
 				index = (self._tree.children.index(self._tree.selected_node) + op) % len(self._tree.children)
 				self._tree.select_node(self._tree.children[index])
-				self._layout.scroll_to(self._tree.children[index])
+				self._layout.scroll_to(self._tree.children[index], animate = False)
 			else:
 				if ('right' in command and self._tree.selected_node.is_open == False):
 					self._tree.toggle_node(self._tree.selected_node)
-					self._layout.scroll_to(self._tree.selected_node)
+					self._layout.scroll_to(self._tree.selected_node, animate = False)
 				elif ('left' in command and self._tree.selected_node.is_open == True):
 					self._tree.toggle_node(self._tree.selected_node)
-					self._layout.scroll_to(self._tree.selected_node)
+					self._layout.scroll_to(self._tree.selected_node, animate = False)
 
 		if (isinstance(self._tree.selected_node, OptionMenuImage)):
 			self._tree.selected_node.setDisplay(draw = False)
