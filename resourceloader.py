@@ -25,7 +25,7 @@ class GridCell:
 		self.__operation = None
 		self.__color = None
 		self.__marked = False
-		self.draw((0., 1., 0., 1.))
+		self.draw((0., 1., 0., 0.3))
 
 	def draw(self, colorToUse):
 		if (self.__operation is not None):
@@ -61,21 +61,19 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 				cell.unselect()
 
 	def __posToGridCoords(self, x, y):
-		i, j = (x - self.__xSkip) / self.__xSize, (y - self.__ySkip) / self.__ySize
+		i = (x - self.__xSkip) / self.__xSize
 		if (i < 0):
 			return (None, None)
 		elif (i >= self.__columns):
 			return (None, None)
 
-		print y, self.__ySkip, y - self.__ySkip, (y - self.__ySkip) / self.__ySize
-		j = self.__rows - j - 1
-		print j
-		if (j < 0):
+
+		end = self._scrollLayout.size[1] - self.__ySkip
+		start = end - (self.__rows * self.__ySize)
+		if (y < start or y > end):
 			return (None, None)
 
-		if (j >= self.__rows):
-			return (None, None)
-
+		j = self.__rows - ((y - start) / self.__ySize)
 		return (int(j), int(i))
 
 	def __handleTouchMove(self, touch):
