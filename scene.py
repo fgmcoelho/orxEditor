@@ -249,6 +249,25 @@ class Scene(OrderSceneObjects, LayoutGetter):
 				self._objectDict[key] = None
 				del self._objectDict[key]
 
+	def __changeLayerByAdjust(self, adj):
+		selectedObjects = self._renderGuardian.getSelection()
+		if (selectedObjects != []):
+			layerNameToPriority = ModulesAccess.get('LayerGuardian').getNameToPriorityDict()
+			layerPriorityToName = dict(zip(layerNameToPriority.values(), layerNameToPriority.keys()))
+			for obj in selectedObjects:
+				layer = obj.getLayer()
+				priority = layerNameToPriority[layer] + adj
+				if (priority in layerPriorityToName):
+					obj.setLayer(layerPriorityToName[priority])
+			self.redraw()
+			ModulesAccess.get('ObjectDescriptor').set(selectedObjects)
+
+	def increaseLayer(self):
+		self.__changeLayerByAdjust(1)
+
+	def decreaseLayer(self):
+		self.__changeLayerByAdjust(-1)
+
 	def increaseScale(self):
 		obj = self._renderGuardian.increaseScale()
 		if (obj is not None):
@@ -448,8 +467,16 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		elif (keycode[1] == '\\'):
 			self.__sceneList[self.__currentIndex].redo()
 
+		elif (keycode[1] == 'pageup'):
+			self.__sceneList[self.__currentIndex].increaseLayer()
+
+		elif (keycode[1] == 'pagedown'):
+			self.__sceneList[self.__currentIndex].decreaseLayer()
+
+
 		if (keycode[1] not in ['ctrl', 'lctrl', 'rctrl'] and keycode[1] != 'shift'):
 			Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
+
 
 	def __scheduleTextureUpdate(self, *args):
 		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
@@ -464,14 +491,20 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 		first = True
 		selectedObject = None
+		layerNameToPriority = ModulesAccess.get('LayerGuardian').getNameToPriorityDict()
 		for obj in clickedObjectsList:
-
 			if (first == True):
 				selectedObject = obj
+				selectedObjectPriority = layerNameToPriority[selectedObject.getLayer()]
 				first = False
 			else:
-				if (selectedObject.getIdentifier() < obj.getIdentifier()):
+				objPriority = layerNameToPriority[obj.getLayer()]
+				if (objPriority > selectedObjectPriority):
 					selectedObject = obj
+					selectedObjectPriority = objPriority
+				elif (objPriority == selectedObjectPriority and selectedObject.getIdentifier() < obj.getIdentifier()):
+					selectedObject = obj
+					selectedObjectPriority = objPriority
 
 		return selectedObject
 

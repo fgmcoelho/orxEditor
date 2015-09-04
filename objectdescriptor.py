@@ -18,6 +18,12 @@ class DescriptorLinesConfigs(object):
 		}
 
 class DescriptorButtons(DescriptorLinesConfigs):
+	def _call_increase_priority(self, *args):
+		ModulesAccess.get('SceneHandler').processKeyDown((None, 'pageup'))
+
+	def _call_decrease_priority(self, *args):
+		ModulesAccess.get('SceneHandler').processKeyDown((None, 'pagedown'))
+
 	def _call_on_press(self, button, touch):
 		k = button.text.split('(')[1].split(')')[0]
 		ModulesAccess.get('SceneHandler').processKeyDown((None, k))
@@ -59,6 +65,10 @@ class DescriptorButtons(DescriptorLinesConfigs):
 			**defaultSmallButtonSize)
 		self._redoButton = CancelableButton(text = 'Redo (y)', on_release = self._call_on_press,
 			**defaultSmallButtonSize)
+		self._increaseLayerButton = CancelableButton(text = 'Group up (PgUp)',
+			on_release = self._call_increase_priority, **defaultLargeButtonSize)
+		self._decreaseLayerButton = CancelableButton(text = 'Group down (PgDw)',
+			on_release = self._call_decrease_priority, **defaultLargeButtonSize)
 
 		# Lines:
 		self._linesList.append(BoxLayout(**self._halfLineLabel))
@@ -77,6 +87,9 @@ class DescriptorButtons(DescriptorLinesConfigs):
 		self._linesList[-1].add_widget(self._unselectButton)
 		self._linesList[-1].add_widget(self._undoButton)
 		self._linesList[-1].add_widget(self._redoButton)
+		self._linesList.append(BoxLayout(**self._halfLineLabel))
+		self._linesList[-1].add_widget(self._increaseLayerButton)
+		self._linesList[-1].add_widget(self._decreaseLayerButton)
 
 class GroupAndCollisionLabel(DescriptorLinesConfigs):
 	def __init__(self):
@@ -184,7 +197,7 @@ class RenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGette
 	def set(self, obj = None):
 		layout = self._getParentLayout()
 		layout.add_widget(self._nameLabel)
-		layout.add_widget(self._pathLabel)
+		#layout.add_widget(self._pathLabel)
 		layout.add_widget(self._flipBox)
 		layout.add_widget(self._sizeScaleBox)
 		layout.add_widget(self._layerCollisionBox)

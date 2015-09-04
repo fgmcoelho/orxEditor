@@ -70,6 +70,8 @@ class AutoAlign(object):
 			obj.text_size = obj.size
 
 class CancelableButton (Button):
+	currentButton = []
+
 	def __getActionByEntry(self, key, dictToLook):
 		if (key in dictToLook):
 			self.__action = dictToLook[key]
@@ -80,14 +82,24 @@ class CancelableButton (Button):
 			return False
 
 	def __processAction(self, touch):
+		if (len(CancelableButton.currentButton) == 1 and CancelableButton.currentButton[0] != self):
+			return
+
 		if (self.collide_point(*touch.pos) == True and self.__lastUid != touch.uid and touch.uid == self.__touchUpUid):
 			self.__lastUid = touch.uid
 			self.__action(self, touch)
 
 		self.__default_on_touch_up(touch)
 
+		CancelableButton.currentButton = []
+
 	def __startButtonSelection(self, touch):
 		if (self.collide_point(*touch.pos) == True):
+			if (CancelableButton.currentButton == []):
+				CancelableButton.currentButton = [self]
+			else:
+				return
+
 			self.__touchUpUid = touch.uid
 
 		self.__default_on_touch_down(touch)
