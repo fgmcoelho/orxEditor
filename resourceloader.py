@@ -7,7 +7,8 @@ from kivy.uix.scrollview import ScrollView
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
-from uisizes import resourceLoderSize, defaultLabelSize, defaultButtonSize, defaultInputSize
+from uisizes import resourceLoderSize, defaultLabelSize, defaultButtonSize, defaultInputSize, defaultFontSize,\
+	defaultDoubleLineSize
 from editorheritage import SeparatorLabel, LayoutGetter, MouseModifiers
 from editorutils import CancelableButton, AutoReloadTexture, Alert, Dialog, convertKivyCoordToOrxCoord
 from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
@@ -521,6 +522,12 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', **defaultButtonSize)
 		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
 			**defaultButtonSize)
+		
+		multipleLineSize = defaultDoubleLineSize.copy()
+		multipleLineSize['height'] = defaultFontSize * 5
+		self.__helpText = AlignedLabel(
+			text = 'Once the grid\nis drawn you\ncan use the\narrow keys to\nmove the grid.',
+			**multipleLineSize)
 
 	def __loadDivisionLeftMenu(self, focusIndex = None):
 		self.__leftMenu.clear_widgets()
@@ -544,6 +551,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__leftMenu.add_widget(self.__xSkipInput)
 		self.__leftMenu.add_widget(AlignedLabel(text = 'Skip on y', **defaultLabelSize))
 		self.__leftMenu.add_widget(self.__ySkipInput)
+		self.__leftMenu.add_widget(self.__helpText)
 		self.__leftMenu.add_widget(self.getSeparator())
 		self.__leftMenu.add_widget(self.__switchButton)
 		self.__leftMenu.add_widget(self.__splitButton)
