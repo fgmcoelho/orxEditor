@@ -2,6 +2,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.textinput import TextInput
 from kivy.graphics.texture import Texture
@@ -9,10 +10,13 @@ from kivy.uix.image import Image
 from kivy.effects.scroll import ScrollEffect
 
 from keyboard import KeyboardAccess, KeyboardGuardian
+from editorheritage import SeparatorLabel
 
 from os.path import sep as pathSeparator
 from os import getcwd
 from math import sqrt
+
+from uisizes import defaultButtonSize, defaultFontSize, warningSize, defaultLineSize
 
 class NumberInput(TextInput):
 	modulesDict = {}
@@ -60,7 +64,14 @@ class NumberInput(TextInput):
 		else:
 			self.__module = None
 
+class AutoAlign(object):
+	def _set_on_size(self, obj, new_texture_size):
+		if (obj.width != 100 and obj.height != 100):
+			obj.text_size = obj.size
+
 class CancelableButton (Button):
+	currentButton = []
+
 	def __getActionByEntry(self, key, dictToLook):
 		if (key in dictToLook):
 			self.__action = dictToLook[key]
@@ -71,14 +82,24 @@ class CancelableButton (Button):
 			return False
 
 	def __processAction(self, touch):
+		if (len(CancelableButton.currentButton) == 1 and CancelableButton.currentButton[0] != self):
+			return
+
 		if (self.collide_point(*touch.pos) == True and self.__lastUid != touch.uid and touch.uid == self.__touchUpUid):
 			self.__lastUid = touch.uid
 			self.__action(self, touch)
 
 		self.__default_on_touch_up(touch)
 
+		CancelableButton.currentButton = []
+
 	def __startButtonSelection(self, touch):
 		if (self.collide_point(*touch.pos) == True):
+			if (CancelableButton.currentButton == []):
+				CancelableButton.currentButton = [self]
+			else:
+				return
+
 			self.__touchUpUid = touch.uid
 
 		self.__default_on_touch_down(touch)
@@ -86,7 +107,8 @@ class CancelableButton (Button):
 	def __init__(self, **kwargs):
 		assert (not ('on_release' in kwargs and 'on_touch_up' in kwargs))
 
-		if (self.__getActionByEntry('on_release', kwargs) == False and self.__getActionByEntry('on_touch_up', kwargs) == False):
+		if (self.__getActionByEntry('on_release', kwargs) == False and
+				self.__getActionByEntry('on_touch_up', kwargs) == False):
 			self.__action = None
 
 		super(CancelableButton, self).__init__(**kwargs)
@@ -99,23 +121,29 @@ class CancelableButton (Button):
 			self.on_touch_down = self.__startButtonSelection
 
 class EmptyScrollEffect(ScrollEffect):
-	pass
+	def __init__(self, **kwargs):
+		super(EmptyScrollEffect, self).__init__(**kwargs)
 
-class AlignedLabel(Label):
-	def __set_on_size(self, obj, new_texture_size):
-		if (obj.width != 100 and obj.height != 100):
-			obj.text_size = obj.size
-		#print obj.size
-		#print new_texture_size
-		#print obj.texture_size
-		#print obj.text_size
+	def stop(*args):
+		pass
 
+class AlignedLabel(Label, AutoAlign):
 	def __init__(self, **kwargs):
 		super(AlignedLabel, self).__init__(**kwargs)
-		self.bind(size = self.__set_on_size)
+		self.bind(size = self._set_on_size)
 
+class AlignedToggleButton(ToggleButton, AutoAlign):
+	def __init__(self, **kwargs):
+		super(AlignedToggleButton, self).__init__(**kwargs)
+		self.bind(size = self._set_on_size)
 
-class BaseWarnMethods(KeyboardAccess):
+class BaseWarnMethods(KeyboardAccess, SeparatorLabel):
+	def _setButtonSize(self, button, new_size):
+		if (button.texture_size[0] != 0 and button.texture_size[1] != 0):
+			button.unbind(size=self._setButtonSize)
+			button.size = (button.texture_size[0] + 30, button.texture_size[1])
+			button.size_hint = (None, None)
+
 	def open(self):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.mainPopUp.open()
@@ -125,6 +153,31 @@ class BaseWarnMethods(KeyboardAccess):
 
 	def setText(self, value):
 		self.mainPopUpText.text = value
+
+	def _finishLayout(self):
+		self.mainPopUpBox.add_widget(self.bottomLine)
+		self.mainPopUp.content = self.mainPopUpBox
+
+	def __init__(self, title, text, **kwargs):
+		super(BaseWarnMethods, self).__init__(**kwargs)
+		self.mainPopUp = Popup(
+			title = title,
+			auto_dismiss = False,
+			**warningSize
+		)
+		self.mainPopUpBox = BoxLayout(orientation = 'vertical')
+		if (text.count('\n') >= 1):
+			multilineSize = defaultLineSize.copy()
+			multilineSize['height'] = defaultFontSize * (text.count('\n') + 1)
+			self.mainPopUpText = AlignedLabel(text = text, **multilineSize)
+		else:
+			self.mainPopUpText = AlignedLabel(text = text, **defaultLineSize)
+
+		self.bottomLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		self.bottomLine.add_widget(Label(text = '', **defaultLineSize))
+
+		self.mainPopUpBox.add_widget(self.mainPopUpText)
+		self.mainPopUpBox.add_widget(self.getSeparator())
 
 class Dialog(BaseWarnMethods):
 	def __doNothing(self, notUsed = None):
@@ -147,13 +200,9 @@ class Dialog(BaseWarnMethods):
 		if (self.__afterOkAction is not None):
 			self.__afterOkAction()
 
-	def __init__(self, okMethod = None, dialogTitle = '', dialogText = '', dialogOkButtonText = '',
-			dialogCancelButtonText = '', afterOkAction = None, afterCancelAction = None):
-
-		self.mainPopUp = Popup(title = dialogTitle, auto_dismiss = False, size_hint = (0.7, 0.5))
-		self.mainPopUpText = Label(text = dialogText)
-		popUpLayout = BoxLayout(orientation = 'vertical')
-		yesNoLayout = BoxLayout(orientation = 'horizontal', size_hint = (1.0, 0.3))
+	def __init__(self, okMethod = None, title = '', text = '', dialogOkButtonText = '',
+			dialogCancelButtonText = '', afterOkAction = None, afterCancelAction = None, **kwargs):
+		super(self.__class__, self).__init__(title, text, **kwargs)
 
 		if (okMethod is None):
 			self.__okMethod = self.__doNothing
@@ -163,14 +212,17 @@ class Dialog(BaseWarnMethods):
 		self.__afterOkAction = afterOkAction
 		self.__afterCancelAction = afterCancelAction
 
-		self.__dialogOkButton = CancelableButton(text = dialogOkButtonText, on_release = self.__processOk)
-		popUpLayout.add_widget(self.mainPopUpText)
-		yesNoLayout.add_widget(self.__dialogOkButton)
-		yesNoLayout.add_widget(CancelableButton(text = dialogCancelButtonText, on_release = self.__processCancel))
-		popUpLayout.add_widget(yesNoLayout)
-		self.mainPopUp.content = popUpLayout
+		okButton = CancelableButton(text = dialogOkButtonText, on_release = self.__processOk, **defaultButtonSize)
+		okButton.bind(size = self._setButtonSize)
+		cancelButton = CancelableButton(text = dialogCancelButtonText, on_release = self.__processCancel,
+			**defaultButtonSize)
+		cancelButton.bind(size = self._setButtonSize)
 
-class AlertPopUp (BaseWarnMethods):
+		self.bottomLine.add_widget(okButton)
+		self.bottomLine.add_widget(cancelButton)
+		self._finishLayout()
+
+class Alert(BaseWarnMethods):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
 			self.__processClose()
@@ -181,21 +233,15 @@ class AlertPopUp (BaseWarnMethods):
 		if (self.__processCloseAction is not None):
 			self.__processCloseAction()
 
-	def __init__(self, alertTitle = '', alertText = '', closeButtonText = '', processCloseAction = None):
-		self.mainPopUp = Popup(
-			title = alertTitle,
-			auto_dismiss = False,
-			size_hint = (0.5, 0.5)
-		)
+	def __init__(self, title = '', text = '', closeButtonText = '', processCloseAction = None, **kwargs):
+		super(self.__class__, self).__init__(title, text, **kwargs)
+
 		self.__processCloseAction = processCloseAction
-		mainPopUpBox = BoxLayout(orientation = 'vertical')
-		self.mainPopUpText = Label(
-			text = alertText, size_hint = (1.0, 0.7)
-		)
-		mainPopUpBox.add_widget(self.mainPopUpText)
-		mainPopUpBox.add_widget(CancelableButton(text = closeButtonText, size_hint = (1.0, 0.3),
-			on_release = self.__processClose))
-		self.mainPopUp.content = mainPopUpBox
+		finalButton = CancelableButton(text = closeButtonText, on_release = self.__processClose, **defaultButtonSize)
+		finalButton.bind(size = self._setButtonSize)
+
+		self.bottomLine.add_widget(finalButton)
+		self._finishLayout()
 
 class FileSelectionPopup:
 	def __setFilenameWithoutTheFullPath(self, entry, notUsed = None):

@@ -1,6 +1,5 @@
-from singleton import Singleton
-
 from operator import itemgetter
+from modulesaccess import ModulesAccess
 
 class CollisionFlag:
 	def __init__(self, name):
@@ -16,13 +15,13 @@ class CollisionFlag:
 	def getDeleted (self):
 		return self.__isDeleted
 
-@Singleton
 class CollisionGuardian:
 	def __startFlags(self):
 		self.__id = 0
 		self.__flagsDict = {}
 	
 	def __init__(self):
+		ModulesAccess.add('CollisionGuardian', self)
 		self.__startFlags()
 
 	def addNewFlag(self, name):

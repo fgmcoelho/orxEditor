@@ -6,41 +6,61 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
-
-from keyboard import KeyboardGuardian, KeyboardAccess
-from scene import SceneHandler
-from optionsmenu import OptionsMenu
-from objectsmenu import ObjectsMenu
-from tilemapfiles import FilesManager
-from collision import CollisionGuardian, CollisionFlagsEditor, CollisionInformationPopup, CollisionFlagFormEditorPopup
-from resourceloader import ResourceLoaderPopup
-from layer import LayerInformationPopup
-from communicationobjects import CollisionToSceneCommunication, SceneToObjectsMenu, SceneToFilesManager
-from communicationobjects import CollisionToCollisionForm, ObjectDescriptorToResourceLoarder, LayerToSceneCommunication
-from communicationobjects import ResourceLoaderToObjectDescriptor, FileOptionsMenuToScene
 from kivy.core.window import Window
 
-class TileEditor(App, KeyboardAccess):
+from uisizes import mainLayoutSize, defaultLabelSize, sceneMiniMapSize
+from keyboard import KeyboardGuardian, KeyboardAccess
+from scene import SceneHandler, SceneMiniMap
+from tilemapfiles import FilesManager
+from collision import CollisionFlagEditorPopup, CollisionEditorPopup
+from collisionform import CollisionFormEditorPopup
+from collisioninfo import CollisionGuardian
+from resourceloader import ResourceLoaderPopup
+from layer import LayerInformationPopup
+from layerinfo import LayerGuardian
+from editorobjects import BaseObject
+from orxviewer import OrxViewer
+from objectsmenu import NewBaseObjectDisplay, NewBaseObjectsMenu
+from objectdescriptor import ObjectDescriptor
+from modulesaccess import ModulesAccess
+from editorutils import AlignedLabel
+from filesoptionsmenu import FilesOptionsMenu
 
+class TileEditor(App, KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):
-		if (keycode[1] in ['shift', 'ctrl']):
-			self.__sceneHandler.processKeyUp(keyboard, keycode)
+		if (keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl']):
+			self.__sceneHandler.processKeyUp(keycode)
+
+		if (keycode[1] == 'escape'):
+			ModulesAccess.get('FilesOptions').open()
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
 		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcv') or
-				keycode[1] in ['shift', 'ctrl', 'delete']):
-			self.__sceneHandler.processKeyDown(keyboard, keycode, text, modifiers)
+				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete', 'pageup', 'pagedown']):
+			self.__sceneHandler.processKeyDown(keycode, modifiers)
+		#elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):
+		#	if ('ctrl' in modifiers):
+		#		ObjectsMenu.Instance().setShortcut(keycode[1])
+		#	else:
+		#		ObjectsMenu.Instance().processShortcut(keycode[1])
+		elif (keycode[1] == 'spacebar'):
+			obj = ModulesAccess.get('ObjectDescriptor').getCurrentObject()
+			if (isinstance(obj, BaseObject) == True):
+				ModulesAccess.get('SceneHandler').draw(obj)
 
-		elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):
+		elif (keycode[1] in ['up', 'down', 'left', 'right']):
 			if ('ctrl' in modifiers):
-				ObjectsMenu.Instance().setShortcut(keycode[1])
-			else:
-				ObjectsMenu.Instance().processShortcut(keycode[1])
+				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode(keycode[1])
+		elif (keycode[1] == "f5"):
+			ModulesAccess.get("OrxViewer").open()
 
 	def confirm_exit(self, *args):
-		# TODO:  exit confirmation here!
+		print 'We got exit confirmation: ', args
 		return False
+
+	def test_dropfile(self, *args):
+		print "File dropped: ", args
 
 	def build_config(self, c):
 		Config.set('graphics', 'width', 800)
@@ -54,6 +74,7 @@ class TileEditor(App, KeyboardAccess):
 
 	def build(self):
 		Window.on_request_close = self.confirm_exit
+		Window.on_dropfile = self.test_dropfile
 
 		self.root = BoxLayout(orientation='horizontal', padding = 0, spacing = 0)
 
@@ -61,14 +82,15 @@ class TileEditor(App, KeyboardAccess):
 			orientation='vertical',
 			padding = 0,
 			spacing = 0,
-			size_hint = (0.25, 1.0)
+			size_hint = mainLayoutSize['leftMenuSizeHint'],
+			width = mainLayoutSize['leftMenuWidth'],
 		)
 
 		self.rightScreen = BoxLayout(
 			orientation = 'vertical',
 			padding = 0,
 			spacing = 0,
-			size_hint = (0.75, 1.0),
+			size_hint = (1.0, 1.0),
 		)
 
 		self.root.add_widget(self.leftMenuBase)
@@ -77,47 +99,51 @@ class TileEditor(App, KeyboardAccess):
 		#Keyboard handler:
 		KeyboardGuardian.Instance()
 
+		# Global Guardians
+		LayerGuardian()
+		CollisionGuardian()
+
+		# Popup Modules
+		LayerInformationPopup()
+		CollisionFlagEditorPopup()
+		CollisionEditorPopup()
+		CollisionFormEditorPopup()
+		ResourceLoaderPopup()
+
+		# Left Menu Handler
+		NewBaseObjectDisplay()
+		NewBaseObjectsMenu()
+		ObjectDescriptor()
+
 		# Files handlers
-		FilesManager.Instance()
+		FilesManager()
+		OrxViewer()
 
 		# Scene Editor handlers:
+		SceneMiniMap()
+
+		FilesOptionsMenu()
+
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 
-		# Collision Handlers:
-		CollisionGuardian.Instance()
-		CollisionFlagFormEditorPopup.Instance()
-		CollisionInformationPopup.Instance()
-		CollisionFlagsEditor.Instance()
-
 		# Bottom Menu Handler
-		OptionsMenu.Instance(self.rightScreen)
+		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
+		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())
+		bottomMenu = BoxLayout(orientation = 'horizontal', height = mainLayoutSize['bottomMenuHeight'],
+			size_hint = (1.0, None))
+		self.rightScreen.add_widget(bottomMenu)
 
-		# Left Menu Handler
-		ObjectsMenu.Instance()
-		self.leftMenuBase.add_widget(ObjectsMenu.Instance().getLayout())
+		leftBottomMenu = BoxLayout(orientation = 'vertical')
+		leftBottomMenu.add_widget(AlignedLabel(text = 'Object descriptor', **defaultLabelSize))
+		leftBottomMenu.add_widget(ModulesAccess.get('ObjectDescriptor').getLayout())
+		bottomMenu.add_widget(leftBottomMenu)
 
-		# ResourceLoader
-		self.__resourcePopup = ResourceLoaderPopup()
-
-		# Layers
-		LayerInformationPopup.Instance()
-
-		# Communication Objects
-		CollisionToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
-			self.__sceneHandler.getAllObjects)
-		SceneToObjectsMenu.Instance(self.__sceneHandler.draw)
-		SceneToFilesManager.Instance(self.__sceneHandler.getCurrentSceneObjects,
-			self.__sceneHandler.getCurrentSceneAttributes, self.__sceneHandler.newScene,
-			self.__sceneHandler.addObjectByInfo, self.__sceneHandler.setSceneObjectId,
-			self.__sceneHandler.getSceneObjectId)
-		CollisionToCollisionForm.Instance(CollisionInformationPopup.Instance().callPreview)
-		ObjectDescriptorToResourceLoarder.Instance(self.__resourcePopup.open)
-		ResourceLoaderToObjectDescriptor.Instance(ObjectsMenu.Instance().reloadResource)
-		LayerToSceneCommunication.Instance(self.__sceneHandler.getCurrentSelection,
-			self.__sceneHandler.getAllObjects, self.__sceneHandler.redraw)
-		FileOptionsMenuToScene.Instance(self.__sceneHandler.newScene)
+		rightBottomMenu = BoxLayout(orientation = 'vertical', width = sceneMiniMapSize['size'][0], size_hint_x = None)
+		rightBottomMenu.add_widget(AlignedLabel(text = 'MiniMap', **defaultLabelSize))
+		rightBottomMenu.add_widget(ModulesAccess.get('MiniMap').getLayout())
+		bottomMenu.add_widget(rightBottomMenu)
 
 		# Periodic functions:
 		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)
@@ -131,4 +157,6 @@ if __name__ == '__main__':
 	except:
 		# maximize may not be supported
 		pass
+
 	te.run()
+

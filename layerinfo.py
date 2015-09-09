@@ -1,4 +1,4 @@
-from singleton import Singleton
+from modulesaccess import ModulesAccess
 
 class LayerRegister:
 	def __init__(self, name, priority):
@@ -14,7 +14,6 @@ class LayerRegister:
 	def getName(self):
 		return self.__name
 
-@Singleton
 class LayerGuardian:
 	def __startLayers(self):
 		self.__defaultLayer = LayerRegister('default', 0)
@@ -28,6 +27,7 @@ class LayerGuardian:
 
 	def __init__(self):
 		self.__startLayers()
+		ModulesAccess.add('LayerGuardian', self)
 
 	def __getIndex(self, layerName):
 		for i in range(self.__highestPriority + 1):
@@ -61,15 +61,18 @@ class LayerGuardian:
 			self.__layersDict[i] = swap
 			self.__layersDict[i].setPriority(i)
 			self.__layersDict[i+1].setPriority(i+1)
-	
+
 	def deleteLayerByName(self, layerName):
 		i = self.__getIndex(layerName)
 		while (self.__layersDict[i] != None):
-			self.__layersDict[i] = self.__layersDict[i + 1]
-			if (self.__layersDict[i] is not None):
-				self.__layersDict[i].setPriority(i)
-			i += 1
-
+			if (i == 15):
+				self.__layersDict[i] = None
+				break
+			else:
+				self.__layersDict[i] = self.__layersDict[i + 1]
+				if (self.__layersDict[i] is not None):
+					self.__layersDict[i].setPriority(i)
+				i += 1
 		self.__highestPriority -= 1
 
 	def getLayerList(self):
@@ -93,7 +96,7 @@ class LayerGuardian:
 			else:
 				break
 		return d
-	
+
 	def reset(self):
 		self.__startLayers()
 

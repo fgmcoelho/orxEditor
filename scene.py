@@ -1,16 +1,109 @@
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.graphics.vertex_instructions import Line
-#from kivy.graphics.fbo import Fbo
-from kivy.graphics import Color
+from kivy.graphics.fbo import Fbo
+from kivy.graphics import Color, Rectangle, ClearColor, ClearBuffers, InstructionGroup
 from kivy.core.window import Window
+from kivy.uix.image import Image
+from kivy.uix.scrollview import ScrollView
+from kivy.clock import Clock
 
 from operator import itemgetter
 
-from editorheritage import SpecialScrollControl
+from editorheritage import LayoutGetter, KeyboardModifiers, MouseModifiers
 from editorobjects import RenderObjectGuardian
-from editorutils import AlertPopUp
-from objectdescriptor import ObjectDescriptor, MultipleSelectionDescriptor
-from layerinfo import LayerGuardian
+from editorutils import Alert, EmptyScrollEffect
+from modulesaccess import ModulesAccess
+from uisizes import sceneMiniMapSize
+from math import ceil
+
+class SceneMiniMap(LayoutGetter):
+	def _scrollCoords(self, pos, rectangleSize, mapSize):
+		if (pos <= rectangleSize/2.0):
+			return 0.0
+		elif (pos >= (mapSize - (rectangleSize/2.0))):
+			return 1.0
+		else:
+			return (pos - rectangleSize/2.0)/(mapSize - rectangleSize)
+
+	def _scrollByTouch(self, touch):
+		x, y = self._image.to_local(touch.pos[0], touch.pos[1], True)
+		xToScroll = self._scrollCoords(x, self._rectangleSx, self._size[0])
+		yToScroll = self._scrollCoords(y, self._rectangleSy, self._size[1])
+		ModulesAccess.get('SceneHandler').scrollFromMiniMap(xToScroll, yToScroll)
+		self.updateQuad()
+
+	def _processTouchUp(self, touch):
+		if (self._moving == True):
+			self._moving = False
+
+	def _processTouchDown(self, touch):
+		if (self._image.collide_point(*touch.pos) == True):
+			self._moving = True
+			self._scrollByTouch(touch)
+
+	def _processTouchMove(self, touch):
+		if (self._image.collide_point(*touch.pos) == True and self._moving == True):
+			self._scrollByTouch(touch)
+
+	def __init__(self):
+		super(SceneMiniMap, self).__init__()
+
+		self._size = sceneMiniMapSize['size']
+		self._layout = RelativeLayout(size = self._size, size_hint = (None, None))
+		self._image = Image(size = self._size)
+		self._layout.add_widget(self._image)
+		self._rectangle = None
+		self._representedId = None
+		self._representedSize = None
+		self._moving = True
+		ModulesAccess.add('MiniMap', self)
+		self._image.on_touch_move = self._processTouchMove
+		self._image.on_touch_down = self._processTouchDown
+		self._image.on_touch_up = self._processTouchUp
+
+	def updateQuad(self, *args):
+		if (self._representedSize is not None):
+			if (self._rectangle is not None):
+				self._layout.canvas.remove(self._rectangle)
+
+			hbar = ModulesAccess.get('SceneHandler').getLayout().hbar
+			vbar = ModulesAccess.get('SceneHandler').getLayout().vbar
+			self._rectangleSx = ceil(self._size[0] * hbar[1])
+			self._rectangleSy = ceil(self._size[1] * vbar[1])
+			self._rectanglePx = ceil(self._size[0] * hbar[0])
+			self._rectanglePy = ceil(self._size[1] * vbar[0])
+			with self._layout.canvas:
+				Color(1., 0., 0., 0.3)
+				self._rectangle = Rectangle(
+					size = (self._rectangleSx, self._rectangleSy),
+					pos = (self._rectanglePx, self._rectanglePy)
+				)
+
+	def updateMinimap(self, newTexture):
+		self._image.texture = newTexture
+		if (self._representedId != newTexture.id):
+			self._representedId = newTexture.id
+			self._representedSize = tuple(newTexture.size)
+			self.updateQuad()
+
+class OrderSceneObjects(object):
+	def _order_objects(self, objectDict):
+		objectsList = []
+		nameToPriorityDict = ModulesAccess.get('LayerGuardian').getNameToPriorityDict()
+		for key in objectDict.keys():
+			objectsList.append(
+				(
+					objectDict[key],
+					nameToPriorityDict[objectDict[key].getLayer()],
+					objectDict[key].getIdentifier()
+				)
+			)
+
+		objectsOrderedList = sorted(objectsList, key=itemgetter(1, 2))
+		return objectsOrderedList
+
+	def __init__(self):
+		super(OrderSceneObjects, self).__init__()
 
 class SceneAttributes:
 	def __init__(self, tileSize, numberOfTilesX, numberOfTilesY):
@@ -29,241 +122,244 @@ class SceneAttributes:
 	def setValues(self, name, value):
 		self.__valuesDict[name] = value
 
-class Scene:
-
+class Scene(OrderSceneObjects, LayoutGetter):
 	def __init__(self, attributes = None):
-		self.__alignToGrid = False
-		self.__objectDict = {}
-		self.__layout = RelativeLayout(size_hint = (None, None), on_resize = self.redraw)
-		self.__renderGuardian = RenderObjectGuardian()
+		self._alignToGrid = False
+		self._objectDict = {}
+		self._layout = RelativeLayout(size_hint = (None, None), on_resize = self.redraw)
+		self._renderGuardian = RenderObjectGuardian()
 		self.loadValues(attributes)
-		#self.__fbo = Fbo(size = self.__layout.size)
+		self._fbo = Fbo(size=self._layout.size, with_stencilbuffer=True)
+
+	def _startGridInstuctions(self):
+		self._gridGroup = InstructionGroup()
+		self._gridGroup.add(Color(0x7b/float(0xFF), 0x61/float(0xFF), 0x3E/float(0xFF)))
+		i = 0
+		while i < self._maxX:
+			self._gridGroup.add(Line(points = [
+				i, 0,
+				i, self._maxY], width = 1,
+				dash_offset = 4, dash_length = 1,
+			))
+			i += self._tileSize
+		i = 0
+		while i < self._maxY:
+			self._gridGroup.add(Line(points = [
+				0, i,
+				self._maxX, i], width = 1,
+				dash_offset = 4, dash_length = 1,
+			))
+			i += self._tileSize
+
+	def getMiniMapTexture(self):
+		selectedObjects = self._renderGuardian.getSelection()
+		for obj in selectedObjects:
+			obj.unsetMarked()
+
+		parent = self._layout.parent
+		parent.remove_widget(self._layout)
+
+		if (self._showGrid == True):
+			self.hideGrid()
+
+		with self._fbo:
+			ClearColor(0, 0, 0, 1)
+			ClearBuffers()
+
+		self._fbo.add(self._layout.canvas)
+		self._fbo.draw()
+		texture = self._fbo.texture
+		self._fbo.remove(self._layout.canvas)
+
+		if (self._showGrid == True):
+			self.showGrid()
+			self.redraw()
+
+		parent.add_widget(self._layout)
+
+		for obj in selectedObjects:
+			obj.setMarked()
+
+		return texture
 
 	def showGrid(self):
-		with self.__layout.canvas:
-			Color(0., 1., 0.)
-			i = 0
-			while i < self.__maxX:
-				Line(points = [
-					i, 0,
-					i, self.__maxY], width = 2
-				)
-				i += self.__tileSize
-			i = 0
-			while i < self.__maxY:
-				Line(points = [
-					0, i,
-					self.__maxX, i], width = 2
-				)
-				i += self.__tileSize
+		self._layout.canvas.add(self._gridGroup)
 
 	def hideGrid(self):
-		with self.__layout.canvas:
-			Color(0., 0., 0.)
-			i = 0
-			while i < self.__maxX:
-				Line(points = [
-					i, 0,
-					i, self.__maxY], width = 2
-				)
-				i += self.__tileSize
-			i = 0
-			while i < self.__maxY:
-				Line(points = [
-					0, i,
-					self.__maxX, i], width = 2
-				)
-				i += self.__tileSize
-
-	#def getTexture(self):
-	#	self.__fbo.clear_color = (0, 0, 0, 0)
-	#	self.__fbo.clear_buffer()
-	#	self.__fbo.bind()
-	#	self.redraw()
-	#	self.__fbo.release()
-	#	return self.__fbo.texture
+		self._layout.canvas.remove(self._gridGroup)
 
 	def toggleGrid(self):
-		if (self.__showGrid == True):
+		if (self._showGrid == True):
 			self.hideGrid()
 		else:
 			self.showGrid()
 
-		self.__showGrid = not self.__showGrid
-
+		self._showGrid = not self._showGrid
 		self.redraw()
 
 	def loadValues(self, attributes = None):
-		self.__layout.canvas.clear()
+		self._layout.canvas.clear()
 		if (attributes is None):
-			self.__sceneAttr = SceneAttributes(40, 100, 100)
+			self._sceneAttr = SceneAttributes(32, 50, 50)
 		else:
-			self.__sceneAttr = attributes
+			self._sceneAttr = attributes
 
-		self.__tileSize = self.__sceneAttr.getValue('TilesSize')
-		sx = self.__sceneAttr.getValue('TilesMaxX') * self.__tileSize
-		sy = self.__sceneAttr.getValue('TilesMaxY') * self.__tileSize
-		self.__layout.size= (sx, sy)
-		self.__id = 0
-		self.__maxX = sx
-		self.__minX = 0.0
-		self.__maxY = sy
-		self.__minY = 0.0
-		self.__showGrid = True
-		if self.__objectDict != {}:
-			for key in self.__objectDict:
-				self.__objectDict[key].resetAllWidgets()
-			self.__objectDict = {}
+		self._tileSize = self._sceneAttr.getValue('TilesSize')
+		sx = self._sceneAttr.getValue('TilesMaxX') * self._tileSize
+		sy = self._sceneAttr.getValue('TilesMaxY') * self._tileSize
+		self._layout.size= (sx, sy)
+		self._id = 0
+		self._maxX = sx
+		self._minX = 0.0
+		self._maxY = sy
+		self._minY = 0.0
+		self._startGridInstuctions()
+		self._showGrid = True
+		if self._objectDict != {}:
+			for key in self._objectDict:
+				self._objectDict[key].resetAllWidgets()
+			self._objectDict = {}
 
 		self.showGrid()
 
 	def redraw(self):
-		objectsList = []
-		nameToPriorityDict = LayerGuardian.Instance().getNameToPriorityDict()
-		for key in self.__objectDict.keys():
-			objectsList.append(
-				(
-					self.__objectDict[key], 
-					nameToPriorityDict[self.__objectDict[key].getLayer()],
-					self.__objectDict[key].getIdentifier()
-				)
-			)
-
-		self.__layout.clear_widgets()
-		objectsOrderedList = sorted(objectsList, key=itemgetter(1, 2))
+		objectsOrderedList = self._order_objects(self._objectDict)
+		self._layout.clear_widgets()
 		for obj in objectsOrderedList:
-			self.__layout.add_widget(obj[0])
-			if (self.__alignToGrid == True):
+			self._layout.add_widget(obj[0])
+			if (self._alignToGrid == True):
 				obj[0].alignToGrid()
 
-	def __updateDesctriptorBySelection(self):
-		newObjects = self.__renderGuardian.getSelection()
-		numberOfNewObjects = len(newObjects)
-		if (numberOfNewObjects == 1):
-			ObjectDescriptor.Instance().setObject(newObjects[0])
-		elif (numberOfNewObjects > 1):
-			MultipleSelectionDescriptor.Instance().setValues(numberOfNewObjects)
-		else:
-			ObjectDescriptor.Instance().clearCurrentObject()
+	def _updateDesctriptorBySelection(self):
+		newObjects = self._renderGuardian.getSelection()
+		ModulesAccess.get('ObjectDescriptor').set(newObjects)
 
 	def undo(self):
-		self.__renderGuardian.undo()
-		self.__updateDesctriptorBySelection()
+		self._renderGuardian.undo()
+		self._updateDesctriptorBySelection()
 
 	def redo(self):
-		self.__renderGuardian.redo()
-		self.__updateDesctriptorBySelection()
+		self._renderGuardian.redo()
+		self._updateDesctriptorBySelection()
 
 	def clear(self, unusedDt = None):
-		for key in self.__objectDict.keys():
-			if (self.__objectDict[key].getFinished() == True):
-				self.__layout.remove_widget(self.__objectDict[key])
-				self.__objectDict[key] = None
-				del self.__objectDict[key]
+		for key in self._objectDict.keys():
+			if (self._objectDict[key].getFinished() == True):
+				self._layout.remove_widget(self._objectDict[key])
+				self._objectDict[key] = None
+				del self._objectDict[key]
+
+	def __changeLayerByAdjust(self, adj):
+		selectedObjects = self._renderGuardian.getSelection()
+		if (selectedObjects != []):
+			layerNameToPriority = ModulesAccess.get('LayerGuardian').getNameToPriorityDict()
+			layerPriorityToName = dict(zip(layerNameToPriority.values(), layerNameToPriority.keys()))
+			for obj in selectedObjects:
+				layer = obj.getLayer()
+				priority = layerNameToPriority[layer] + adj
+				if (priority in layerPriorityToName):
+					obj.setLayer(layerPriorityToName[priority])
+			self.redraw()
+			ModulesAccess.get('ObjectDescriptor').set(selectedObjects)
+
+	def increaseLayer(self):
+		self.__changeLayerByAdjust(1)
+
+	def decreaseLayer(self):
+		self.__changeLayerByAdjust(-1)
 
 	def increaseScale(self):
-		obj = self.__renderGuardian.increaseScale()
+		obj = self._renderGuardian.increaseScale()
 		if (obj is not None):
-			ObjectDescriptor.Instance().setObject(obj)
+			ModulesAccess.get('ObjectDescriptor').set(obj)
 
 	def decreaseScale(self):
-		obj = self.__renderGuardian.decreaseScale()
+		obj = self._renderGuardian.decreaseScale()
 		if (obj is not None):
-			ObjectDescriptor.Instance().setObject(obj)
+			ModulesAccess.get('ObjectDescriptor').set(obj)
 
 	def flipOnX(self):
-		flippedObjects = self.__renderGuardian.flipSelectionOnX()
-		numberOfFlippedObjects = len(flippedObjects)
-		if (numberOfFlippedObjects == 1):
-			ObjectDescriptor.Instance().setObject(flippedObjects[0])
-		elif (numberOfFlippedObjects > 1):
-			MultipleSelectionDescriptor.Instance().setValues(numberOfFlippedObjects)
+		flippedObjects = self._renderGuardian.flipSelectionOnX()
+		ModulesAccess.get('ObjectDescriptor').set(flippedObjects)
 
 	def flipOnY(self):
-		flippedObjects = self.__renderGuardian.flipSelectionOnY()
-		numberOfFlippedObjects = len(flippedObjects)
-		if (numberOfFlippedObjects == 1):
-			ObjectDescriptor.Instance().setObject(flippedObjects[0])
-		elif (numberOfFlippedObjects > 1):
-			MultipleSelectionDescriptor.Instance().setValues(numberOfFlippedObjects)
+		flippedObjects = self._renderGuardian.flipSelectionOnY()
+		ModulesAccess.get('ObjectDescriptor').set(flippedObjects)
 
 	def removeObject(self):
-
-		deletedObjects = self.__renderGuardian.deleteSelection()
-		if (len(deletedObjects) != 0):
-			ObjectDescriptor.Instance().clearCurrentObject()
+		self._renderGuardian.deleteSelection()
+		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
 
 	def alignToGrid(self):
-		self.__renderGuardian.alignSelectionToGrid()
+		self._renderGuardian.alignSelectionToGrid()
 
 	def copyObject(self, direction):
-		newObjects = self.__renderGuardian.copySelection(direction, self.__id, self.__tileSize, self.__maxX,
-			self.__maxY)
+		newObjects = self._renderGuardian.copySelection(direction, self._id, self._tileSize, self._maxX, self._maxY)
 		for renderedObject in newObjects:
-			self.__layout.add_widget(renderedObject)
-			self.__objectDict[self.__id] = renderedObject
-			self.__id += 1
+			self._layout.add_widget(renderedObject)
+			self._objectDict[self._id] = renderedObject
+			self._id += 1
 
-		numberOfNewObjects = len(newObjects)
-		if (numberOfNewObjects == 1):
-			ObjectDescriptor.Instance().setObject(newObjects[0])
-		elif (numberOfNewObjects > 1):
-			MultipleSelectionDescriptor.Instance().setValues(numberOfNewObjects)
+		ModulesAccess.get('ObjectDescriptor').set(newObjects)
 
 	def unselectAll(self):
-		self.__renderGuardian.unsetSelection()
-		ObjectDescriptor.Instance().clearCurrentObject()
+		self._renderGuardian.unsetSelection()
+		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
+
+	def selectAll(self):
+		self._renderGuardian.unsetSelection()
+		for obj in self._objectDict.values():
+			if (obj.getHidden() == False and obj.getFinished() == False):
+				self._renderGuardian.addObjectToSelection(obj)
+		ModulesAccess.get('ObjectDescriptor').set(self._objectDict.values())
 
 	def resetAllWidgets(self):
-		for objectId in self.__objectDict.keys():
-			self.__objectDict[objectId].resetAllWidgets()
-			self.__objectDict[objectId] = None
-			del self.__objectDict[objectId]
+		for objectId in self._objectDict.keys():
+			self._objectDict[objectId].resetAllWidgets()
+			self._objectDict[objectId] = None
+			del self._objectDict[objectId]
 
-		self.__objectDict = {}
-		self.__id = 0
+		self._objectDict = {}
+		self._id = 0
 
-	def getLayout(self):
-		return self.__layout
-
-	def addObject(self, obj, relativeX = None, relaviveY = None, exactlyX = None, exactlyY = None):
-		assert (relativeX is not None and relaviveY is not None) or (exactlyX is not None and \
+	def addObject(self, obj, relativeX = None, relativeY = None, exactlyX = None, exactlyY = None):
+		assert (relativeX is not None and relativeY is not None) or (exactlyX is not None and \
 			exactlyY is not None), "Invalid argument received."
 		sx, sy = obj.getSize()
-		if (sx > self.__maxX or sy > self.__maxY):
-			errorAlert = AlertPopUp(
-				'Error', 
+		if (sx > self._maxX or sy > self._maxY):
+			errorAlert = Alert(
+				'Error',
 				'Object could not be rendered because\nit is bigger than the scene space.',
 				'Ok'
 			)
 			errorAlert.open()
 			return
 
-		if (relativeX is not None and relaviveY is not None):
-			pos = (int(relativeX * self.__maxX), int(relaviveY * self.__maxY))
+		if (relativeX is not None and relativeY is not None):
+			pos = (int(relativeX * self._maxX), int(relativeY * self._maxY))
 		else:
 			pos = (exactlyX, exactlyY)
-		if (pos[0] + sx > self.__maxX):
-			finalX = self.__maxX - sx
+		if (pos[0] + sx > self._maxX):
+			finalX = self._maxX - sx
 		else:
 			finalX = pos[0]
-		if (pos[1] + sy > self.__maxY):
-			finalY = self.__maxY - sy
+		if (pos[1] + sy > self._maxY):
+			finalY = self._maxY - sy
 		else:
 			finalY = pos[1]
 
-		newRenderedObject = self.__renderGuardian.createNewObject(self.__id, obj, (finalX, finalY),
-				self.__tileSize, self.__maxX, self.__maxY)
+		newRenderedObject = self._renderGuardian.createNewObject(self._id, obj, (finalX, finalY),
+			self._tileSize, self._maxX, self._maxY)
 
-		self.__layout.add_widget(newRenderedObject)
-		self.__objectDict[self.__id] = newRenderedObject
-		self.__id += 1
+		self._layout.add_widget(newRenderedObject)
+		self._objectDict[self._id] = newRenderedObject
+		self._id += 1
 
-		ObjectDescriptor.Instance().setObject(newRenderedObject)
-	
+		ModulesAccess.get('ObjectDescriptor').set(newRenderedObject)
+
 	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo):
-		newRenderedObject = self.__renderGuardian.createNewObject(identifier, baseObject, pos, self.__tileSize, 
-			self.__maxX, self.__maxY)
+		newRenderedObject = self._renderGuardian.createNewObject(identifier, baseObject, pos, self._tileSize,
+			self._maxX, self._maxY)
 
 		if (flipOnX == True):
 			newRenderedObject.flipOnX()
@@ -275,52 +371,55 @@ class Scene:
 			newRenderedObject.setScale(scale, True)
 
 		if (collisionInfo is not None):
-			newRenderedObject.setCollisionInfo(collisionInfo)	
-		
+			newRenderedObject.setCollisionInfo(collisionInfo)
+
 		newRenderedObject.setLayer(layer)
-		self.__layout.add_widget(newRenderedObject)
-		self.__objectDict[identifier] = newRenderedObject
+		self._layout.add_widget(newRenderedObject)
+		self._objectDict[identifier] = newRenderedObject
 
 	def getObjectsDict(self):
-		return self.__objectDict
+		return self._objectDict
 
 	def getAllValidObjects(self):
 		objectsList = []
-		for obj in self.__objectDict.values():
+		for obj in self._objectDict.values():
 			if (obj.getHidden() == False and obj.getFinished() == False):
 				objectsList.append(obj)
 
 		return objectsList
 
 	def getSelectedObjects(self):
-		return self.__renderGuardian.getSelection()
+		return self._renderGuardian.getSelection()
 
 	def getRenderGuardian(self):
-		return self.__renderGuardian
+		return self._renderGuardian
 
 	def getSceneAttributes(self):
-		return self.__sceneAttr
+		return self._sceneAttr
 
 	def getCurrentId(self):
-		return self.__id
+		return self._id
 
 	def setCurrentId(self, newId):
-		assert self.__id <= newId
-		self.__id = newId
+		assert self._id <= newId
+		self._id = newId
 
-class SceneHandler (SpecialScrollControl):
-	# Overloaded method
-	def processKeyUp(self, keyboard, keycode):
+	def getMaxSize(self):
+		return (self._maxX, self._maxY)
 
+class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
+	def processKeyUp(self, keycode):
 		if (keycode[1] == 'shift'):
 			self.setIsShiftPressed(False)
 
-		elif (keycode[1] == 'ctrl'):
+		elif (keycode[1] in ['ctrl', 'lctrl', 'rctrl']):
 			self.setIsCtrlPressed(False)
 
-	# Overloaded method
-	def processKeyDown(self, keyboard, keycode, text, modifiers):
-		if (keycode[1] == 'q'):
+	def processKeyDown(self, keycode, modifiers = None):
+		if (modifiers is not None and 'ctrl' in modifiers and keycode[1] == 'a'):
+			self.__sceneList[self.__currentIndex].selectAll()
+
+		elif (keycode[1] == 'q'):
 			self.__sceneList[self.__currentIndex].alignToGrid()
 
 		elif (keycode[1] == 'a'):
@@ -341,7 +440,7 @@ class SceneHandler (SpecialScrollControl):
 		elif (keycode[1] == 'shift'):
 			self.setIsShiftPressed(True)
 
-		elif (keycode[1] == 'ctrl'):
+		elif (keycode[1] in ['ctrl', 'lctrl', 'rctrl']):
 			self.setIsCtrlPressed(True)
 
 		elif (keycode[1] == 'delete'):
@@ -368,6 +467,20 @@ class SceneHandler (SpecialScrollControl):
 		elif (keycode[1] == '\\'):
 			self.__sceneList[self.__currentIndex].redo()
 
+		elif (keycode[1] == 'pageup'):
+			self.__sceneList[self.__currentIndex].increaseLayer()
+
+		elif (keycode[1] == 'pagedown'):
+			self.__sceneList[self.__currentIndex].decreaseLayer()
+
+
+		if (keycode[1] not in ['ctrl', 'lctrl', 'rctrl'] and keycode[1] != 'shift'):
+			Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
+
+
+	def __scheduleTextureUpdate(self, *args):
+		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
+
 	def __getSelectedObjectByClick(self, touch):
 		clickedObjectsList = []
 		childDict = self.__sceneList[self.__currentIndex].getObjectsDict()
@@ -378,94 +491,147 @@ class SceneHandler (SpecialScrollControl):
 
 		first = True
 		selectedObject = None
+		layerNameToPriority = ModulesAccess.get('LayerGuardian').getNameToPriorityDict()
 		for obj in clickedObjectsList:
-
 			if (first == True):
 				selectedObject = obj
+				selectedObjectPriority = layerNameToPriority[selectedObject.getLayer()]
 				first = False
 			else:
-				if (selectedObject.getIdentifier() < obj.getIdentifier()):
+				objPriority = layerNameToPriority[obj.getLayer()]
+				if (objPriority > selectedObjectPriority):
 					selectedObject = obj
+					selectedObjectPriority = objPriority
+				elif (objPriority == selectedObjectPriority and selectedObject.getIdentifier() < obj.getIdentifier()):
+					selectedObject = obj
+					selectedObjectPriority = objPriority
 
 		return selectedObject
 
 	def __selectObject(self, objectToSelect):
+		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
 		if (self._isCtrlPressed == False):
-			ObjectDescriptor.Instance().setObject(objectToSelect)
-			self.__sceneList[self.__currentIndex].getRenderGuardian().setSingleSelectionObject(objectToSelect)
+			selectedList = self.__sceneList[self.__currentIndex].getRenderGuardian().getSelection()
+			if (objectToSelect in selectedList):
+				ModulesAccess.get('ObjectDescriptor').set(selectedList)
+			else:
+				ModulesAccess.get('ObjectDescriptor').set(objectToSelect)
+				self.__sceneList[self.__currentIndex].getRenderGuardian().setSingleSelectionObject(objectToSelect)
+
 		else:
 			selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().addObjectToSelection(
 				objectToSelect
 			)
-			numberOfSelectedObjects = len(selectedObjectsList)
-			if (numberOfSelectedObjects == 1):
-				ObjectDescriptor.Instance().setObject(selectedObjectsList[0])
-			elif(numberOfSelectedObjects > 1):
-				MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
+			ModulesAccess.get('ObjectDescriptor').set(selectedObjectsList)
 
 	def __unselectObject(self, objectToUnselect):
 		selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().unselectObject(objectToUnselect)
-		numberOfSelectedObjects = len(selectedObjectsList)
-		if (numberOfSelectedObjects == 0):
-			ObjectDescriptor.Instance().clearCurrentObject()
-		elif(numberOfSelectedObjects == 1):
-			ObjectDescriptor.Instance().setObject(selectedObjectsList[0])
-		else:
-			MultipleSelectionDescriptor.Instance().setValues(numberOfSelectedObjects)
+		ModulesAccess.get('ObjectDescriptor').set(selectedObjectsList)
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		self.__sceneList[self.__currentIndex].redraw()
+		self.updateMouseUp(touch)
+		if (self._isRightPressed == True or self._isLeftPressed == False):
+			self._layout.do_scroll = True
+
+		if (touch.button == "left"):
+			self.__sceneList[self.__currentIndex].redraw()
+			ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
+
 		self.__defaultTouchUp(touch)
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
-		if (self._scrollView.collide_point(*touch.pos) == False):
+		if (touch.button == 'scrollup'):
+			if(self._isCtrlPressed == True):
+				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('down')
+			return
+		elif (touch.button == 'scrolldown'):
+			if (self._isCtrlPressed == True):
+				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('up')
+			return
+		elif (touch.button == 'middle'):
+			ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('leftright')
 			return
 
-		if (touch.is_mouse_scrolling == True):
-			return self.specialScroll(touch)
+		if (self._layout.collide_point(*touch.pos) == True):
+			self.updateMouseDown(touch)
+			if (self._isLeftPressed == True and self._isRightPressed == False):
+				self._layout.do_scroll = False
 
-		else:
-			selectedObject = self.__getSelectedObjectByClick(touch)
-			if (selectedObject is not None):
-				if (touch.is_double_tap == False):
-					self.__selectObject(selectedObject)
-				else:
-					self.__unselectObject(selectedObject)
+			if (touch.button == "left"):
+				selectedObject = self.__getSelectedObjectByClick(touch)
+				if (selectedObject is not None):
+					if (touch.is_double_tap == False):
+						self.__selectObject(selectedObject)
+					else:
+						self.__unselectObject(selectedObject)
+				elif (touch.is_double_tap == True):
+					self.__sceneList[self.__currentIndex].unselectAll()
 
-		self.__defaultTouchDown(touch)
+			return self.__defaultTouchDown(touch)
 
-	def __init__(self, maxWidthProportion = 1.0, maxHeightProportion = 0.667):
+	def __handleScrollAndPassMoveToChildren(self, touch):
+		self.__defaultTouchMove(touch)
 
-		self.__maxWidthProportion = maxWidthProportion
-		self.__maxHeightProportion = maxHeightProportion
+	def __scrollMove(self, *args):
+		self.__defaultScroll(*args)
+		ModulesAccess.get("MiniMap").updateQuad()
 
-		super(SceneHandler, self).__init__(size_hint = (maxWidthProportion, maxHeightProportion))
+	def __init__(self):
+		super(SceneHandler, self).__init__()
+		self._layout = ScrollView(
+			effect_cls = EmptyScrollEffect,
+		)
+		self.__defaultTouchMove = self._layout.on_touch_move
+		self.__defaultTouchDown = self._layout.on_touch_down
+		self.__defaultTouchUp = self._layout.on_touch_up
+		self.__defaultScroll = self._layout.on_scroll_move
 
-		self._scrollView.on_touch_move = self._ignoreMoves
-		self.__defaultTouchDown = self._scrollView.on_touch_down
-		self.__defaultTouchUp = self._scrollView.on_touch_up
-
-		self._scrollView.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
-		self._scrollView.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
+		self._layout.on_touch_move = self.__handleScrollAndPassMoveToChildren
+		self._layout.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
+		self._layout.on_touch_up = self.__handleScrollAndPassTouchUpToChildren
+		self._layout.on_scroll_move = self.__scrollMove
 
 		self.__sceneList = []
 		self.__sceneList.append(Scene())
 		self.__currentIndex = 0
 
-		self._scrollView.add_widget(self.__sceneList[self.__currentIndex].getLayout())
+		self._layout.add_widget(self.__sceneList[self.__currentIndex].getLayout())
+		ModulesAccess.add('SceneHandler', self)
+		minimap = ModulesAccess.get('MiniMap')
+		minimap.updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
+		self._layout.bind(size = minimap.updateQuad)
+
+	def scrollFromMiniMap(self, x, y):
+		self._layout.scroll_x = x
+		self._layout.scroll_y = y
+		self._layout._update_effect_x_bounds()
+		self._layout._update_effect_y_bounds()
 
 	def draw(self, obj):
 		mouse_pos = Window.mouse_pos
-		if (self._scrollView.collide_point(*mouse_pos) == True):
-			x, y = self._scrollView.to_widget(*mouse_pos)
+		if (self._layout.collide_point(*mouse_pos) == True):
+			x, y = self._layout.to_widget(*mouse_pos)
 			sx, sy = obj.getSize()
+			mx, my = self.__sceneList[self.__currentIndex].getMaxSize()
 			exactlyX = int(x - (sx/2))
 			exactlyY = int(y - (sy/2))
+			if (exactlyX < 0):
+				exactlyX = 0
+			elif (exactlyX + sx > mx):
+				exactlyX = mx - sx
+
+			if (exactlyY < 0):
+				exactlyY = 0
+			elif (exactlyY + sy > my):
+				exactlyY = my - sy
+
 			self.__sceneList[self.__currentIndex].addObject(obj, exactlyX = exactlyX, exactlyY = exactlyY)
 		else:
-			relativeX = self._scrollView.hbar[0]
-			relaviveY = self._scrollView.vbar[0]
-			self.__sceneList[self.__currentIndex].addObject(obj, relativeX = relativeX, relaviveY = relaviveY)
+			relativeX = self._layout.hbar[0]
+			relativeY = self._layout.vbar[0]
+			self.__sceneList[self.__currentIndex].addObject(obj, relativeX = relativeX, relativeY = relativeY)
+
+		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def redraw(self):
 		self.__sceneList[self.__currentIndex].redraw()
@@ -490,16 +656,17 @@ class SceneHandler (SpecialScrollControl):
 	# TODO: This method still considers a single scene condition.
 	def newScene(self, attributes):
 		newScene = Scene(attributes)
-		self._scrollView.clear_widgets()
-		self._scrollView.add_widget(newScene.getLayout())
-		
+		self._layout.clear_widgets()
+		self._layout.add_widget(newScene.getLayout())
 		self.__sceneList[self.__currentIndex] = newScene
+		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
+		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def getCurrentSceneAttributes(self):
 		return self.__sceneList[self.__currentIndex].getSceneAttributes()
 
 	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo):
-		self.__sceneList[self.__currentIndex].addObjectByInfo(baseObject, identifier, pos, scale, flipOnX, flipOnY, 
+		self.__sceneList[self.__currentIndex].addObjectByInfo(baseObject, identifier, pos, scale, flipOnX, flipOnY,
 			layer, collisionInfo)
 
 	def setSceneObjectId(self, newId):
