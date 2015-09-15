@@ -143,6 +143,7 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 			self.__rows = len(self.__gridGraphics)
 
 	def __setStartState(self):
+		self.__zoom = 1.0
 		self.__selectionStarted = False
 		self.__selectionStartPos = None
 		self.__currentSelection = None
@@ -160,6 +161,8 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 
 		self.__setStartState()
 		self.__selectionPreview = None
+		self.__zoomTranslate = None
+		self.__zoomScale = None
 		self._scrollLayout = RelativeLayout(size_hint = (None, None), size = (100, 100))
 		self.__currentImage = None
 		self._layout.add_widget(self._scrollLayout)
@@ -208,22 +211,56 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 				(loopFinalIndexJ - loopStartIndexJ + 1)
 			)
 
+	def increaseZoom(self):
+		if (self.__currentImage is not None):
+			if (self.__zoom >= 8):
+				return
+
+			originalX = float(self.__currentImage.size[0]) / self.__zoom
+			originalY = float(self.__currentImage.size[1]) / self.__zoom
+			self.__zoom += 1
+			self._scrollLayout.size = (
+				originalX * self.__zoom,
+				originalY * self.__zoom
+			)
+			from kivy.graphics.context_instructions import Scale, Translate
+			if (self.__zoomTranslate is not None):
+				self._scrollLayout.canvas.before.remove(self.__zoomTranslate)
+
+			if (self.__zoomScale is not None):
+				self._scrollLayout.canvas.before.remove(self.__zoomScale)
+
+			print self.__currentImage.size
+			print self.__zoom
+
+			self.__zoomTranslate = Translate(
+				-self.__currentImage.size[0] * (self.__zoom) / 2.0,
+				-self.__currentImage.size[1] * (self.__zoom) / 2.0,
+				0
+			)
+			self._scrollLayout.canvas.before.add(self.__zoomTranslate)
+			self.__zoomScale = Scale(self.__zoom)
+			self._scrollLayout.canvas.before.add(self.__zoomScale)
+
+			self._scrollLayout.canvas.ask_update()
+
 	def loadImage(self, path):
 		self.clearPreview()
 		self.__setStartState()
 		if (self.__currentImage is not None):
+			if (self.__zoomTranslate is not None and self.__zoomScale is not None):
+				self._scrollLayout.canvas.remove(self.__zoomTranslate)
+				self._scrollLayout.canvas.remove(self.__zoomScale)
+			self.__zoomTranslate = None
+			self.__zoomScale = None
 			self._scrollLayout.canvas.clear()
 			self._scrollLayout.remove_widget(self.__currentImage)
 
 		im = Image(source = path)
 		self.__texture = AutoReloadTexture(im.texture.size, im)
 		self.__currentImage = Image(size = im.texture.size, texture = self.__texture.getTexture())
-		#self._scrollLayout.size = (im.texture.size[0] * 2, im.texture.size[1] * 2)
 		self._scrollLayout.size = (im.texture.size[0], im.texture.size[1])
 		self._scrollLayout.add_widget(self.__currentImage)
-		#from kivy.graphics.context_instructions import Scale, Translate
-		#self._scrollLayout.canvas.before.add(Translate(-im.texture.size[0], -im.texture.size[1], 0))
-		#self._scrollLayout.canvas.before.add(Scale(2.))
 
 
 	def drawGridByDivisions(self, xDivisions, yDivisions):
@@ -437,6 +474,8 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 			self.__xSkipInput.text = str(xSkip)
 			self.__splitImage()
 
+		elif (keycode[1] == 'a'):
+			self.__display.increaseZoom()
 
 		elif (keycode[1] == 'escape'):
 			self.close()
@@ -522,7 +561,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', **defaultButtonSize)
 		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
 			**defaultButtonSize)
-		
+
 		multipleLineSize = defaultDoubleLineSize.copy()
 		multipleLineSize['height'] = defaultFontSize * 5
 		self.__helpText = AlignedLabel(
