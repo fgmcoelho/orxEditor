@@ -5,6 +5,7 @@ from kivy.uix.image import Image
 from kivy.uix.treeview import TreeView, TreeViewLabel
 from kivy.uix.scrollview import ScrollView
 from kivy.graphics.vertex_instructions import Line
+from kivy.graphics.context_instructions import Scale, Translate
 from kivy.graphics import Color
 
 from uisizes import resourceLoderSize, defaultLabelSize, defaultButtonSize, defaultInputSize, defaultFontSize,\
@@ -149,6 +150,30 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		self.__currentSelection = None
 		self.__gridGraphics = []
 
+	def __applyZoom(self, adjust):
+		originalX = float(self.__currentImage.size[0]) / self.__zoom
+		originalY = float(self.__currentImage.size[1]) / self.__zoom
+		self.__zoom += adjust
+		self._scrollLayout.size = (
+			originalX * self.__zoom,
+			originalY * self.__zoom
+		)
+		if (self.__zoomTranslate is not None):
+			self._scrollLayout.canvas.before.remove(self.__zoomTranslate)
+
+		if (self.__zoomScale is not None):
+			self._scrollLayout.canvas.before.remove(self.__zoomScale)
+
+		self.__zoomTranslate = Translate(
+			-self.__currentImage.size[0] * (self.__zoom) / 2.0,
+			-self.__currentImage.size[1] * (self.__zoom) / 2.0,
+			0
+		)
+		self._scrollLayout.canvas.before.add(self.__zoomTranslate)
+		self.__zoomScale = Scale(self.__zoom)
+		self._scrollLayout.canvas.before.add(self.__zoomScale)
+		self._scrollLayout.canvas.ask_update()
+
 	def __init__(self, **kwargs):
 		super(self.__class__, self).__init__(**kwargs)
 		self._layout = ScrollView(size_hint = (1.0, 1.0), effect_cls = EmptyScrollEffect)
@@ -215,34 +240,13 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		if (self.__currentImage is not None):
 			if (self.__zoom >= 8):
 				return
+			self.__applyZoom(1)
 
-			originalX = float(self.__currentImage.size[0]) / self.__zoom
-			originalY = float(self.__currentImage.size[1]) / self.__zoom
-			self.__zoom += 1
-			self._scrollLayout.size = (
-				originalX * self.__zoom,
-				originalY * self.__zoom
-			)
-			from kivy.graphics.context_instructions import Scale, Translate
-			if (self.__zoomTranslate is not None):
-				self._scrollLayout.canvas.before.remove(self.__zoomTranslate)
-
-			if (self.__zoomScale is not None):
-				self._scrollLayout.canvas.before.remove(self.__zoomScale)
-
-			print self.__currentImage.size
-			print self.__zoom
-
-			self.__zoomTranslate = Translate(
-				-self.__currentImage.size[0] * (self.__zoom) / 2.0,
-				-self.__currentImage.size[1] * (self.__zoom) / 2.0,
-				0
-			)
-			self._scrollLayout.canvas.before.add(self.__zoomTranslate)
-			self.__zoomScale = Scale(self.__zoom)
-			self._scrollLayout.canvas.before.add(self.__zoomScale)
-
-			self._scrollLayout.canvas.ask_update()
+	def decreaseZoom(self):
+		if (self.__currentImage is not None):
+			if (self.__zoom <= 1):
+				return
+			self.__applyZoom(-1)
 
 	def loadImage(self, path):
 		self.clearPreview()
@@ -253,8 +257,8 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 				self._scrollLayout.canvas.remove(self.__zoomScale)
 			self.__zoomTranslate = None
 			self.__zoomScale = None
-			self._scrollLayout.canvas.clear()
 			self._scrollLayout.remove_widget(self.__currentImage)
+			self._scrollLayout.canvas.clear()
 
 		im = Image(source = path)
 		self.__texture = AutoReloadTexture(im.texture.size, im)
@@ -262,10 +266,9 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		self._scrollLayout.size = (im.texture.size[0], im.texture.size[1])
 		self._scrollLayout.add_widget(self.__currentImage)
 
-
 	def drawGridByDivisions(self, xDivisions, yDivisions):
-		xInc = int(self._scrollLayout.size[0] / xDivisions)
-		yInc = int(self._scrollLayout.size[1] / yDivisions)
+		xInc = int(self._scrollLayout.size[0] / (xDivisions * self.__zoom))
+		yInc = int(self._scrollLayout.size[1] / (yDivisions * self.__zoom))
 		self.__doDrawGrid(xInc, yInc)
 
 	def drawGridBySize(self, xSize, ySize, xSkip, ySkip):
@@ -476,6 +479,9 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 
 		elif (keycode[1] == 'a'):
 			self.__display.increaseZoom()
+
+		elif (keycode[1] == 's'):
+			self.__display.decreaseZoom()
 
 		elif (keycode[1] == 'escape'):
 			self.close()
