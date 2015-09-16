@@ -1,11 +1,11 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
 from kivy.uix.treeview import TreeView, TreeViewLabel
 from kivy.uix.scrollview import ScrollView
 from kivy.graphics.vertex_instructions import Line
-from kivy.graphics.context_instructions import Scale, Translate
 from kivy.graphics import Color
 
 from uisizes import resourceLoderSize, defaultLabelSize, defaultButtonSize, defaultInputSize, defaultFontSize,\
@@ -49,11 +49,15 @@ class GridCell:
 
 	def select(self):
 		self.__marked = True
-		self.draw((1., 0., 0., 1.))
+		self.draw((1., 0., 0., 1.0))
 
 	def unselect(self):
 		if (self.__marked):
-			self.draw((0., 1., 0., 1.))
+			self.draw((0., 1., 0., 0.3))
+
+	def clear(self):
+		self.__canvasRef.remove(self.__color)
+		self.__canvasRef.remove(self.__operation)
 
 class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def __clearGraphicGrid(self):
@@ -115,9 +119,9 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 			self.__defaultTouchUp(touch)
 
 	def __clearSelectionGrid(self):
-		self._scrollLayout.clear_widgets()
-		self._scrollLayout.canvas.clear()
-		self._scrollLayout.add_widget(self.__currentImage)
+		for line in self.__gridGraphics:
+			for cell in line:
+				cell.clear()
 		self.__gridGraphics = []
 		self.__selectionPreview = None
 		self.__currentSelection = None
@@ -129,12 +133,12 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		self.__xSkip = xSkip
 		self.__ySkip = ySkip
 
-		j = self._scrollLayout.size[1] - ySkip
+		j = self.__currentImage.size[1] - ySkip
 		while j - yInc >= 0:
 			i = xSkip
 			line = []
-			while i + xInc <= self._scrollLayout.size[0]:
-				line.append(GridCell(self._scrollLayout.canvas, i, j, xInc, yInc))
+			while i + xInc <= self.__currentImage.size[0]:
+				line.append(GridCell(self.__currentImage.canvas, i, j, xInc, yInc))
 				i += xInc
 			j -= yInc
 			self.__gridGraphics.append(line)
@@ -151,28 +155,12 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		self.__gridGraphics = []
 
 	def __applyZoom(self, adjust):
-		originalX = float(self.__currentImage.size[0]) / self.__zoom
-		originalY = float(self.__currentImage.size[1]) / self.__zoom
-		self.__zoom += adjust
-		self._scrollLayout.size = (
-			originalX * self.__zoom,
-			originalY * self.__zoom
-		)
-		if (self.__zoomTranslate is not None):
-			self._scrollLayout.canvas.before.remove(self.__zoomTranslate)
-
-		if (self.__zoomScale is not None):
-			self._scrollLayout.canvas.before.remove(self.__zoomScale)
-
-		self.__zoomTranslate = Translate(
-			-self.__currentImage.size[0] * (self.__zoom) / 2.0,
-			-self.__currentImage.size[1] * (self.__zoom) / 2.0,
-			0
-		)
-		self._scrollLayout.canvas.before.add(self.__zoomTranslate)
-		self.__zoomScale = Scale(self.__zoom)
-		self._scrollLayout.canvas.before.add(self.__zoomScale)
-		self._scrollLayout.canvas.ask_update()
+		layoutSize = tuple(self._scrollLayout.size)
+		scale = int(self.__currentImage.scale)
+		layoutSize = (layoutSize[0] / scale * (scale + adjust) , layoutSize[1] / scale * (scale + adjust) )
+		self._scrollLayout.size = layoutSize
+		self.__currentImage.scale += adjust
+		self.__currentImage._set_pos((0, 0))
 
 	def __init__(self, **kwargs):
 		super(self.__class__, self).__init__(**kwargs)
@@ -229,7 +217,7 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 			self.__selectionStarted = False
 			self.__currentSelection = SpriteSelection(
 				(loopStartIndexI * self.__xSize) + self.__xSkip,
-				self._scrollLayout.size[1] - (((loopFinalIndexJ + 1) * self.__ySize) + self.__ySkip),
+				self.__currentImage.size[1] - (((loopFinalIndexJ + 1) * self.__ySize) + self.__ySkip),
 				(loopFinalIndexI - loopStartIndexI + 1) * self.__xSize,
 				(loopFinalIndexJ - loopStartIndexJ + 1) * self.__ySize,
 				(loopFinalIndexI - loopStartIndexI + 1),
@@ -238,13 +226,13 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 
 	def increaseZoom(self):
 		if (self.__currentImage is not None):
-			if (self.__zoom >= 8):
+			if (self.__currentImage.scale >= 8):
 				return
 			self.__applyZoom(1)
 
 	def decreaseZoom(self):
 		if (self.__currentImage is not None):
-			if (self.__zoom <= 1):
+			if (self.__currentImage.scale <= 1):
 				return
 			self.__applyZoom(-1)
 
@@ -252,23 +240,21 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		self.clearPreview()
 		self.__setStartState()
 		if (self.__currentImage is not None):
-			if (self.__zoomTranslate is not None and self.__zoomScale is not None):
-				self._scrollLayout.canvas.remove(self.__zoomTranslate)
-				self._scrollLayout.canvas.remove(self.__zoomScale)
-			self.__zoomTranslate = None
-			self.__zoomScale = None
 			self._scrollLayout.remove_widget(self.__currentImage)
 			self._scrollLayout.canvas.clear()
 
 		im = Image(source = path)
 		self.__texture = AutoReloadTexture(im.texture.size, im)
 		self.__currentImage = Image(size = im.texture.size, texture = self.__texture.getTexture())
-		self._scrollLayout.size = (im.texture.size[0], im.texture.size[1])
+		reloadableImage = Image(size = im.texture.size, texture = self.__texture.getTexture())
+		self.__currentImage = Scatter(do_translation = False, do_scale = False, do_rotation = False)
+		self.__currentImage.add_widget(reloadableImage)
+		self._scrollLayout.size = tuple((int(im.texture.size[0]), int(im.texture.size[1])))
 		self._scrollLayout.add_widget(self.__currentImage)
 
 	def drawGridByDivisions(self, xDivisions, yDivisions):
-		xInc = int(self._scrollLayout.size[0] / (xDivisions * self.__zoom))
-		yInc = int(self._scrollLayout.size[1] / (yDivisions * self.__zoom))
+		xInc = int(self._scrollLayout.size[0] / xDivisions)
+		yInc = int(self._scrollLayout.size[1] / yDivisions)
 		self.__doDrawGrid(xInc, yInc)
 
 	def drawGridBySize(self, xSize, ySize, xSkip, ySkip):
@@ -283,7 +269,7 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		y = selection.getY()
 		xSize = selection.getSizeX()
 		ySize = selection.getSizeY()
-		with self._scrollLayout.canvas:
+		with self.__currentImage.canvas:
 			self.__selectionPreview = Line(points = [
 				x, y,
 				x, y + ySize,
@@ -294,7 +280,7 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 
 	def clearPreview(self):
 		if (self.__selectionPreview is not None):
-			self._scrollLayout.canvas.remove(self.__selectionPreview)
+			self.__currentImage.canvas.remove(self.__selectionPreview)
 			self.__selectionPreview = None
 
 	def getSize(self):
