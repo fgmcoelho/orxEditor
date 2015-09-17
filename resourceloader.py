@@ -54,10 +54,14 @@ class GridCell:
 	def unselect(self):
 		if (self.__marked):
 			self.draw((0., 1., 0., 0.3))
+			self.__marked = False
 
 	def clear(self):
 		self.__canvasRef.remove(self.__color)
 		self.__canvasRef.remove(self.__operation)
+
+	def getMarked(self):
+		return self.__marked
 
 class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def __clearGraphicGrid(self):
@@ -73,9 +77,10 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		elif (i >= self.__columns):
 			return (None, None)
 
-
-		end = self._scrollLayout.size[1] - self.__ySkip
+		end = (self._scrollLayout.size[1] / self.__currentImage.scale) - self.__ySkip
 		start = end - (self.__rows * self.__ySize)
+		#print "Checking y start: ", y, start, ", end: ", y, end, ")"
+		#print "Start math: ", end, " - (", self.__rows, " * ", self.__ySize, ")"
 		if (y < start or y > end):
 			return (None, None)
 
@@ -126,21 +131,45 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		self.__selectionPreview = None
 		self.__currentSelection = None
 
-	def __doDrawGrid(self, xInc, yInc, xSkip = 0, ySkip = 0):
+	def __drawFromValues(self, xInc, yInc, xSkip = 0, ySkip = 0):
 		self.__clearSelectionGrid()
 		self.__xSize = xInc
 		self.__ySize = yInc
 		self.__xSkip = xSkip
 		self.__ySkip = ySkip
+		self.__doDrawGrid()
 
-		j = self.__currentImage.size[1] - ySkip
-		while j - yInc >= 0:
-			i = xSkip
+	def __redrawGrid(self):
+		coords = []
+		i = 0
+		for line in self.__gridGraphics:
+			j = 0
+			for cell in line:
+				if (cell.getMarked() == True):
+					coords.append((i, j))
+				j += 1
+			i += 1
+
+		self.__doDrawGrid()
+		for i, j in coords:
+			self.__gridGraphics[i][j].select()
+
+	def __doDrawGrid(self):
+		#print self.__xSkip, self.__ySkip, self.__xSize, self.__ySize
+		#print self._scrollLayout.size
+		scale = int(self.__currentImage.scale)
+		width, height = self._scrollLayout.size
+		imageSize = (width / scale, height / scale)
+		#print imageSize, scale
+		
+		j = imageSize[1] - self.__ySkip
+		while j - self.__ySize >= 0:
+			i = self.__xSkip
 			line = []
-			while i + xInc <= self.__currentImage.size[0]:
-				line.append(GridCell(self.__currentImage.canvas, i, j, xInc, yInc))
-				i += xInc
-			j -= yInc
+			while i + self.__xSize <= imageSize[0]:
+				line.append(GridCell(self.__currentImage.canvas, i, j, self.__xSize, self.__ySize))
+				i += self.__xSize
+			j -= self.__ySize
 			self.__gridGraphics.append(line)
 
 		if (self.__gridGraphics != []):
@@ -161,6 +190,8 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		self._scrollLayout.size = layoutSize
 		self.__currentImage.scale += adjust
 		self.__currentImage._set_pos((0, 0))
+		if (self.__gridGraphics != []):
+			self.__redrawGrid()
 
 	def __init__(self, **kwargs):
 		super(self.__class__, self).__init__(**kwargs)
@@ -187,6 +218,7 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		if (self.__currentImage is not None and self.__gridGraphics != [] and self.__selectionStarted == False):
 			self.__clearGraphicGrid()
 			posToUse = self.__currentImage.to_widget(*touch.pos)
+			#print "Starting: ", posToUse
 			sj, si = self.__posToGridCoords(*posToUse)
 			if (sj == None or si == None):
 				return
@@ -197,9 +229,11 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def finishSelection(self, touch):
 		if (self.__currentImage is not None and self.__gridGraphics != [] and self.__selectionStarted == True):
 			pos = self.__currentImage.to_widget(*touch.pos)
+			#print "Finishing: ", pos
 			fj, fi = self.__posToGridCoords(*pos)
 			sj, si = self.__posToGridCoords(*self.__selectionStartPos)
 			if (fj == None or fi == None or sj == None or si == None):
+				self.__selectionStarted = False
 				return
 			loopStartIndexI = min(si, fi)
 			loopStartIndexJ = min(sj, fj)
@@ -214,7 +248,6 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 					tempJ += 1
 				tempI += 1
 
-			self.__selectionStarted = False
 			self.__currentSelection = SpriteSelection(
 				(loopStartIndexI * self.__xSize) + self.__xSkip,
 				self.__currentImage.size[1] - (((loopFinalIndexJ + 1) * self.__ySize) + self.__ySkip),
@@ -223,6 +256,7 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 				(loopFinalIndexI - loopStartIndexI + 1),
 				(loopFinalIndexJ - loopStartIndexJ + 1)
 			)
+		self.__selectionStarted = False
 
 	def increaseZoom(self):
 		if (self.__currentImage is not None):
@@ -255,10 +289,10 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def drawGridByDivisions(self, xDivisions, yDivisions):
 		xInc = int(self._scrollLayout.size[0] / xDivisions)
 		yInc = int(self._scrollLayout.size[1] / yDivisions)
-		self.__doDrawGrid(xInc, yInc)
+		self.__drawFromValues(xInc, yInc)
 
 	def drawGridBySize(self, xSize, ySize, xSkip, ySkip):
-		self.__doDrawGrid(xSize, ySize, xSkip, ySkip)
+		self.__drawFromValues(xSize, ySize, xSkip, ySkip)
 
 	def getCurrentSelection(self):
 		return self.__currentSelection
