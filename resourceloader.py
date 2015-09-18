@@ -77,7 +77,7 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		elif (i >= self.__columns):
 			return (None, None)
 
-		end = (self._scrollLayout.size[1] / self.__currentImage.scale) - self.__ySkip
+		end = (self.__originalSize[1]) - self.__ySkip
 		start = end - (self.__rows * self.__ySize)
 		#print "Checking y start: ", y, start, ", end: ", y, end, ")"
 		#print "Start math: ", end, " - (", self.__rows, " * ", self.__ySize, ")"
@@ -157,16 +157,11 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def __doDrawGrid(self):
 		#print self.__xSkip, self.__ySkip, self.__xSize, self.__ySize
 		#print self._scrollLayout.size
-		scale = int(self.__currentImage.scale)
-		width, height = self._scrollLayout.size
-		imageSize = (width / scale, height / scale)
-		#print imageSize, scale
-		
-		j = imageSize[1] - self.__ySkip
+		j = self.__originalSize[1] - self.__ySkip
 		while j - self.__ySize >= 0:
 			i = self.__xSkip
 			line = []
-			while i + self.__xSize <= imageSize[0]:
+			while i + self.__xSize <= self.__originalSize[0]:
 				line.append(GridCell(self.__currentImage.canvas, i, j, self.__xSize, self.__ySize))
 				i += self.__xSize
 			j -= self.__ySize
@@ -186,7 +181,7 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def __applyZoom(self, adjust):
 		layoutSize = tuple(self._scrollLayout.size)
 		scale = int(self.__currentImage.scale)
-		layoutSize = (layoutSize[0] / scale * (scale + adjust) , layoutSize[1] / scale * (scale + adjust) )
+		layoutSize = (self.__originalSize[0] * (scale + adjust) , self.__originalSize[1] * (scale + adjust) )
 		self._scrollLayout.size = layoutSize
 		self.__currentImage.scale += adjust
 		self.__currentImage._set_pos((0, 0))
@@ -250,7 +245,7 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 
 			self.__currentSelection = SpriteSelection(
 				(loopStartIndexI * self.__xSize) + self.__xSkip,
-				self.__currentImage.size[1] - (((loopFinalIndexJ + 1) * self.__ySize) + self.__ySkip),
+				self.__originalSize[1] - (((loopFinalIndexJ + 1) * self.__ySize) + self.__ySkip),
 				(loopFinalIndexI - loopStartIndexI + 1) * self.__xSize,
 				(loopFinalIndexJ - loopStartIndexJ + 1) * self.__ySize,
 				(loopFinalIndexI - loopStartIndexI + 1),
@@ -280,15 +275,20 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		im = Image(source = path)
 		self.__texture = AutoReloadTexture(im.texture.size, im)
 		self.__currentImage = Image(size = im.texture.size, texture = self.__texture.getTexture())
+		self.__originalSize = tuple(im.texture.size)
 		reloadableImage = Image(size = im.texture.size, texture = self.__texture.getTexture())
 		self.__currentImage = Scatter(do_translation = False, do_scale = False, do_rotation = False)
 		self.__currentImage.add_widget(reloadableImage)
 		self._scrollLayout.size = tuple((int(im.texture.size[0]), int(im.texture.size[1])))
 		self._scrollLayout.add_widget(self.__currentImage)
+		self._layout.scroll_x = 0.0
+		self._layout.scroll_y = 1.0
+		self._layout._update_effect_x_bounds()
+		self._layout._update_effect_y_bounds()
 
 	def drawGridByDivisions(self, xDivisions, yDivisions):
-		xInc = int(self._scrollLayout.size[0] / xDivisions)
-		yInc = int(self._scrollLayout.size[1] / yDivisions)
+		xInc = int(self.__originalSize[0] / xDivisions)
+		yInc = int(self.__originalSize[1] / yDivisions)
 		self.__drawFromValues(xInc, yInc)
 
 	def drawGridBySize(self, xSize, ySize, xSkip, ySkip):
