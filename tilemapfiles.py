@@ -26,10 +26,15 @@ class FilesManager:
 
 	def __loadCollisionFlagsList(self, parser, sectionName, attribute):
 		l = []
-		for flag in parser.get(sectionName, attribute).split('#'):
+		loadedFlags = parser.get(sectionName, attribute)
+		if (loadedFlags.strip() == ""):
+			return l
+
+		loadedFlagsList = loadedFlags.split("#")
+		for flag in loadedFlagsList:
 			flagObj = ModulesAccess.get('CollisionGuardian').getFlagByName(flag)
 			assert flagObj is not None, \
-				'collision flag ' + flag + ' from section ' + sectionName + 'was not loaded.'
+				'collision flag ' + flag + ' from section ' + sectionName + ' was not loaded.'
 			l.append(flagObj)
 		return l
 
@@ -215,7 +220,7 @@ class FilesManager:
 
 		try:
 			newSceneAttributes = SceneAttributes(tilesSize, tilesOnX, tilesOnY)
-			ModulesAccess.get('SceneHandler').getAllObjects().newScene(newSceneAttributes)
+			ModulesAccess.get('SceneHandler').newScene(newSceneAttributes)
 		except Exception, e:
 			raise Exception('Error creating the base scene to load: ' + str(e))
 

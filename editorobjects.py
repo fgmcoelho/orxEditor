@@ -374,9 +374,10 @@ class RenderObjectGuardian:
 	def getSelection(self):
 		return self.__multiSelectionObjects[:]
 
-	def createNewObject(self, idToUse, obj, pos, tileSize, maxX, maxY):
+	def createNewObject(self, idToUse, obj, pos, tileSize, maxX, maxY, autoSelect = True):
 		renderedObject = RenderedObject(idToUse, obj, pos, tileSize, maxX, maxY, self)
-		self.setSingleSelectionObject(renderedObject)
+		if (autoSelect == True):
+			self.setSingleSelectionObject(renderedObject)
 
 		action = SceneAction("create", [renderedObject])
 		self.__history.registerAction(action)

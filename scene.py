@@ -359,7 +359,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo):
 		newRenderedObject = self._renderGuardian.createNewObject(identifier, baseObject, pos, self._tileSize,
-			self._maxX, self._maxY)
+			self._maxX, self._maxY, autoSelect = False)
 
 		if (flipOnX == True):
 			newRenderedObject.flipOnX()
@@ -660,6 +660,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		self._layout.add_widget(newScene.getLayout())
 		self.__sceneList[self.__currentIndex] = newScene
 		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
+		
 		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def getCurrentSceneAttributes(self):

@@ -320,7 +320,7 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 		if (keycode[1] == 'shift'):
 			CollisionFormEditorPoints.setKeepRatio(False)
 
-		elif ('ctrl' in keycode[1]):
+		elif (keycode[1] in ['ctrl', 'lctrl', 'rctrl']):
 			self._isCtrlPressed = False
 			CollisionFormEditorPoints.setMoveAll(False)
 
@@ -340,7 +340,7 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 		if (keycode[1] == 'shift'):
 			CollisionFormEditorPoints.setKeepRatio(True)
 
-		elif ('ctrl' in keycode[1]):
+		elif (keycode[1] in ['ctrl', 'lctrl', 'rctrl']):
 			self._isCtrlPressed = True
 			CollisionFormEditorPoints.setMoveAll(True)
 
@@ -400,7 +400,7 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 		if (self._isLeftPressed == True and self._isRightPressed == False):
 			self._layout.do_scroll = False
 
-		if (touch.button == "right" and touch.is_double_tap == True and self._isCtrlPressed == True):
+		if (touch.button == "left" and touch.is_double_tap == True and self._isCtrlPressed == True):
 			form = self.__workingPart.getFormType()
 			points = self.__workingPart.getPoints()
 			if (points is None):
