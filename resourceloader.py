@@ -253,13 +253,13 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 			)
 		self.__selectionStarted = False
 
-	def increaseZoom(self):
+	def increaseZoom(self, *args):
 		if (self.__currentImage is not None):
 			if (self.__currentImage.scale >= 8):
 				return
 			self.__applyZoom(1)
 
-	def decreaseZoom(self):
+	def decreaseZoom(self, *args):
 		if (self.__currentImage is not None):
 			if (self.__currentImage.scale <= 1):
 				return
@@ -587,6 +587,10 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', **defaultButtonSize)
 		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
 			**defaultButtonSize)
+		self.__zoomPlusButton = CancelableButton(on_release = self.__display.increaseZoom, text = 'Zoom +',
+			**defaultButtonSize)
+		self.__zoomMinusButton = CancelableButton(on_release = self.__display.decreaseZoom, text = 'Zoom -',
+			**defaultButtonSize)
 
 		multipleLineSize = defaultDoubleLineSize.copy()
 		multipleLineSize['height'] = defaultFontSize * 5
@@ -602,6 +606,8 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__leftMenu.add_widget(self.__yDivisionsInput)
 		self.__leftMenu.add_widget(self.getSeparator())
 		self.__leftMenu.add_widget(self.__switchButton)
+		self.__leftMenu.add_widget(self.__zoomPlusButton)
+		self.__leftMenu.add_widget(self.__zoomMinusButton)
 		self.__leftMenu.add_widget(self.__splitButton)
 		self.__leftMenu.add_widget(self.__doneButton)
 		self.__leftMenu.add_widget(self.__cancelButton)
@@ -619,6 +625,8 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__leftMenu.add_widget(self.__helpText)
 		self.__leftMenu.add_widget(self.getSeparator())
 		self.__leftMenu.add_widget(self.__switchButton)
+		self.__leftMenu.add_widget(self.__zoomPlusButton)
+		self.__leftMenu.add_widget(self.__zoomMinusButton)
 		self.__leftMenu.add_widget(self.__splitButton)
 		self.__leftMenu.add_widget(self.__doneButton)
 		self.__leftMenu.add_widget(self.__cancelButton)
@@ -703,9 +711,9 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	def __init__(self):
 		super(ResourceLoaderPopup, self).__init__()
 		self.__isShiftPressed = False
+		self.__display = ResourceLoaderDisplay()
 
 		self.__popup = Popup(title = 'Resource Loader', auto_dismiss = False)
-
 		self._layout = BoxLayout(orientation = 'horizontal')
 
 		self.__leftMenu = BoxLayout(orientation = 'vertical', size_hint = (None, 1.0),
@@ -714,7 +722,6 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__setStartState()
 
 		self.__middleMenu = BoxLayout(orientation = 'vertical', size_hint = (1.0, 1.0))
-		self.__display = ResourceLoaderDisplay()
 		self.__middleMenu.add_widget(self.__display.getLayout())
 
 		self.__rightMenu = BoxLayout(orientation = 'vertical', size_hint = (None, 1.0),
