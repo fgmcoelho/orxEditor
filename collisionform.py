@@ -22,22 +22,25 @@ class CollisionPartDisplay(RelativeLayout):
 		if (obj is None):
 			return
 
+		self.__originalSize = vector2Multiply(obj.getBaseSize(), expandLevel)
+		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = self.__originalSize)
+
 		self.__texture = AutoReloadTexture(obj.getBaseSize(), obj.getImage())
-		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = obj.getBaseSize())
 		self.__image = Scatter(do_rotation = False, do_translation = False, do_scale = False)
 		im = Image(texture = self.__texture.getTexture(), size = obj.getBaseSize(), allow_strech = True)
 		self.__image.add_widget(im)
 		self.__image.size = obj.getBaseSize()
-		self.__operation = None
 		self.add_widget(self.__image)
-		self.__expandLevel = expandLevel
-		self.size = vector2Multiply(tuple(self.size), self.__expandLevel)
-		if (self.__expandLevel == 1.0):
-			self.__image.pos = (0, 0)
+
+		if (expandLevel == 1.0):
+			self.__originalPos = (0, 0)
 		else:
-			self.__image.pos = (self.size[0]/(self.__expandLevel * 2.), self.size[1]/(self.__expandLevel * 2.))
-		self.__originalSize = tuple(self.size)
+			self.__originalPos = (self.size[0]/(expandLevel * 2.), self.size[1]/(expandLevel * 2.))
+
+		self.__image.pos = self.__originalPos
 		self.__operation = None
+		self.__expandLevel = expandLevel
+		self.__zoom = 1
 
 	def clearDrawnForm(self):
 		if (self.__operation != None):
@@ -170,12 +173,22 @@ class CollisionPartDisplay(RelativeLayout):
 	def getImage(self):
 		return self.__image
 
-	def resize(self, x):
-		self.size = vector2Multiply(self.__originalSize, x)
-		self.__image.pos = (self.size[0]/4., self.size[1]/4.)
+	def applyZoom(self, adjust):
+		newZoom = self.__zoom + adjust
+		if (newZoom < 1 or newZoom > 8):
+			return
+
+		self.__zoom = newZoom
+		self.size = vector2Multiply(self.__originalSize, self.__zoom)
+		newPos = vector2Multiply(self.__originalPos, self.__zoom)
+		self.__image.scale = self.__zoom
+		self.__image._set_pos(newPos)
 
 	def getSize(self):
 		return tuple(self.size)
+
+	def getOriginalSize(self):
+		return self.__originalSize
 
 class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 	dotSize = 11
@@ -276,6 +289,27 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		y -= ceil(CollisionFormEditorPoints.dotSize/2.)
 		self.pos = (x, y)
 
+	def applyZoom(self, adjust):
+		newZoom = self.__zoom + adjust
+		if (newZoom < 1 or newZoom > 8):
+			return
+
+		x, y = tuple(self.pos)
+		parentOriginalSize = self.parent.getOriginalSize()
+		x /= float(self.__zoom * parentOriginalSize[0])
+		y /= float(self.__zoom * parentOriginalSize[1])
+
+		self.__zoom = newZoom
+		newSize = vector2Multiply(parentOriginalSize, self.__zoom)
+		newX = x * newSize[0]
+		newY = y * newSize[1]
+		self.__maxX = newSize[0]
+		self.__maxY = newSize[1]
+
+		#newX -= ceil(CollisionFormEditorPoints.dotSize/2.)
+		#newY -= ceil(CollisionFormEditorPoints.dotSize/2.)
+		self.pos = (newX, newY)
+
 	def setPropagateMovement(self, value):
 		self.__propagateMovement = value
 
@@ -306,6 +340,7 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		self.on_touch_up = self._unmarkPoint
 
 		self.__maxX, self.__maxY = limits
+		self.__zoom = 1
 
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
@@ -343,6 +378,18 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 		elif ('ctrl' in keycode[1]):
 			self._isCtrlPressed = True
 			CollisionFormEditorPoints.setMoveAll(True)
+
+		elif (keycode[1] == 'a'):
+			z = self.__display.applyZoom(1)
+			for point in self.__pointsList:
+				point.applyZoom(1)
+			self.__updatePoints(None)
+
+		elif (keycode[1] == 's'):
+			z = self.__display.applyZoom(-1)
+			for point in self.__pointsList:
+				point.applyZoom(-1)
+			self.__updatePoints(None)
 
 	def __updatePoints(self, point):
 		self.__lastPointPressed = point
