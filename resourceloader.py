@@ -78,6 +78,10 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		return (int(j), int(i))
 
 	def __handleTouchMove(self, touch):
+		# TODO: Bandaid fix. For some reason the scroll stops working on scroll
+		if (touch.is_mouse_scrolling == True):
+			return
+
 		if (self._layout.collide_point(*touch.pos) == False):
 			return
 		if(touch.button == 'left'):
@@ -87,6 +91,10 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self._layout.collide_point(*touch.pos) == False):
+			return
+
+		# TODO: Bandaid fix. For some reason the scroll stops working on scroll
+		if (touch.is_mouse_scrolling == True):
 			return
 
 		self.updateMouseDown(touch)
@@ -103,6 +111,10 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		self.__defaultTouchDown(touch)
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
+		# TODO: Bandaid fix. For some reason the scroll stops working on scroll
+		if (touch.is_mouse_scrolling == True):
+			return
+
 		self.updateMouseUp(touch)
 		if (self._isRightPressed == True or self._isLeftPressed == False):
 			self._layout.do_scroll = True
