@@ -294,7 +294,7 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		if (newZoom < 1 or newZoom > 8):
 			return
 
-		x, y = tuple(self.pos)
+		x, y = tuple(self.getPos())
 		parentOriginalSize = self.parent.getOriginalSize()
 		x /= float(self.__zoom * parentOriginalSize[0])
 		y /= float(self.__zoom * parentOriginalSize[1])
@@ -306,9 +306,7 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		self.__maxX = newSize[0]
 		self.__maxY = newSize[1]
 
-		#newX -= ceil(CollisionFormEditorPoints.dotSize/2.)
-		#newY -= ceil(CollisionFormEditorPoints.dotSize/2.)
-		self.pos = (newX, newY)
+		self.setPos((newX, newY))
 
 	def setPropagateMovement(self, value):
 		self.__propagateMovement = value
