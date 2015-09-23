@@ -300,7 +300,8 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			self._objectDict[self._id] = renderedObject
 			self._id += 1
 
-		ModulesAccess.get('ObjectDescriptor').set(newObjects)
+		if (newObjects != []):
+			ModulesAccess.get('ObjectDescriptor').set(newObjects)
 
 	def unselectAll(self):
 		self._renderGuardian.unsetSelection()
@@ -663,7 +664,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		self.__sceneList[self.__currentIndex] = newScene
 		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
 
-                Clock.unschedule(self.__scheduleTextureUpdate)
+		Clock.unschedule(self.__scheduleTextureUpdate)
 		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def getCurrentSceneAttributes(self):
