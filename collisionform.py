@@ -598,9 +598,9 @@ class CollisionFormEditorPopup:
 		gridSize["width"] = defaultSmallButtonSize["width"] * 2
 		gridSize["size_hint"] = defaultSmallButtonSize["size_hint"]
 		self.__buttonsGrid = GridLayout(cols = 2, rows = 2, **gridSize)
-		self.__zoomPlusButton = CancelableButton(text = "Zoom +", on_release = self.__mainScreen.increaseZoom,
+		self.__zoomPlusButton = CancelableButton(text = "Zoom + (a)", on_release = self.__mainScreen.increaseZoom,
 			**defaultSmallButtonSize)
-		self.__zoomMinusButton = CancelableButton(text = "Zoom -", on_release = self.__mainScreen.decreaseZoom,
+		self.__zoomMinusButton = CancelableButton(text = "Zoom - (s)", on_release = self.__mainScreen.decreaseZoom,
 			**defaultSmallButtonSize)
 		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, **defaultSmallButtonSize)
 		self.__doneButton = CancelableButton(text = 'Done', on_release = self.__saveAndClose, **defaultSmallButtonSize)

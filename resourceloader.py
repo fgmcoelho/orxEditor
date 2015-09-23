@@ -587,9 +587,9 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', **defaultButtonSize)
 		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
 			**defaultButtonSize)
-		self.__zoomPlusButton = CancelableButton(on_release = self.__display.increaseZoom, text = 'Zoom +',
+		self.__zoomPlusButton = CancelableButton(on_release = self.__display.increaseZoom, text = 'Zoom + (a)',
 			**defaultButtonSize)
-		self.__zoomMinusButton = CancelableButton(on_release = self.__display.decreaseZoom, text = 'Zoom -',
+		self.__zoomMinusButton = CancelableButton(on_release = self.__display.decreaseZoom, text = 'Zoom - (s)',
 			**defaultButtonSize)
 
 		multipleLineSize = defaultDoubleLineSize.copy()
