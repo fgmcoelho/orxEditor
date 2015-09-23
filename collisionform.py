@@ -6,6 +6,7 @@ from kivy.graphics.vertex_instructions import Mesh, Line
 from kivy.graphics import Color
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.gridlayout import GridLayout
 
 from math import ceil
 
@@ -22,22 +23,25 @@ class CollisionPartDisplay(RelativeLayout):
 		if (obj is None):
 			return
 
+		self.__originalSize = vector2Multiply(obj.getBaseSize(), expandLevel)
+		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = self.__originalSize)
+
 		self.__texture = AutoReloadTexture(obj.getBaseSize(), obj.getImage())
-		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = obj.getBaseSize())
 		self.__image = Scatter(do_rotation = False, do_translation = False, do_scale = False)
 		im = Image(texture = self.__texture.getTexture(), size = obj.getBaseSize(), allow_strech = True)
 		self.__image.add_widget(im)
 		self.__image.size = obj.getBaseSize()
-		self.__operation = None
 		self.add_widget(self.__image)
-		self.__expandLevel = expandLevel
-		self.size = vector2Multiply(tuple(self.size), self.__expandLevel)
-		if (self.__expandLevel == 1.0):
-			self.__image.pos = (0, 0)
+
+		if (expandLevel == 1.0):
+			self.__originalPos = (0, 0)
 		else:
-			self.__image.pos = (self.size[0]/(self.__expandLevel * 2.), self.size[1]/(self.__expandLevel * 2.))
-		self.__originalSize = tuple(self.size)
+			self.__originalPos = (self.size[0]/(expandLevel * 2.), self.size[1]/(expandLevel * 2.))
+
+		self.__image.pos = self.__originalPos
 		self.__operation = None
+		self.__expandLevel = expandLevel
+		self.__zoom = 1
 
 	def clearDrawnForm(self):
 		if (self.__operation != None):
@@ -170,12 +174,22 @@ class CollisionPartDisplay(RelativeLayout):
 	def getImage(self):
 		return self.__image
 
-	def resize(self, x):
-		self.size = vector2Multiply(self.__originalSize, x)
-		self.__image.pos = (self.size[0]/4., self.size[1]/4.)
+	def applyZoom(self, adjust):
+		newZoom = self.__zoom + adjust
+		if (newZoom < 1 or newZoom > 8):
+			return
+
+		self.__zoom = newZoom
+		self.size = vector2Multiply(self.__originalSize, self.__zoom)
+		newPos = vector2Multiply(self.__originalPos, self.__zoom)
+		self.__image.scale = self.__zoom
+		self.__image._set_pos(newPos)
 
 	def getSize(self):
 		return tuple(self.size)
+
+	def getOriginalSize(self):
+		return self.__originalSize
 
 class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 	dotSize = 11
@@ -276,6 +290,25 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		y -= ceil(CollisionFormEditorPoints.dotSize/2.)
 		self.pos = (x, y)
 
+	def applyZoom(self, adjust):
+		newZoom = self.__zoom + adjust
+		if (newZoom < 1 or newZoom > 8):
+			return
+
+		x, y = tuple(self.getPos())
+		parentOriginalSize = self.parent.getOriginalSize()
+		x /= float(self.__zoom * parentOriginalSize[0])
+		y /= float(self.__zoom * parentOriginalSize[1])
+
+		self.__zoom = newZoom
+		newSize = vector2Multiply(parentOriginalSize, self.__zoom)
+		newX = x * newSize[0]
+		newY = y * newSize[1]
+		self.__maxX = newSize[0]
+		self.__maxY = newSize[1]
+
+		self.setPos((newX, newY))
+
 	def setPropagateMovement(self, value):
 		self.__propagateMovement = value
 
@@ -306,6 +339,7 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		self.on_touch_up = self._unmarkPoint
 
 		self.__maxX, self.__maxY = limits
+		self.__zoom = 1
 
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
@@ -314,7 +348,7 @@ class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 		self.add_widget(img)
 		CollisionFormEditorPoints.existingDots.append(self)
 
-class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers, KeyboardModifiers):
+class CollisionFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers, KeyboardModifiers):
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'shift'):
@@ -343,6 +377,12 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 		elif (keycode[1] in ['ctrl', 'lctrl', 'rctrl']):
 			self._isCtrlPressed = True
 			CollisionFormEditorPoints.setMoveAll(True)
+
+		elif (keycode[1] == 'a'):
+			self.applyZoom(1)
+
+		elif (keycode[1] == 's'):
+			self.applyZoom(-1)
 
 	def __updatePoints(self, point):
 		self.__lastPointPressed = point
@@ -440,7 +480,7 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 			self.__defaultTouchMove(touch)
 
 	def __init__(self):
-		super(CollisionFlagFormEditorLayout, self).__init__()
+		super(CollisionFormEditorLayout, self).__init__()
 		self.__lastPointPressed = None
 
 		self._layout = ScrollView(effect_cls = EmptyScrollEffect, scroll_y = 0.5, scroll_x = 0.5)
@@ -528,6 +568,17 @@ class CollisionFlagFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers
 
 		return True
 
+	def applyZoom(self, adjust):
+		self.__display.applyZoom(adjust)
+		for point in self.__pointsList:
+			point.applyZoom(adjust)
+		self.__updatePoints(None)
+
+	def increaseZoom(self, *args):
+		self.applyZoom(1)
+
+	def decreaseZoom(self, *args):
+		self.applyZoom(-1)
 
 class CollisionFormEditorPopup:
 	def __saveAndClose(self, *args):
@@ -541,8 +592,16 @@ class CollisionFormEditorPopup:
 		ModulesAccess.add('CollisionFormEditor', self)
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout, auto_dismiss = False)
-		self.__mainScreen = CollisionFlagFormEditorLayout()
+		self.__mainScreen = CollisionFormEditorLayout()
 		self.__bottomMenu = BoxLayout(orientation = 'horizontal', **defaultDoubleLineSize)
+		gridSize = defaultDoubleLineSize.copy()
+		gridSize["width"] = defaultSmallButtonSize["width"] * 2
+		gridSize["size_hint"] = defaultSmallButtonSize["size_hint"]
+		self.__buttonsGrid = GridLayout(cols = 2, rows = 2, **gridSize)
+		self.__zoomPlusButton = CancelableButton(text = "Zoom + (a)", on_release = self.__mainScreen.increaseZoom,
+			**defaultSmallButtonSize)
+		self.__zoomMinusButton = CancelableButton(text = "Zoom - (s)", on_release = self.__mainScreen.decreaseZoom,
+			**defaultSmallButtonSize)
 		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, **defaultSmallButtonSize)
 		self.__doneButton = CancelableButton(text = 'Done', on_release = self.__saveAndClose, **defaultSmallButtonSize)
 		self.__tooltipLabel = AlignedLabel(text='', **defaultDoubleLineSize)
@@ -553,8 +612,11 @@ class CollisionFormEditorPopup:
 		)
 
 		self.__bottomMenu.add_widget(self.__tooltipLabel)
-		self.__bottomMenu.add_widget(self.__cancelButton)
-		self.__bottomMenu.add_widget(self.__doneButton)
+		self.__buttonsGrid.add_widget(self.__zoomPlusButton)
+		self.__buttonsGrid.add_widget(self.__zoomMinusButton)
+		self.__buttonsGrid.add_widget(self.__cancelButton)
+		self.__buttonsGrid.add_widget(self.__doneButton)
+		self.__bottomMenu.add_widget(self.__buttonsGrid)
 
 		self.__layout.add_widget(self.__mainScreen.getLayout())
 		self.__layout.add_widget(self.__bottomMenu)

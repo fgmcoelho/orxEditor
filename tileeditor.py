@@ -39,11 +39,6 @@ class TileEditor(App, KeyboardAccess):
 		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcv') or
 				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete', 'pageup', 'pagedown']):
 			self.__sceneHandler.processKeyDown(keycode, modifiers)
-		#elif (len(keycode[1]) == 1 and keycode[1] in '123456789'):
-		#	if ('ctrl' in modifiers):
-		#		ObjectsMenu.Instance().setShortcut(keycode[1])
-		#	else:
-		#		ObjectsMenu.Instance().processShortcut(keycode[1])
 		elif (keycode[1] == 'spacebar'):
 			obj = ModulesAccess.get('ObjectDescriptor').getCurrentObject()
 			if (isinstance(obj, BaseObject) == True):

@@ -475,6 +475,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 
 		if (keycode[1] not in ['ctrl', 'lctrl', 'rctrl'] and keycode[1] != 'shift'):
+			Clock.unschedule(self.__scheduleTextureUpdate)
 			Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 
@@ -631,6 +632,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			relativeY = self._layout.vbar[0]
 			self.__sceneList[self.__currentIndex].addObject(obj, relativeX = relativeX, relativeY = relativeY)
 
+		Clock.unschedule(self.__scheduleTextureUpdate)
 		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def redraw(self):
@@ -660,7 +662,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		self._layout.add_widget(newScene.getLayout())
 		self.__sceneList[self.__currentIndex] = newScene
 		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
-		
+
+                Clock.unschedule(self.__scheduleTextureUpdate)
 		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 	def getCurrentSceneAttributes(self):
