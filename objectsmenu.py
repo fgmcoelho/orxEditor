@@ -179,7 +179,7 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		return pathSeparator.join(dirParts)
 
 	def _loadPng(self, item):
-		path = join(getcwd(), 'tiles', item)
+		path = join(self._targetDir, item)
 		img = Image(source = path)
 		baseObject = BaseObject(img, self._baseObjectId)
 		self._baseObjectsList.append(baseObject)
@@ -202,7 +202,7 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 			self._createAndAddBaseObject(newNode, selection, mainImage, spriteSize, resourceInfo.getPath())
 
 	def _loadOpf(self, item, pngsToIgnoreList):
-		resourceInfo = SplittedImageImporter.load(join(getcwd(), 'tiles', item))
+		resourceInfo = SplittedImageImporter.load(join(self._targetDir, item))
 
 		# Main object
 		mainImage = Image (source = resourceInfo.getPath())
@@ -218,7 +218,7 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		pngsToIgnoreList.append(split(resourceInfo.getPath())[1])
 
 	def _loadItems(self):
-		l = listdir(join(getcwd(), 'tiles'))
+		l = listdir(self._targetDir)
 		self._baseObjectsList = []
 		self._baseObjectId = 0
 		pngsToIgnoreList = []
@@ -304,8 +304,31 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		if (touch.button != 'scrollup' and touch.button != 'scrolldown'):
 			return self.__defaultTouchMove(touch)
 
+	def __watchFolder(self, dt):
+		from os import stat
+		dirData = stat(self._targetDir)
+		if (dirData is not None):
+			print dirData
+			lastUpdate = dirData.st_mtime
+		else:
+			return
+
+		if (self._lastUpdate is None):
+			self._lastUpdate = lastUpdate
+		elif (self._lastUpdate != lastUpdate):
+			for filename in listdir(self._targetDir):
+				pathname = join(self._targetDir, filename)
+				fileData = stat(pathname)
+				if (fileData is not None and fileData.st_mtime >= lastUpdate):
+					print "File: ", pathname, " was changed!"
+			self._lastUpdate = lastUpdate
+
+
+
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)
+		self._lastUpdate = None
+		self._targetDir = join(getcwd(), 'tiles')
 		self._tree = OptionMenuTree(root_options = { 'text' : 'Resources'})
 		self._layout = TempScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
 		self._loadItems()
@@ -314,10 +337,12 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		self._layout.add_widget(self._scrollLayout)
 		self._tree.bind(minimum_height=self._adjustTreeSize)
 
+
 		self.__defaultTouchDown = self._layout.on_touch_down
 		self.__defaultTouchUp = self._layout.on_touch_up
 		self.__defaultTouchMove = self._layout.on_touch_move
 		self._layout.on_touch_down = self.__processTouchDown
 		self._layout.on_touch_up = self.__processTouchUp
 		self._layout.on_touch_move = self.__processTouchMove
+		Clock.schedule_interval(self.__watchFolder, 0.5)
 
