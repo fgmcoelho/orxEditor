@@ -1,5 +1,5 @@
-from os.path import join, relpath, split, sep as pathSeparator
-from os import listdir, getcwd
+from os.path import join, relpath, split, basename, sep as pathSeparator
+from os import listdir, getcwd, stat
 
 from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
@@ -154,12 +154,6 @@ class OptionMenuImage(TreeViewNode, Image):
 	def getSelection(self):
 		return self.__selection
 
-	def isNodeToUpdate(self, resourceInfo):
-		if (self.__selection is None and self.__baseObject.getPath()[:-4] == resourceInfo.getPath()[:-4]):
-			return True
-		else:
-			return False
-
 	def __init__(self, obj, resourceInfo = None, selection = None):
 		assert isinstance(obj, BaseObject), 'Error, object must be a BaseObject.'
 		super(self.__class__, self).__init__(texture = obj.getBaseImage().texture, size = (32, 32))
@@ -179,12 +173,16 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		return pathSeparator.join(dirParts)
 
 	def _loadPng(self, item):
+		if (item in self._filenameToNode):
+			return
 		path = join(self._targetDir, item)
 		img = Image(source = path)
 		baseObject = BaseObject(img, self._baseObjectId)
 		self._baseObjectsList.append(baseObject)
-		self._tree.add_node(OptionMenuImage(baseObject))
+		newNode = OptionMenuImage(baseObject)
+		self._tree.add_node(newNode)
 		self._baseObjectId += 1
+		self._filenameToNode[item] = newNode
 
 	def _createAndAddBaseObject(self, newNode, selection, mainImage, spriteSize, path):
 		x = selection.getX()
@@ -201,33 +199,31 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		for selection in resourceInfo.getSelectionList():
 			self._createAndAddBaseObject(newNode, selection, mainImage, spriteSize, resourceInfo.getPath())
 
-	def _loadOpf(self, item, pngsToIgnoreList):
+	def _loadOpf(self, item):
 		resourceInfo = SplittedImageImporter.load(join(self._targetDir, item))
 
-		# Main object
-		mainImage = Image (source = resourceInfo.getPath())
-		mainBaseObject = BaseObject(mainImage, self._baseObjectId)
-		self._baseObjectId += 1
-		self._baseObjectsList.append(mainBaseObject)
-		newNode = self._tree.add_node(OptionMenuImage(mainBaseObject, resourceInfo = resourceInfo))
+		if (item[:-4] + '.png' not in self._filenameToNode):
+			mainImage = Image (source = resourceInfo.getPath())
+			mainBaseObject = BaseObject(mainImage, self._baseObjectId)
+			self._baseObjectId += 1
+			self._baseObjectsList.append(mainBaseObject)
+			newNode = self._tree.add_node(OptionMenuImage(mainBaseObject, resourceInfo = resourceInfo))
+			self._filenameToNode[item[:-4] + '.png'] = newNode
+		else:
+			newNode = self._filenameToNode[item[:-4] + '.png']
+			newNode.setResourceInfo(resourceInfo)
+			mainImage = newNode.getBaseObject().getBaseImage()
 
 		# Sprites
 		spriteSize = tuple(mainImage.texture.size)
 		self._loadSubitems(newNode, resourceInfo, mainImage, spriteSize)
 
-		pngsToIgnoreList.append(split(resourceInfo.getPath())[1])
-
-	def _loadItems(self):
-		l = listdir(self._targetDir)
-		self._baseObjectsList = []
-		self._baseObjectId = 0
+	def _loadItems(self, filesToLoad):
 		pngsToIgnoreList = []
-		for item in l:
+		for item in filesToLoad:
 			if (item[-4:] == '.opf'):
-				self._loadOpf(item, pngsToIgnoreList)
-
-		for item in l:
-			if (item[-4:] == '.png' and item not in pngsToIgnoreList):
+				self._loadOpf(item)
+			elif (item[-4:] == '.png'):
 				self._loadPng(item)
 
 	def __scrollUpdate(self, dt):
@@ -257,11 +253,9 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		node.setResourceInfo(newResourceInfo)
 
 	def updateResource(self, newResourceInfo):
-		for item in self._tree.children:
-			if item.isNodeToUpdate(newResourceInfo) == True:
-				self.__doUpdateResource(item, newResourceInfo)
-				self.__recentlyUpdated = (newResourceInfo.getPath(), time())
-				break
+		filename = basename(newResourceInfo.getPath())
+		node = self._filenameToNode[filename]
+		self.__doUpdateResource(node, newResourceInfo)
 
 	def updateSelectedNode(self, command):
 		assert command in ('up', 'down', 'left', 'right', 'leftright')
@@ -305,10 +299,8 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 			return self.__defaultTouchMove(touch)
 
 	def __watchFolder(self, dt):
-		from os import stat
 		dirData = stat(self._targetDir)
 		if (dirData is not None):
-			print dirData
 			lastUpdate = dirData.st_mtime
 		else:
 			return
@@ -316,14 +308,14 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		if (self._lastUpdate is None):
 			self._lastUpdate = lastUpdate
 		elif (self._lastUpdate != lastUpdate):
+			newFiles = []
 			for filename in listdir(self._targetDir):
 				pathname = join(self._targetDir, filename)
 				fileData = stat(pathname)
-				if (fileData is not None and fileData.st_mtime >= lastUpdate):
-					print "File: ", pathname, " was changed!"
+				if (fileData is not None and fileData.st_ctime >= self._lastUpdate):
+					newFiles.append(filename)
 			self._lastUpdate = lastUpdate
-
-
+			self._loadItems(newFiles)
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)
@@ -331,7 +323,10 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		self._targetDir = join(getcwd(), 'tiles')
 		self._tree = OptionMenuTree(root_options = { 'text' : 'Resources'})
 		self._layout = TempScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
-		self._loadItems()
+		self._baseObjectsList = []
+		self._baseObjectId = 0
+		self._filenameToNode = {}
+		self._loadItems(listdir(self._targetDir))
 		self._scrollLayout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], size_hint = (1.0, None))
 		self._scrollLayout.add_widget(self._tree)
 		self._layout.add_widget(self._scrollLayout)
