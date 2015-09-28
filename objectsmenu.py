@@ -14,7 +14,6 @@ from splittedimagemap import SplittedImageImporter
 from modulesaccess import ModulesAccess
 from uisizes import mainLayoutSize, defaultLabelSize
 from editorheritage import IgnoreTouch, LayoutGetter
-from time import time
 
 class TempScrollView(ScrollView):
 	# This is a temporary class that implements the scroll to that is still on
@@ -219,7 +218,6 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		self._loadSubitems(newNode, resourceInfo, mainImage, spriteSize)
 
 	def _loadItems(self, filesToLoad):
-		pngsToIgnoreList = []
 		for item in filesToLoad:
 			if (item[-4:] == '.opf'):
 				self._loadOpf(item)
@@ -305,17 +303,36 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		else:
 			return
 
+		newFiles = []
+		keysToRemove = []
+		for value in self._filesWaitingFinish.values():
+			fileData = stat(value[0])
+			if (value[1] != fileData.st_mtime or value[2] != fileData.st_atime or value[3] != fileData.st_ctime):
+				self._filesWaitingFinish[value[0]] = (value[0], fileData.st_mtime, fileData.st_atime,
+					fileData.st_ctime)
+			else:
+				newFiles.append(basename(value[0]))
+				keysToRemove.append(value[0])
+
+		if (newFiles != []):
+			self._loadItems(newFiles)
+
+		for key in keysToRemove:
+			del self._filesWaitingFinish[key]
+
 		if (self._lastUpdate is None):
 			self._lastUpdate = lastUpdate
 		elif (self._lastUpdate != lastUpdate):
-			newFiles = []
 			for filename in listdir(self._targetDir):
+				if (filename[-4:] not in [".png", ".opf"]):
+					continue
 				pathname = join(self._targetDir, filename)
 				fileData = stat(pathname)
 				if (fileData is not None and fileData.st_ctime >= self._lastUpdate):
-					newFiles.append(filename)
+					self._filesWaitingFinish[pathname] = (pathname, fileData.st_mtime, fileData.st_atime,
+						fileData.st_ctime)
+
 			self._lastUpdate = lastUpdate
-			self._loadItems(newFiles)
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)
@@ -326,6 +343,7 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		self._baseObjectsList = []
 		self._baseObjectId = 0
 		self._filenameToNode = {}
+		self._filesWaitingFinish = {}
 		self._loadItems(listdir(self._targetDir))
 		self._scrollLayout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], size_hint = (1.0, None))
 		self._scrollLayout.add_widget(self._tree)
