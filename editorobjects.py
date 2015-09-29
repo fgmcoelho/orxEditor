@@ -107,14 +107,12 @@ class SceneActionHistory:
 		if (self.__historyList != []):
 			action = self.__historyList.pop()
 			action.undo()
-			#print action.getName()
 			self.__redoList.append(action)
 
 	def redo(self):
 		if (self.__redoList != []):
 			action = self.__redoList.pop()
 			action.redo()
-			#print action.getName()
 			self.__historyList.append(action)
 
 class RenderObjectGuardian:
@@ -384,10 +382,16 @@ class RenderObjectGuardian:
 
 		return renderedObject
 
-
-class ObjectTypes:
-	baseObject = 1
-	renderedObject = 2
+	def mergeObjects(self):
+		if (len(self.__multiSelectionObjects) >= 2):
+			selectionCopy = self.__multiSelectionObjects[:]
+			self.__multiSelectionObjects = []
+			father = None
+			for obj in selectionCopy:
+				if (father is None):
+					father = obj
+				else:
+					father.merge(obj)
 
 class SpritedObjectInfo:
 	def __init__(self, virtualPath, coords, spriteSize):
@@ -420,7 +424,6 @@ class BaseObject:
 			self.__spriteInfo = SpritedObjectInfo(virtualPath, spriteCoords, spriteSize)
 
 		self.__size = baseImage.texture.size
-		self.__objectType = ObjectTypes.baseObject
 
 	def getIdentifier(self):
 		return self.__identifier
@@ -433,9 +436,6 @@ class BaseObject:
 
 	def getBaseImage(self):
 		return self.__baseImage
-
-	def getType(self):
-		return self.__objectType
 
 	def getSpriteInfo(self):
 		return self.__spriteInfo
@@ -488,6 +488,9 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__forceMove = True
 		self.setScale (self.__scale - 0.25, True)
 		self.__forceMove = False
+
+	def setMerged(self, value):
+		self.__merged = value
 
 	def setScale(self, newScale, preservePos = False):
 		if (newScale == 0.0):
@@ -646,6 +649,8 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			size = self.__baseSize, auto_bring_to_front = False)
 		self.add_widget(self.image)
 
+		self.__children = []
+		self.__merged = False
 		self.__renderGuardian = guardianToUse
 		self.__isFinished = False
 		self.__isHidden = False
@@ -654,7 +659,6 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__flipX = False
 		self.__flipY = False
 
-		self.__objectType = ObjectTypes.renderedObject
 		self.__tileSize = tileSize
 		self.__maxX = maxX
 		self.__maxY = maxY
@@ -695,11 +699,21 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self._set_pos((pos[0] + amount[0], pos[1] + amount[1]))
 		self.__forceMove = False
 
+	def merge(self, obj):
+		x, y = self.getPos()
+		ox, oy = obj.getPos()
+		fx, fy = x - ox, y - oy
+		obj.setMerged(True)
+		parent = obj.parent
+		parent.remove_widget(obj)
+		obj.remove_widget(obj.image)
+		print obj.image.pos
+		self.add_widget(obj.image)
+		obj.image.pos = (fx, fy)
+
+
 	def getIdentifier(self):
 		return self.__id
-
-	def getType(self):
-		return self.__objectType
 
 	def getPath(self):
 		return self.__path
@@ -739,6 +753,9 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 	def getSpriteInfo(self):
 		return self.__spriteInfo
+
+	def getMerged(self):
+		return self.__merged
 
 	def finish(self):
 		self.__isFinished = True

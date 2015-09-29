@@ -226,7 +226,8 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		objectsOrderedList = self._order_objects(self._objectDict)
 		self._layout.clear_widgets()
 		for obj in objectsOrderedList:
-			self._layout.add_widget(obj[0])
+			if (obj[0].getMerged() == False):
+				self._layout.add_widget(obj[0])
 			if (self._alignToGrid == True):
 				obj[0].alignToGrid()
 
@@ -313,6 +314,9 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			if (obj.getHidden() == False and obj.getFinished() == False):
 				self._renderGuardian.addObjectToSelection(obj)
 		ModulesAccess.get('ObjectDescriptor').set(self._objectDict.values())
+
+	def mergeObjects(self):
+		self._renderGuardian.mergeObjects()
 
 	def resetAllWidgets(self):
 		for objectId in self._objectDict.keys():
@@ -474,6 +478,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		elif (keycode[1] == 'pagedown'):
 			self.__sceneList[self.__currentIndex].decreaseLayer()
 
+		elif (keycode[1] == 'm'):
+			self.__sceneList[self.__currentIndex].mergeObjects()
 
 		if (keycode[1] not in ['ctrl', 'lctrl', 'rctrl'] and keycode[1] != 'shift'):
 			Clock.unschedule(self.__scheduleTextureUpdate)
