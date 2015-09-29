@@ -1,5 +1,6 @@
 from os.path import join, relpath, split, basename, sep as pathSeparator
 from os import listdir, getcwd, stat
+from shutil import copy2
 
 from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
@@ -7,6 +8,7 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.treeview import TreeView, TreeViewNode
 from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
+from kivy.core.window import Window
 
 from editorobjects import BaseObject
 from editorutils import EmptyScrollEffect, createSpriteImage, AlignedLabel
@@ -333,6 +335,10 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 						fileData.st_ctime)
 
 			self._lastUpdate = lastUpdate
+	
+	def _copyDropedFile(self, filepath):
+		if (filepath[-4:] in ['.png', '.opf'] and basename(filepath) not in self._filenameToNode):
+			copy2(filepath, self._targetDir)
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectsMenu', self)
@@ -358,4 +364,5 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		self._layout.on_touch_up = self.__processTouchUp
 		self._layout.on_touch_move = self.__processTouchMove
 		Clock.schedule_interval(self.__watchFolder, 0.5)
+		Window.on_dropfile = self._copyDropedFile
 
