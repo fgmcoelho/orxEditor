@@ -523,8 +523,10 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			if (objectToSelect in selectedList):
 				ModulesAccess.get('ObjectDescriptor').set(selectedList)
 			else:
-				ModulesAccess.get('ObjectDescriptor').set(objectToSelect)
-				self.__sceneList[self.__currentIndex].getRenderGuardian().setSingleSelectionObject(objectToSelect)
+				selection = self.__sceneList[self.__currentIndex].getRenderGuardian().setSingleSelectionObject(
+						objectToSelect
+				)
+				ModulesAccess.get('ObjectDescriptor').set(selection)
 
 		else:
 			selectedObjectsList = self.__sceneList[self.__currentIndex].getRenderGuardian().addObjectToSelection(

@@ -190,9 +190,16 @@ class RenderObjectGuardian:
 		return False
 
 	def addObjectToSelection(self, value):
-		if (value not in self.__multiSelectionObjects):
+		s = set(self.__multiSelectionObjects)
+		if (value not in s):
 			self.__multiSelectionObjects.append(value)
+			s.add(value)
 			value.setMarked()
+			for obj in value.getChildren():
+				currentLen = len(s)
+				s.add(obj)
+				if (len(s) != currentLen):
+					self.__multiSelectionObjects.append(obj)
 
 		return self.__multiSelectionObjects
 
@@ -305,12 +312,19 @@ class RenderObjectGuardian:
 		self.unsetSelection()
 		self.__multiSelectionObjects.append(value)
 		value.setMarked()
+		for obj in value.getChildren():
+			obj.setMarked()
+			self.__multiSelectionObjects.append(obj)
+
 		return self.__multiSelectionObjects
 
 	def unselectObject(self, value):
 		if (value in self.__multiSelectionObjects):
 			value.unsetMarked()
 			self.__multiSelectionObjects.remove(value)
+			for obj in value.getChildren():
+				obj.unsetMarked()
+				self.__multiSelectionObjects.remove(obj)
 
 		return self.__multiSelectionObjects
 
@@ -650,6 +664,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.add_widget(self.image)
 
 		self.__children = []
+		self.__parent = None
 		self.__merged = False
 		self.__renderGuardian = guardianToUse
 		self.__isFinished = False
@@ -700,17 +715,18 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__forceMove = False
 
 	def merge(self, obj):
-		x, y = self.getPos()
-		ox, oy = obj.getPos()
-		fx, fy = x - ox, y - oy
-		obj.setMerged(True)
-		parent = obj.parent
-		parent.remove_widget(obj)
-		obj.remove_widget(obj.image)
-		print obj.image.pos
-		self.add_widget(obj.image)
-		obj.image.pos = (fx, fy)
+		if (obj.getParent() is None):
+			obj.setParent(self)
+			self.__children.append(obj)
 
+	def setParent(self, value):
+		self.__parent = value
+
+	def getParent(self):
+		return self.__parent
+
+	def getChildren(self):
+		return self.__children
 
 	def getIdentifier(self):
 		return self.__id
