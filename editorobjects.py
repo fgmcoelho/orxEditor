@@ -190,15 +190,20 @@ class RenderObjectGuardian:
 		return False
 
 	def addObjectToSelection(self, value):
-		s = set(self.__multiSelectionObjects)
-		if (value not in s):
+		selectionSet = set(self.__multiSelectionObjects)
+		if (value not in selectionSet):
 			self.__multiSelectionObjects.append(value)
-			s.add(value)
+			selectionSet.add(value)
 			value.setMarked()
-			for obj in value.getChildren():
-				currentLen = len(s)
-				s.add(obj)
-				if (len(s) != currentLen):
+
+			parent = value.getParent()
+			if (parent is None):
+				parent = value
+
+			for obj in parent.getChildren():
+				currentLen = len(selectionSet)
+				selectionSet.add(obj)
+				if (len(selectionSet) != currentLen):
 					self.__multiSelectionObjects.append(obj)
 
 		return self.__multiSelectionObjects
@@ -357,6 +362,16 @@ class RenderObjectGuardian:
 		elif (direction == 'down'):
 			xAdjust = 0
 			yAdjust = (startY - endY)
+
+		# First we need to check if we have enough size to copy the whole selection:
+		for obj in self.__multiSelectionObjects:
+			pos = obj.getPos()
+			newPos = (pos[0] + xAdjust, pos[1] + yAdjust)
+			size = obj.getSize()
+
+			if (not (newPos[0] >= 0 and newPos[1] >= 0 and newPos[0] <= maxX and newPos[1] <= maxY
+					and newPos[0] + size[0] <= maxX and newPos[1] + size[1] <= maxY)):
+				return []
 
 		newSelection = []
 		for obj in self.__multiSelectionObjects:
