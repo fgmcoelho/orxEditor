@@ -315,21 +315,34 @@ class RenderObjectGuardian:
 
 	def setSingleSelectionObject(self, value):
 		self.unsetSelection()
-		self.__multiSelectionObjects.append(value)
-		value.setMarked()
-		for obj in value.getChildren():
+		parent = value.getParent()
+		if (parent is None):
+			parent = value
+
+		self.__multiSelectionObjects.append(parent)
+		parent.setMarked()
+		for obj in parent.getChildren():
 			obj.setMarked()
 			self.__multiSelectionObjects.append(obj)
 
 		return self.__multiSelectionObjects
 
 	def unselectObject(self, value):
-		if (value in self.__multiSelectionObjects):
-			value.unsetMarked()
-			self.__multiSelectionObjects.remove(value)
-			for obj in value.getChildren():
+		selectionSet = set(self.__multiSelectionObjects)
+		if (value in selectionSet):
+			parent = value.getParent()
+			if (parent is None):
+				parent = value
+
+			childrenAndParentSet = set(parent.getChildren())
+			childrenAndParentSet.add(parent)
+			newSelection = []
+			for obj in self.__multiSelectionObjects:
+				if (obj not in childrenAndParentSet):
+					newSelection.append(obj)
+			self.__multiSelectionObjects = newSelection
+			for obj in childrenAndParentSet:
 				obj.unsetMarked()
-				self.__multiSelectionObjects.remove(obj)
 
 		return self.__multiSelectionObjects
 
