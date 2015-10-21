@@ -386,17 +386,27 @@ class RenderObjectGuardian:
 					and newPos[0] + size[0] <= maxX and newPos[1] + size[1] <= maxY)):
 				return []
 
-		newSelection = []
+		objectsToCreate = []
 		for obj in self.__multiSelectionObjects:
+			if (obj.getParent() is None):
+				objectsToCreate.append(obj)
+
+		newSelection = []
+		for obj in objectsToCreate:
 			pos = obj.getPos()
 			newPos = (pos[0] + xAdjust, pos[1] + yAdjust)
 			size = obj.getSize()
-
-			if (newPos[0] >= 0 and newPos[1] >= 0 and newPos[0] <= maxX and newPos[1] <= maxY
-					and newPos[0] + size[0] <= maxX and newPos[1] + size[1] <= maxY):
-				newObj = RenderedObject(newId, obj, newPos, tileSize, maxX, maxY, self)
+			newObj = RenderedObject(newId, obj, newPos, tileSize, maxX, maxY, self)
+			newId += 1
+			newSelection.append(newObj)
+			for childObj in obj.getChildren():
+				pos = childObj.getPos()
+				newPos = (pos[0] + xAdjust, pos[1] + yAdjust)
+				size = childObj.getSize()
+				newChildObj = RenderedObject(newId, childObj, newPos, tileSize, maxX, maxY, self)
+				newObj.addChild(newChildObj)
 				newId += 1
-				newSelection.append(newObj)
+				newSelection.append(newChildObj)
 
 		if (newSelection != []):
 			for obj in self.__multiSelectionObjects:
@@ -426,14 +436,29 @@ class RenderObjectGuardian:
 
 	def mergeObjects(self):
 		if (len(self.__multiSelectionObjects) >= 2):
-			selectionCopy = self.__multiSelectionObjects[:]
-			self.__multiSelectionObjects = []
-			father = None
-			for obj in selectionCopy:
-				if (father is None):
-					father = obj
-				else:
-					father.merge(obj)
+			parentObjects = []
+			for obj in self.__multiSelectionObjects:
+				if (obj.getParent() is None and len(obj.getChildren()) > 0):
+					parentObjects.append(obj)
+
+			numberOfParents = len(parentObjects)
+			if (numberOfParents == 0):
+				parent = self.__multiSelectionObjects[0]
+			elif (numberOfParents == 1):
+				parent = parentObjects[0]
+			else:
+				numberOfChildren = 0
+				for obj in parentObjects:
+					if (numberOfChildren < len(obj.getChildren())):
+						numberOfChildren = len(obj.getChildren())
+						parent = obj
+
+				for obj in parentObjects:
+					obj.resetChildren()
+
+			for obj in self.__multiSelectionObjects:
+				if (obj != parent and obj.getParent() is not parent):
+					parent.addChild(obj)
 
 class SpritedObjectInfo:
 	def __init__(self, virtualPath, coords, spriteSize):
@@ -742,10 +767,14 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self._set_pos((pos[0] + amount[0], pos[1] + amount[1]))
 		self.__forceMove = False
 
-	def merge(self, obj):
-		if (obj.getParent() is None):
-			obj.setParent(self)
-			self.__children.append(obj)
+	def addChild(self, child):
+		child.setParent(self)
+		self.__children.append(child)
+
+	def resetChildren(self):
+		for obj in self.__children:
+			obj.setParent(None)
+		self.__children = []
 
 	def setParent(self, value):
 		self.__parent = value
