@@ -19,26 +19,41 @@ from modulesaccess import ModulesAccess
 from uisizes import defaultDoubleLineSize, defaultSmallButtonSize
 
 class CollisionPartDisplay(RelativeLayout):
+	def __drawObjectTexture(self, obj):
+		texture = AutoReloadTexture(obj.getBaseSize(), obj.getImage())
+		scatter = Scatter(do_rotation = False, do_translation = False, do_scale = False)
+		im = Image(texture = texture.getTexture(), size = obj.getBaseSize(), allow_strech = True)
+		scatter.add_widget(im)
+		scatter.size = obj.getBaseSize()
+		minX, minY, maxX, maxY = self.__limits
+		scatter.pos = (self.__originalPos[0] + (maxX - minX), self.__originalPos[1] + (maxY - minY))
+		self.add_widget(scatter)
+		self.__imageList.append(scatter)
+
 	def __init__(self, obj, expandLevel = 1.0):
 		if (obj is None):
 			return
 
-		self.__originalSize = vector2Multiply(obj.getBaseSize(), expandLevel)
-		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = self.__originalSize)
+		if (obj.getChildren() == []):
+			self.__originalSize = vector2Multiply(obj.getBaseSize(), expandLevel)
+			self.__limits = (0, 0, obj.getBaseSize()[0], obj.getBaseSize()[1])
+		else:
+			self.__limits = obj.getLimits()
+			minX, minY, maxX, maxY = self.__limits
+			self.__originalSize = vector2Multiply((maxX - minX, maxY - minY), expandLevel)
 
-		self.__texture = AutoReloadTexture(obj.getBaseSize(), obj.getImage())
-		self.__image = Scatter(do_rotation = False, do_translation = False, do_scale = False)
-		im = Image(texture = self.__texture.getTexture(), size = obj.getBaseSize(), allow_strech = True)
-		self.__image.add_widget(im)
-		self.__image.size = obj.getBaseSize()
-		self.add_widget(self.__image)
+		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = self.__originalSize)
 
 		if (expandLevel == 1.0):
 			self.__originalPos = (0, 0)
 		else:
 			self.__originalPos = (self.size[0]/(expandLevel * 2.), self.size[1]/(expandLevel * 2.))
 
-		self.__image.pos = self.__originalPos
+		self.__imageList = []
+		self.__drawObjectTexture(obj)
+		for childObj in obj.getChildren():
+			self.__drawObjectTexture(childObj)
+
 		self.__operation = None
 		self.__expandLevel = expandLevel
 		self.__zoom = 1

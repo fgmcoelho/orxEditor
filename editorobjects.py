@@ -776,6 +776,20 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			obj.setParent(None)
 		self.__children = []
 
+	def getLimits(self):
+		pos = self.getPos()
+		size = self.getSize()
+		l = [pos, (pos[0] + size[0], pos[1] + size[1])]
+		for childObj in self.__children:
+			pos = childObj.getPos()
+			size = childObj.getSize()
+			l.append(pos)
+			l.append((pos[0] + size[0], pos[1] + size[1]))
+
+		maxX, maxY = map(max, zip(*l))
+		minX, minY = map(min, zip(*l))
+		return (minX, minY, maxX, maxY)
+
 	def setParent(self, value):
 		self.__parent = value
 
