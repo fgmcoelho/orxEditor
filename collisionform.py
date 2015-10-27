@@ -26,7 +26,8 @@ class CollisionPartDisplay(RelativeLayout):
 		scatter.add_widget(im)
 		scatter.size = obj.getBaseSize()
 		minX, minY, maxX, maxY = self.__limits
-		scatter.pos = (self.__originalPos[0] + (maxX - minX), self.__originalPos[1] + (maxY - minY))
+		objPos = obj.getPos()
+		scatter.pos = (self.__originalPos[0] + (objPos[0] - minX), self.__originalPos[1] + (objPos[1] - minY))
 		self.add_widget(scatter)
 		self.__imageList.append(scatter)
 
@@ -43,7 +44,6 @@ class CollisionPartDisplay(RelativeLayout):
 			self.__originalSize = vector2Multiply((maxX - minX, maxY - minY), expandLevel)
 
 		super(CollisionPartDisplay, self).__init__(size_hint = (None, None), size = self.__originalSize)
-
 		if (expandLevel == 1.0):
 			self.__originalPos = (0, 0)
 		else:
@@ -68,8 +68,9 @@ class CollisionPartDisplay(RelativeLayout):
 
 		with self.canvas:
 			Color(0., 1.0, .0, 0.3)
-			imgPos = tuple(self.__image.pos)
-			imgSize = tuple(self.__image.size)
+			minX, minY, maxX, maxY = self.__limits
+			imgPos = self.__originalPos
+			imgSize = (maxX - minX, maxY - minY)
 			self.__operation = Line(
 				points = [
 					imgPos[0], imgPos[1],
@@ -82,7 +83,6 @@ class CollisionPartDisplay(RelativeLayout):
 
 	def __drawDefinedBox(self, points):
 		self.clearDrawnForm()
-
 		fx, fy = points[0]
 		sx, sy = points[1]
 		with self.canvas:
@@ -100,8 +100,9 @@ class CollisionPartDisplay(RelativeLayout):
 	def __drawDefaultSphere(self):
 		self.clearDrawnForm()
 
-		imgPos = tuple(self.__image.pos)
-		imgSize = tuple(self.__image.size)
+		minX, minY, maxX, maxY = self.__limits
+		imgPos = self.__originalPos
+		imgSize = (maxX - minX, maxY - minY)
 		with self.canvas:
 			Color(0., 1.0, .0, 0.3)
 			self.__operation = Line(
@@ -131,8 +132,9 @@ class CollisionPartDisplay(RelativeLayout):
 
 		with self.canvas:
 			Color(0., 1.0, .0, 0.3)
-			imgPos = tuple(self.__image.pos)
-			imgSize = tuple(self.__image.size)
+			minX, minY, maxX, maxY = self.__limits
+			imgPos = self.__originalPos
+			imgSize = (maxX - minX, maxY - minY)
 			self.__operation = Mesh (
 				vertices = [
 					imgPos[0], imgPos[0], 0, 0,
@@ -187,7 +189,7 @@ class CollisionPartDisplay(RelativeLayout):
 		return self.__expandLevel
 
 	def getImage(self):
-		return self.__image
+		return self.__imageList[0]
 
 	def applyZoom(self, adjust):
 		newZoom = self.__zoom + adjust
@@ -205,6 +207,13 @@ class CollisionPartDisplay(RelativeLayout):
 
 	def getOriginalSize(self):
 		return self.__originalSize
+	
+	def getOriginalPostision(self):
+		return self.__originalPos
+
+	def getImageSize(self):
+		minX, minY, maxX, maxY = self.__limits
+		return (maxX - minX, maxY - minY)
 
 class CollisionFormEditorPoints(Scatter, SpaceLimitedObject):
 	dotSize = 11
@@ -409,8 +418,8 @@ class CollisionFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers, Ke
 		self.__display.drawPart(self.__workingPart)
 
 	def __getStartingPositions(self, form):
-		imgPos = tuple(self.__display.getImage().pos)
-		imgSize = tuple(self.__display.getImage().size)
+		imgPos = tuple(self.__display.getOriginalPostision())
+		imgSize = tuple(self.__display.getImageSize())
 		if (form == 'box'):
 			return (imgPos, ((imgPos[0] + imgSize[0], imgPos[1] + imgSize[1])))
 		elif (form == 'sphere'):
@@ -478,9 +487,7 @@ class CollisionFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers, Ke
 		if (touch.button == "scrollup" or touch.button == "scrolldown"):
 			return
 
-		#print self._isRightPressed, self._isLeftPressed
 		self.updateMouseUp(touch)
-		#print self._isRightPressed, self._isLeftPressed
 		if (self._isRightPressed == True or self._isLeftPressed == False):
 			self._layout.do_scroll = True
 
