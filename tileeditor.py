@@ -26,6 +26,9 @@ from modulesaccess import ModulesAccess
 from editorutils import AlignedLabel
 from filesoptionsmenu import FilesOptionsMenu
 
+from cProfile import Profile
+from time import time
+
 class TileEditor(App, KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl']):
@@ -48,6 +51,15 @@ class TileEditor(App, KeyboardAccess):
 				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode(keycode[1])
 		elif (keycode[1] == "f5"):
 			ModulesAccess.get("OrxViewer").open()
+		elif (keycode[1] == 'p'):
+			if (self._profiler is None):
+				self._profiler = Profile()
+				self._profiler.enable()
+			else:
+				self._profiler.disable()
+				self._profiler.dump_stats('profiler_' + str(time()) + '.stats')
+				self._profiler = None
+
 
 	def confirm_exit(self, *args):
 		print 'We got exit confirmation: ', args
@@ -64,6 +76,7 @@ class TileEditor(App, KeyboardAccess):
 		Config.write()
 
 	def build(self):
+		self._profiler = None
 		Window.on_request_close = self.confirm_exit
 
 		self.root = BoxLayout(orientation='horizontal', padding = 0, spacing = 0)

@@ -763,6 +763,10 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 		return self.__extraPartsDict.values()
 
 	def open(self, *args):
+		import cProfile
+		profiller = cProfile.Profile()
+		profiller.enable()
+
 		objList = ModulesAccess.get('SceneHandler').getCurrentSelection()
 		if (objList == []):
 			self.__errorPopUp.setText('No object is selected!\nYou need to select at least one object from the scene.')
@@ -788,6 +792,9 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 			self.__render()
 			self.preview()
 			self.__collisionPopUp.open()
+
+		profiller.disable()
+		profiller.dump_stats('testing.profile')
 
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
