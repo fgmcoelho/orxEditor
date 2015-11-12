@@ -128,56 +128,83 @@ class SceneActionHistory:
 		return self.__transaction
 
 class RenderObjectGuardian:
-	def __getSelectionLimits(self, returnObjects = False):
+	def __addObjectToLimits(self, obj):
+		if (self.__objectLimits == []):
+			self.__objectLimits = [obj, obj, obj, obj]
+		else:
+			pos = obj.getPos()
+			size = obj.getSize()
+			print "Adding: ", pos, size
+			print "Current: ", \
+				self.__objectLimits[0].getPos(), self.__objectLimits[0].getSize(),\
+				self.__objectLimits[1].getPos(), self.__objectLimits[1].getSize(),\
+				self.__objectLimits[2].getPos(), self.__objectLimits[2].getSize(),\
+				self.__objectLimits[3].getPos(), self.__objectLimits[3].getSize()
+
+			if (pos[0] < self.__objectLimits[0].getPos()[0]):
+				self.__objectLimits[0] = obj
+			if (pos[1] < self.__objectLimits[1].getPos()[1]):
+				self.__objectLimits[1] = obj
+			if (pos[0] + size[0] > self.__objectLimits[2].getPos()[0] + self.__objectLimits[2].getSize()[0]):
+				self.__objectLimits[2] = obj
+			if (pos[1] + size[1] > self.__objectLimits[3].getPos()[1] + self.__objectLimits[3].getSize()[1]):
+				self.__objectLimits[3] = obj
+
+	def __updateSelectionLimits(self):
 		first = True
 		cur = None
-		if (returnObjects == True):
-			objectsResult = None
 		for obj in self.__multiSelectionObjects:
 			if (first == True):
 				pos = obj.getPos()
 				size = obj.getSize()
 				cur = [pos[0], pos[1], pos[0] + size[0], pos[1] + size[1]]
-				if (returnObjects == True):
-					objectsResult = [obj, obj, obj, obj]
+				self.__objectLimits = [obj, obj, obj, obj]
 				first = False
 			else:
 				pos = obj.getPos()
 				size = obj.getSize()
 				if (pos[0] < cur[0]):
 					cur[0] = pos[0]
-					if (returnObjects == True):
-						objectsResult[0] = obj
+					self.__objectLimits[0] = obj
 				if (pos[1] < cur[1]):
 					cur[1] = pos[1]
-					if (returnObjects == True):
-						objectsResult[1] = obj
+					self.__objectLimits[1] = obj
 				if (pos[0] + size[0] > cur[2]):
 					cur[2] = pos[0] + size[0]
-					if (returnObjects == True):
-						objectsResult[2] = obj
+					self.__objectLimits[2] = obj
 				if (pos[1] + size[1] > cur[3]):
 					cur[3] = pos[1] + size[1]
-					if (returnObjects == True):
-						objectsResult[3] = obj
-		if (returnObjects == True):
-			return objectsResult
-		return cur
+					self.__objectLimits[3] = obj
+
+	def __getSelectionLimits(self):
+		return (
+			self.__objectLimits[0].getPos()[0],
+			self.__objectLimits[1].getPos()[1],
+			self.__objectLimits[2].getPos()[0] + self.__objectLimits[2].getSize()[0],
+			self.__objectLimits[3].getPos()[1] + self.__objectLimits[3].getSize()[1]
+		)
+
+	def __reviewSelection(self):
+		newSelection = []
+		updateSelection = False
+		for obj in self.__multiSelectionObjects:
+			if (obj.getHidden() == False):
+				newSelection.append(obj)
+				if (updateSelection == False and obj in self.__objectLimits):
+					updateSelection = True
+
+		if (updateSelection == True):
+			self.__updateSelectionLimits()
+
+		self.__multiSelectionObjects = newSelection
 
 	def __init__(self):
 		self.__maxLayer = 0
 		self.__moveStarted = False
 		self.__movePositions = []
 		self.__multiSelectionObjects = []
+		self.__objectLimits = []
 		self.__history = SceneActionHistory()
-
-	def __reviewSelection(self):
-		newSelection = []
-		for obj in self.__multiSelectionObjects:
-			if (obj.getHidden() == False):
-				newSelection.append(obj)
-
-		self.__multiSelectionObjects = newSelection
 
 	def undo(self):
 		self.__history.undo()
@@ -221,6 +248,8 @@ class RenderObjectGuardian:
 		selectionSet = set(self.__multiSelectionObjects)
 		if (value not in selectionSet):
 			self.__multiSelectionObjects.append(value)
+			self.__addObjectToLimits(value)
+
 			selectionSet.add(value)
 			value.setMarked()
 
@@ -233,6 +262,9 @@ class RenderObjectGuardian:
 				selectionSet.add(obj)
 				if (len(selectionSet) != currentLen):
 					self.__multiSelectionObjects.append(obj)
+					# TODO: It is probably smarter to add the children in the limits function, as
+					# it can cache values
+					self.__addObjectToLimits(obj)
 
 		return self.__multiSelectionObjects
 
@@ -244,7 +276,7 @@ class RenderObjectGuardian:
 
 			self.__moveStarted = True
 
-		limitObjects = set(self.__getSelectionLimits(returnObjects = True))
+		limitObjects = set(self.__objectLimits)
 
 		res = True
 		for obj in limitObjects:
@@ -265,6 +297,7 @@ class RenderObjectGuardian:
 	def deleteSelection(self):
 		deletedObjects = self.__multiSelectionObjects[:]
 		self.__multiSelectionObjects = []
+		self.__objectLimits = []
 		for obj in deletedObjects:
 			obj.hide()
 
@@ -321,6 +354,7 @@ class RenderObjectGuardian:
 
 		return self.__multiSelectionObjects
 
+	#TODO: Need to update this for the merged objects
 	def alignSelectionToGrid(self):
 		# By default every translation one object in the multiple selection is
 		# propagated to the others. So we need to clean the list to alighn each
@@ -361,11 +395,13 @@ class RenderObjectGuardian:
 			obj.setMarked()
 			self.__multiSelectionObjects.append(obj)
 
+		self.__updateSelectionLimits()
 		return self.__multiSelectionObjects
 
 	def unselectObject(self, value):
 		selectionSet = set(self.__multiSelectionObjects)
 		if (value in selectionSet):
+			updateSelection = False
 			parent = value.getParent()
 			if (parent is None):
 				parent = value
@@ -379,6 +415,11 @@ class RenderObjectGuardian:
 			self.__multiSelectionObjects = newSelection
 			for obj in childrenAndParentSet:
 				obj.unsetMarked()
+				if (updateSelection == False and obj in self.__objectLimits):
+					updateSelection = True
+
+			if (updateSelection == True):
+				self.__updateSelectionLimits()
 
 		return self.__multiSelectionObjects
 
@@ -387,6 +428,7 @@ class RenderObjectGuardian:
 			for obj in self.__multiSelectionObjects:
 				obj.unsetMarked()
 			self.__multiSelectionObjects = []
+			self.__objectLimits = []
 
 	def copySelection(self, direction, newId, tileSize, maxX, maxY):
 		tot = time()
@@ -469,6 +511,7 @@ class RenderObjectGuardian:
 				obj.setMarked()
 
 			self.__multiSelectionObjects = newSelection
+			self.__updateSelectionLimits()
 			action = SceneAction("copySelection", newSelection)
 			self.__history.registerAction(action)
 		print "Selecting new objecs took: ", time() - t
@@ -532,6 +575,7 @@ class SpritedObjectInfo:
 		return self.__spriteSize
 
 class BaseObject:
+	# TODO: Sprited Objects already have an AutoReloadTexture, no need to recreate it!
 	def getCachedSprite(self):
 		if (self.__cachedSprite is None):
 			self.__cachedSprite = AutoReloadTexture(self.getSize(), self.getBaseImage())
