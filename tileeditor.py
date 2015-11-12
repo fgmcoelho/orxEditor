@@ -57,9 +57,14 @@ class TileEditor(App, KeyboardAccess):
 				self._profiler.enable()
 			else:
 				self._profiler.disable()
-				self._profiler.dump_stats('profiler_' + str(time()) + '.stats')
+				self._profiler.dump_stats('profile_logs/profiler_' + str(time()) + '.stats')
 				self._profiler = None
-
+		elif (keycode[1] == 'o'):
+			if (self._timer is None):
+				self._timer = time()
+			else:
+				print "Total time: ", time() - self._timer
+				self._timer = None
 
 	def confirm_exit(self, *args):
 		print 'We got exit confirmation: ', args
@@ -77,6 +82,7 @@ class TileEditor(App, KeyboardAccess):
 
 	def build(self):
 		self._profiler = None
+		self._timer = None
 		Window.on_request_close = self.confirm_exit
 
 		self.root = BoxLayout(orientation='horizontal', padding = 0, spacing = 0)

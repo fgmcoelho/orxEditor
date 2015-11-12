@@ -4,10 +4,15 @@ from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
 from os import sep as pathSeparator
+from time import time
 
 from collision import CollisionInformation
 from editorutils import AutoReloadTexture
 from editorheritage import SpaceLimitedObject
+
+scatterTime = 0
+imageTime = 0
+posTime = 0
 
 class SceneAction:
 	def __init__(self, action, objectsList, args = []):
@@ -88,6 +93,7 @@ class SceneAction:
 
 class SceneActionHistory:
 	def __init__(self):
+		self.__transaction = 0
 		self.__historyList = []
 		self.__redoList = []
 
@@ -102,42 +108,61 @@ class SceneActionHistory:
 		self.__historyList.append(action)
 		if (self.__redoList != []):
 			self.__clearRedoList()
+		self.__transaction += 1
 
 	def undo(self):
 		if (self.__historyList != []):
 			action = self.__historyList.pop()
 			action.undo()
 			self.__redoList.append(action)
+			self.__transaction += 1
 
 	def redo(self):
 		if (self.__redoList != []):
 			action = self.__redoList.pop()
 			action.redo()
 			self.__historyList.append(action)
+			self.__transaction += 1
+
+	def getTransaction(self):
+		return self.__transaction
 
 class RenderObjectGuardian:
-	def __getSelectionLimits(self):
+	def __getSelectionLimits(self, returnObjects = False):
 		first = True
 		cur = None
+		if (returnObjects == True):
+			objectsResult = None
 		for obj in self.__multiSelectionObjects:
 			if (first == True):
 				pos = obj.getPos()
 				size = obj.getSize()
 				cur = [pos[0], pos[1], pos[0] + size[0], pos[1] + size[1]]
+				if (returnObjects == True):
+					objectsResult = [obj, obj, obj, obj]
 				first = False
 			else:
 				pos = obj.getPos()
 				size = obj.getSize()
 				if (pos[0] < cur[0]):
 					cur[0] = pos[0]
+					if (returnObjects == True):
+						objectsResult[0] = obj
 				if (pos[1] < cur[1]):
 					cur[1] = pos[1]
+					if (returnObjects == True):
+						objectsResult[1] = obj
 				if (pos[0] + size[0] > cur[2]):
 					cur[2] = pos[0] + size[0]
+					if (returnObjects == True):
+						objectsResult[2] = obj
 				if (pos[1] + size[1] > cur[3]):
 					cur[3] = pos[1] + size[1]
-
-		return (cur[0], cur[1], cur[2], cur[3])
+					if (returnObjects == True):
+						objectsResult[3] = obj
+		if (returnObjects == True):
+			return objectsResult
+		return cur
 
 	def __init__(self):
 		self.__maxLayer = 0
@@ -161,6 +186,9 @@ class RenderObjectGuardian:
 	def redo(self):
 		self.__history.redo()
 		self.__reviewSelection()
+
+	def getTransaction(self):
+		return self.__history.getTransaction()
 
 	def endMovement(self):
 		if (self.__moveStarted == True):
@@ -216,15 +244,23 @@ class RenderObjectGuardian:
 
 			self.__moveStarted = True
 
+		limitObjects = set(self.__getSelectionLimits(returnObjects = True))
+
 		res = True
-		for obj in self.__multiSelectionObjects:
+		for obj in limitObjects:
 			if (obj != callingObject):
 				res &= obj.applyTranslationStart(translation, post, anchor)
 
 		if (res == False):
-			translation = translation.inverse()
+			inverseTranslation = translation.inverse()
+			for obj in limitObjects:
+				obj.applyPureTransform(inverseTranslation, post, anchor)
+			if callingObject not in limitObjects:
+				callingObject.applyPureTransform(inverseTranslation, post, anchor)
+		else:
 			for obj in self.__multiSelectionObjects:
-				obj.revertLastTranslation(translation, post, anchor)
+				if (obj not in limitObjects and obj != callingObject):
+					obj.applyPureTransform(translation, post, anchor)
 
 	def deleteSelection(self):
 		deletedObjects = self.__multiSelectionObjects[:]
@@ -353,6 +389,7 @@ class RenderObjectGuardian:
 			self.__multiSelectionObjects = []
 
 	def copySelection(self, direction, newId, tileSize, maxX, maxY):
+		tot = time()
 		assert (direction in ['left', 'right', 'up', 'down'])
 
 		if (self.__multiSelectionObjects == []):
@@ -377,6 +414,14 @@ class RenderObjectGuardian:
 			yAdjust = (startY - endY)
 
 		# First we need to check if we have enough size to copy the whole selection:
+		global scatterTime
+		scatterTime = 0
+		global imageTime
+		imageTime = 0
+		global posTime
+		posTime = 0
+
+		t = time()
 		for obj in self.__multiSelectionObjects:
 			pos = obj.getPos()
 			newPos = (pos[0] + xAdjust, pos[1] + yAdjust)
@@ -386,11 +431,16 @@ class RenderObjectGuardian:
 					and newPos[0] + size[0] <= maxX and newPos[1] + size[1] <= maxY)):
 				return []
 
+		print "Checking limits took: ", time() - t
+
+		t = time()
 		objectsToCreate = []
 		for obj in self.__multiSelectionObjects:
 			if (obj.getParent() is None):
 				objectsToCreate.append(obj)
+		print "Checking parents took: ", time() - t
 
+		t = time()
 		newSelection = []
 		for obj in objectsToCreate:
 			pos = obj.getPos()
@@ -407,7 +457,10 @@ class RenderObjectGuardian:
 				newObj.addChild(newChildObj)
 				newId += 1
 				newSelection.append(newChildObj)
+		print "Creating children took: ", time() - t
+		print "Scatter time: ", scatterTime, " Image time: ", imageTime, "Pos time: ", posTime
 
+		t = time()
 		if (newSelection != []):
 			for obj in self.__multiSelectionObjects:
 				obj.unsetMarked()
@@ -418,6 +471,9 @@ class RenderObjectGuardian:
 			self.__multiSelectionObjects = newSelection
 			action = SceneAction("copySelection", newSelection)
 			self.__history.registerAction(action)
+		print "Selecting new objecs took: ", time() - t
+		print "Total time: ", time() - tot
+		print "-----------------------------------------------------"
 
 		return newSelection
 
@@ -476,6 +532,11 @@ class SpritedObjectInfo:
 		return self.__spriteSize
 
 class BaseObject:
+	def getCachedSprite(self):
+		if (self.__cachedSprite is None):
+			self.__cachedSprite = AutoReloadTexture(self.getSize(), self.getBaseImage())
+		return self.__cachedSprite
+
 	def __init__(self, baseImage, identifier, virtualPath = None, spriteCoords = None, spriteSize = None):
 		assert (virtualPath is None and spriteCoords is None and spriteSize is None) or \
 			(virtualPath is not None and spriteCoords is not None and spriteSize is not None), \
@@ -491,6 +552,7 @@ class BaseObject:
 			self.__spriteInfo = SpritedObjectInfo(virtualPath, spriteCoords, spriteSize)
 
 		self.__size = baseImage.texture.size
+		self.__cachedSprite = None
 
 	def getIdentifier(self):
 		return self.__identifier
@@ -531,7 +593,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 		return True
 
-	def revertLastTranslation(self, translation, post_multiply, anchor):
+	def applyPureTransform(self, translation, post_multiply, anchor):
 		self.__defaultApplyTransform(translation, post_multiply, anchor)
 
 	def setMarked(self):
@@ -675,6 +737,9 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 	def __init__(self, identifier, obj, pos, tileSize, maxX, maxY, guardianToUse):
 		assert (isinstance(obj, BaseObject) or isinstance(obj, RenderedObject))
 		assert (type(maxX) is int and type(maxY) is int)
+		global imageTime
+		global scatterTime
+		global posTime
 
 		self.__id = identifier
 		self.__spriteInfo = obj.getSpriteInfo()
@@ -693,7 +758,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 		if (isinstance(obj, BaseObject)):
 			self.__baseSize = obj.getSize()
-			self.__texture = AutoReloadTexture(self.__baseSize, obj.getBaseImage())
+			self.__texture = obj.getCachedSprite()
 			self.image = Image(size = self.__baseSize, texture = self.__texture.getTexture())
 			self.__sx = self.__baseSize[0]
 			self.__sy = self.__baseSize[1]
@@ -702,9 +767,10 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			self.__collisionInfo = None
 
 		else:
+			t = time()
 			self.__baseSize = obj.getBaseSize()
 			self.__sx, self.__sy = obj.getSize()
-			self.__texture = AutoReloadTexture(self.__baseSize, obj.getImage())
+			self.__texture = obj.getTexture()
 			self.image = Image(size = self.__baseSize, texture = self.__texture.getTexture())
 			self.__layer = obj.getLayer()
 			if (obj.getCollisionInfo() is None):
@@ -712,10 +778,15 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			else:
 				self.__collisionInfo = CollisionInformation.copy(obj.getCollisionInfo())
 
+			imageTime += time() - t
+
+		t = time()
 		super(RenderedObject, self).__init__(do_rotation = False, do_scale = False, size_hint = (None, None),
 			size = self.__baseSize, auto_bring_to_front = False)
 		self.add_widget(self.image)
+		scatterTime += time() - t
 
+		t = time()
 		self.__children = []
 		self.__parent = None
 		self.__merged = False
@@ -745,6 +816,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.on_touch_up = self.__handleTouchUp
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
+		posTime += time() - t
 
 	def hide(self):
 		self.unsetMarked()
@@ -852,3 +924,6 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 	def getFinished(self):
 		return self.__isFinished
+
+	def getTexture(self):
+		return self.__texture

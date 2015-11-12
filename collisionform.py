@@ -20,16 +20,16 @@ from uisizes import defaultDoubleLineSize, defaultSmallButtonSize
 
 class CollisionPartDisplay(RelativeLayout):
 	def __drawObjectTexture(self, obj):
-		texture = AutoReloadTexture(obj.getBaseSize(), obj.getImage())
-		scatter = Scatter(do_rotation = False, do_translation = False, do_scale = False)
-		im = Image(texture = texture.getTexture(), size = obj.getBaseSize(), allow_strech = True)
-		scatter.add_widget(im)
-		scatter.size = obj.getBaseSize()
+		#scatter = Scatter(do_rotation = False, do_translation = False, do_scale = False)
+		im = Image(texture = obj.getImage().texture, size = obj.getBaseSize(), allow_strech = True)
+		#scatter.add_widget(im)
+		#scatter.size = obj.getBaseSize()
 		minX, minY, maxX, maxY = self.__limits
 		objPos = obj.getPos()
-		scatter.pos = (self.__originalPos[0] + (objPos[0] - minX), self.__originalPos[1] + (objPos[1] - minY))
-		self.add_widget(scatter)
-		self.__imageList.append(scatter)
+		#scatter.pos = (self.__originalPos[0] + (objPos[0] - minX), self.__originalPos[1] + (objPos[1] - minY))
+		im.pos = (self.__originalPos[0] + (objPos[0] - minX), self.__originalPos[1] + (objPos[1] - minY))
+		self.add_widget(im)
+		#self.__imageList.append(scatter)
 
 	def __init__(self, obj, expandLevel = 1.0):
 		if (obj is None):
@@ -207,7 +207,7 @@ class CollisionPartDisplay(RelativeLayout):
 
 	def getOriginalSize(self):
 		return self.__originalSize
-	
+
 	def getOriginalPostision(self):
 		return self.__originalPos
 

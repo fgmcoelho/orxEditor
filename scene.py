@@ -412,6 +412,9 @@ class Scene(OrderSceneObjects, LayoutGetter):
 	def getMaxSize(self):
 		return (self._maxX, self._maxY)
 
+	def getTransaction(self):
+		return self._renderGuardian.getTransaction()
+
 class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 	def processKeyUp(self, keycode):
 		if (keycode[1] == 'shift'):
@@ -543,11 +546,13 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		if (self._isRightPressed == True or self._isLeftPressed == False):
 			self._layout.do_scroll = True
 
-		if (touch.button == "left"):
-			self.__sceneList[self.__currentIndex].redraw()
-			ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
-
 		self.__defaultTouchUp(touch)
+
+		if (touch.button == "left"):
+			if(self.__startTransction != self.__sceneList[self.__currentIndex].getTransaction()):
+				self.__sceneList[self.__currentIndex].redraw()
+				ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
+
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (touch.button == 'scrollup'):
@@ -562,6 +567,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('leftright')
 			return
 
+		self.__startTransction = self.__sceneList[self.__currentIndex].getTransaction()
 		if (self._layout.collide_point(*touch.pos) == True):
 			self.updateMouseDown(touch)
 			if (self._isLeftPressed == True and self._isRightPressed == False):
