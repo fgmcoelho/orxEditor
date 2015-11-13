@@ -10,8 +10,8 @@ from kivy.uix.gridlayout import GridLayout
 
 from math import ceil
 
-from editorutils import AutoReloadTexture, CancelableButton, vector2Multiply, distance, isConvexPolygon, Alert, \
-	AlignedLabel, EmptyScrollEffect
+from editorutils import CancelableButton, vector2Multiply, distance, isConvexPolygon, Alert, AlignedLabel, \
+	EmptyScrollEffect
 from editorheritage import SpaceLimitedObject, LayoutGetter, MouseModifiers, KeyboardModifiers
 from collisioninfo import CollisionPartInformation
 from keyboard import KeyboardAccess, KeyboardGuardian
@@ -21,13 +21,13 @@ from uisizes import defaultDoubleLineSize, defaultSmallButtonSize
 class CollisionPartDisplay(RelativeLayout):
 	def __drawObjectTexture(self, obj):
 		#scatter = Scatter(do_rotation = False, do_translation = False, do_scale = False)
-		im = Image(texture = obj.getImage().texture, size = obj.getBaseSize(), allow_strech = True)
+		im = Image(texture = obj.getTexture(), size = obj.getBaseSize(), allow_strech = True)
 		#scatter.add_widget(im)
 		#scatter.size = obj.getBaseSize()
 		minX, minY, maxX, maxY = self.__limits
 		objPos = obj.getPos()
 		#scatter.pos = (self.__originalPos[0] + (objPos[0] - minX), self.__originalPos[1] + (objPos[1] - minY))
-		im.pos = (self.__originalPos[0] + (objPos[0] - minX), self.__originalPos[1] + (objPos[1] - minY))
+		im.pos = ((objPos[0] - minX), (objPos[1] - minY))
 		self.add_widget(im)
 		#self.__imageList.append(scatter)
 
@@ -519,6 +519,7 @@ class CollisionFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers, Ke
 	def render(self, part, obj):
 		CollisionFormEditorPoints.resetStartingState()
 		self._layout.clear_widgets()
+		print "Creating collision part display from form!"
 		self.__display = CollisionPartDisplay(obj, 2.0)
 		displaySize = self.__display.getSize()
 		self.__originalPart = part

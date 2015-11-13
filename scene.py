@@ -8,6 +8,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.clock import Clock
 
 from operator import itemgetter
+from time import time
 
 from editorheritage import LayoutGetter, KeyboardModifiers, MouseModifiers
 from editorobjects import RenderObjectGuardian
@@ -310,10 +311,11 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 	def selectAll(self):
 		self._renderGuardian.unsetSelection()
+		selection = []
 		for obj in self._objectDict.values():
 			if (obj.getHidden() == False and obj.getFinished() == False):
-				self._renderGuardian.addObjectToSelection(obj)
-		ModulesAccess.get('ObjectDescriptor').set(self._objectDict.values())
+				selection = self._renderGuardian.addObjectToSelection(obj)
+		ModulesAccess.get('ObjectDescriptor').set(selection)
 
 	def mergeObjects(self):
 		self._renderGuardian.mergeObjects()
@@ -424,6 +426,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			self.setIsCtrlPressed(False)
 
 	def processKeyDown(self, keycode, modifiers = None):
+		t = time()
 		if (modifiers is not None and 'ctrl' in modifiers and keycode[1] == 'a'):
 			self.__sceneList[self.__currentIndex].selectAll()
 
@@ -488,6 +491,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			Clock.unschedule(self.__scheduleTextureUpdate)
 			Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
+		print "Time to process touch down: ", time() - t
+
 
 	def __scheduleTextureUpdate(self, *args):
 		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
@@ -542,6 +547,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		ModulesAccess.get('ObjectDescriptor').set(selectedObjectsList)
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
+		t = time()
 		self.updateMouseUp(touch)
 		if (self._isRightPressed == True or self._isLeftPressed == False):
 			self._layout.do_scroll = True
@@ -552,6 +558,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			if(self.__startTransction != self.__sceneList[self.__currentIndex].getTransaction()):
 				self.__sceneList[self.__currentIndex].redraw()
 				ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
+		print "Processing touch up: ", time() - t
 
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):

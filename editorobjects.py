@@ -134,12 +134,6 @@ class RenderObjectGuardian:
 		else:
 			pos = obj.getPos()
 			size = obj.getSize()
-			print "Adding: ", pos, size
-			print "Current: ", \
-				self.__objectLimits[0].getPos(), self.__objectLimits[0].getSize(),\
-				self.__objectLimits[1].getPos(), self.__objectLimits[1].getSize(),\
-				self.__objectLimits[2].getPos(), self.__objectLimits[2].getSize(),\
-				self.__objectLimits[3].getPos(), self.__objectLimits[3].getSize()
 
 			if (pos[0] < self.__objectLimits[0].getPos()[0]):
 				self.__objectLimits[0] = obj
@@ -219,6 +213,7 @@ class RenderObjectGuardian:
 
 	def endMovement(self):
 		if (self.__moveStarted == True):
+			t = time()
 			if (self.__movePositions != [] and self.__multiSelectionObjects != []):
 				start = self.__movePositions[0]
 				end = self.__multiSelectionObjects[0].getPos()
@@ -237,6 +232,7 @@ class RenderObjectGuardian:
 				self.__history.registerAction(action)
 
 			self.__moveStarted = False
+			print "Finishing movement: ", time() - t
 
 	def isSelected(self, value):
 		if (self.__multiSelectionObjects != []):
@@ -245,23 +241,28 @@ class RenderObjectGuardian:
 		return False
 
 	def addObjectToSelection(self, value):
+		print value.getHidden()
+		if (value.getHidden() == True):
+			return self.__multiSelectionObjects
+
 		selectionSet = set(self.__multiSelectionObjects)
 		if (value not in selectionSet):
-			self.__multiSelectionObjects.append(value)
-			self.__addObjectToLimits(value)
-
-			selectionSet.add(value)
-			value.setMarked()
-
 			parent = value.getParent()
 			if (parent is None):
 				parent = value
+
+			self.__multiSelectionObjects.append(parent)
+			self.__addObjectToLimits(parent)
+
+			selectionSet.add(parent)
+			parent.setMarked()
 
 			for obj in parent.getChildren():
 				currentLen = len(selectionSet)
 				selectionSet.add(obj)
 				if (len(selectionSet) != currentLen):
 					self.__multiSelectionObjects.append(obj)
+					obj.setMarked()
 					# TODO: It is probably smarter to add the children in the limits function, as
 					# it can cache values
 					self.__addObjectToLimits(obj)
@@ -269,6 +270,9 @@ class RenderObjectGuardian:
 		return self.__multiSelectionObjects
 
 	def propagateTranslation(self, callingObject, translation, post, anchor):
+		if (len(self.__multiSelectionObjects) == 1):
+			return
+
 		if (self.__moveStarted == False):
 			self.__movePositions = []
 			for obj in self.__multiSelectionObjects:
@@ -354,7 +358,6 @@ class RenderObjectGuardian:
 
 		return self.__multiSelectionObjects
 
-	#TODO: Need to update this for the merged objects
 	def alignSelectionToGrid(self):
 		# By default every translation one object in the multiple selection is
 		# propagated to the others. So we need to clean the list to alighn each
@@ -364,24 +367,42 @@ class RenderObjectGuardian:
 		if (self.__multiSelectionObjects != []):
 			self.endMovement()
 
-			tempSelection = self.__multiSelectionObjects[:]
+			initialSelection = self.__multiSelectionObjects[:]
+			tempSelection = []
+			for obj in self.__multiSelectionObjects:
+				if (obj.getParent() is None):
+					tempSelection.append(obj)
+
 			movementDoneList = []
+			orderedObjects = []
 			allZero = True
 			for obj in tempSelection:
-				sx, sy = obj.getPos()
+				oldPosList = [obj.getPos()]
 				self.__multiSelectionObjects = [ obj ]
+				for childObj in obj.getChildren():
+					oldPosList.append(childObj.getPos())
+					self.__multiSelectionObjects.append(childObj)
+
+				# Aligning this object will move all its children by the same amount
 				obj.alignToGrid()
-				fx, fy = obj.getPos()
-				movementDoneList.append((fx - sx, fy - sy))
-				if (fx - sx != 0 or fy - sy != 0):
-					allZero = False
+
+				i = 0
+				for obj in self.__multiSelectionObjects:
+					orderedObjects.append(obj)
+					sx, sy = oldPosList[i]
+					fx, fy = obj.getPos()
+					movementDoneList.append((fx - sx, fy - sy))
+					if (fx - sx != 0 or fy - sy != 0):
+						allZero = False
+					i += 1
 
 			if (allZero == False):
-				action = SceneAction("move", tempSelection, movementDoneList)
+				action = SceneAction("move", orderedObjects, movementDoneList)
 				self.__history.registerAction(action)
 
 			self.__moveStarted = False
-			self.__multiSelectionObjects = tempSelection[:]
+			self.__multiSelectionObjects = initialSelection
+			self.__updateSelectionLimits()
 
 	def setSingleSelectionObject(self, value):
 		self.unsetSelection()
@@ -575,11 +596,10 @@ class SpritedObjectInfo:
 		return self.__spriteSize
 
 class BaseObject:
-	# TODO: Sprited Objects already have an AutoReloadTexture, no need to recreate it!
 	def getCachedSprite(self):
 		if (self.__cachedSprite is None):
 			self.__cachedSprite = AutoReloadTexture(self.getSize(), self.getBaseImage())
-		return self.__cachedSprite
+		return self.__cachedSprite.getTexture()
 
 	def __init__(self, baseImage, identifier, virtualPath = None, spriteCoords = None, spriteSize = None):
 		assert (virtualPath is None and spriteCoords is None and spriteSize is None) or \
@@ -803,7 +823,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		if (isinstance(obj, BaseObject)):
 			self.__baseSize = obj.getSize()
 			self.__texture = obj.getCachedSprite()
-			self.image = Image(size = self.__baseSize, texture = self.__texture.getTexture())
+			self.image = Image(size = self.__baseSize, texture = self.__texture)
 			self.__sx = self.__baseSize[0]
 			self.__sy = self.__baseSize[1]
 			self.__scale = 1.0
@@ -815,7 +835,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			self.__baseSize = obj.getBaseSize()
 			self.__sx, self.__sy = obj.getSize()
 			self.__texture = obj.getTexture()
-			self.image = Image(size = self.__baseSize, texture = self.__texture.getTexture())
+			self.image = Image(size = self.__baseSize, texture = self.__texture)
 			self.__layer = obj.getLayer()
 			if (obj.getCollisionInfo() is None):
 				self.__collisionInfo = None

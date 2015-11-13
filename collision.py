@@ -510,6 +510,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 
 	def __reloadObjectsCollisionDisplay(self, expandLevel = 1.0):
 		self.__objectsCollisionDisplay.clear_widgets()
+		print "Creating collision part display from collision!"
 		self.__partDisplay = CollisionPartDisplay(self.__objectsList[self.__objectsListIndex], expandLevel)
 		self.__objectsCollisionDisplay.size = self.__partDisplay.getSize()
 		self.__objectsCollisionDisplay.add_widget(self.__partDisplay)
@@ -763,16 +764,14 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 		return self.__extraPartsDict.values()
 
 	def open(self, *args):
-		import cProfile
-		profiller = cProfile.Profile()
-		profiller.enable()
-
 		objList = ModulesAccess.get('SceneHandler').getCurrentSelection()
 		if (objList == []):
 			self.__errorPopUp.setText('No object is selected!\nYou need to select at least one object from the scene.')
 			self.__errorPopUp.open()
 		else:
 			firstSize = objList[0].getBaseSize()
+			# TODO: Add check for objects with children
+
 			for obj in objList:
 				sizeToCompare = obj.getBaseSize()
 				if (firstSize[0] != sizeToCompare[0] or firstSize[1] != sizeToCompare[1]):
@@ -790,11 +789,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 			self.__objectsListIndex = 0
 			self.__createTemporatyCopies()
 			self.__render()
-			self.preview()
 			self.__collisionPopUp.open()
-
-		profiller.disable()
-		profiller.dump_stats('testing.profile')
 
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
