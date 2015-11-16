@@ -532,7 +532,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 				ModulesAccess.get('ObjectDescriptor').set(selectedList)
 			else:
 				selection = self.__sceneList[self.__currentIndex].getRenderGuardian().setSingleSelectionObject(
-						objectToSelect
+					objectToSelect
 				)
 				ModulesAccess.get('ObjectDescriptor').set(selection)
 
@@ -547,32 +547,39 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		ModulesAccess.get('ObjectDescriptor').set(selectedObjectsList)
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		t = time()
 		self.updateMouseUp(touch)
 		if (self._isRightPressed == True or self._isLeftPressed == False):
 			self._layout.do_scroll = True
 
-		self.__defaultTouchUp(touch)
 
 		if (touch.button == "left"):
-			if(self.__startTransction != self.__sceneList[self.__currentIndex].getTransaction()):
+			if (self.__clickedObject is not None):
+				print "Calling touch up"
+				self.__clickedObject.on_touch_up(touch)
+
+			if (self.__startTransction != self.__sceneList[self.__currentIndex].getTransaction()):
 				self.__sceneList[self.__currentIndex].redraw()
 				ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
-		print "Processing touch up: ", time() - t
 
+			if (self.__clickedObject is not None):
+				self.__clickedObject = None
+				return True
+		else:
+			self.__defaultTouchUp(touch)
+			return True
 
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (touch.button == 'scrollup'):
-			if(self._isCtrlPressed == True):
+			if (self._isCtrlPressed == True):
 				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('down')
-			return
+			return True
 		elif (touch.button == 'scrolldown'):
 			if (self._isCtrlPressed == True):
 				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('up')
-			return
+			return True
 		elif (touch.button == 'middle'):
 			ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('leftright')
-			return
+			return True
 
 		self.__startTransction = self.__sceneList[self.__currentIndex].getTransaction()
 		if (self._layout.collide_point(*touch.pos) == True):
@@ -585,15 +592,28 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 				if (selectedObject is not None):
 					if (touch.is_double_tap == False):
 						self.__selectObject(selectedObject)
+						self.__clickedObject = selectedObject
+						self.__clickedObject.on_touch_down(touch)
+						print "Calling selected object touch down"
 					else:
 						self.__unselectObject(selectedObject)
+						self.__clickedObject = None
 				elif (touch.is_double_tap == True):
 					self.__sceneList[self.__currentIndex].unselectAll()
-
-			return self.__defaultTouchDown(touch)
+					return True
+			else:
+				self.__defaultTouchDown(touch)
+				return True
 
 	def __handleScrollAndPassMoveToChildren(self, touch):
-		self.__defaultTouchMove(touch)
+		if (self.__clickedObject is not None):
+			print "Calling selected object touch move"
+			self.__clickedObject.on_touch_move(touch)
+
+		if (touch.button == "right"):
+			self.__defaultTouchMove(touch)
+
+		return True
 
 	def __scrollMove(self, *args):
 		self.__defaultScroll(*args)
@@ -617,6 +637,7 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		self.__sceneList = []
 		self.__sceneList.append(Scene())
 		self.__currentIndex = 0
+		self.__clickedObject = None
 
 		self._layout.add_widget(self.__sceneList[self.__currentIndex].getLayout())
 		ModulesAccess.add('SceneHandler', self)

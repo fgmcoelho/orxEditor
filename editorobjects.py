@@ -788,14 +788,17 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self._set_pos((x, y))
 
 	def __handleTouchDown(self, touch):
+		print "Touch down Event on child.", touch.pos
 		self.__defaultTouchDown(touch)
 
 	def __handleTouchUp(self, touch):
+		print "Touch up Event on child."
 		self.__renderGuardian.endMovement()
 
 		self.__defaultTouchUp(touch)
 
 	def __handleTouchMove(self, touch):
+		print "Touch move Event on child."
 		self.__defaultTouchMove(touch)
 
 	def __init__(self, identifier, obj, pos, tileSize, maxX, maxY, guardianToUse):
@@ -878,6 +881,9 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.on_touch_down = self.__handleTouchDown
 		self.__defaultTouchUp = self.on_touch_up
 		self.on_touch_up = self.__handleTouchUp
+		self.__defaultTouchMove = self.on_touch_move
+		self.on_touch_move = self.__handleTouchMove
+
 		self.__defaultApplyTransform = self.apply_transform
 		self.apply_transform = self.__checkAndTransform
 		posTime += time() - t
