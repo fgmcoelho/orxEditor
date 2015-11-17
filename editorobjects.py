@@ -375,15 +375,16 @@ class RenderObjectGuardian:
 				for childObj in obj.getChildren():
 					oldPosList.append(childObj.getPos())
 					self.__multiSelectionObjects.append(childObj)
+				self.__updateSelectionLimits()
 
 				# Aligning this object will move all its children by the same amount
 				obj.alignToGrid()
 
 				i = 0
-				for obj in self.__multiSelectionObjects:
-					orderedObjects.append(obj)
+				for singleObj in self.__multiSelectionObjects:
+					orderedObjects.append(singleObj)
 					sx, sy = oldPosList[i]
-					fx, fy = obj.getPos()
+					fx, fy = singleObj.getPos()
 					movementDoneList.append((fx - sx, fy - sy))
 					if (fx - sx != 0 or fy - sy != 0):
 						allZero = False
