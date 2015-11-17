@@ -8,7 +8,6 @@ from kivy.uix.scrollview import ScrollView
 from kivy.clock import Clock
 
 from operator import itemgetter
-from time import time
 
 from editorheritage import LayoutGetter, KeyboardModifiers, MouseModifiers
 from editorobjects import RenderObjectGuardian
@@ -124,10 +123,15 @@ class SceneAttributes:
 		self.__valuesDict[name] = value
 
 class Scene(OrderSceneObjects, LayoutGetter):
+	def __stopTouches(self, *args):
+		return True
+
 	def __init__(self, attributes = None):
 		self._alignToGrid = False
 		self._objectDict = {}
-		self._layout = RelativeLayout(size_hint = (None, None), on_resize = self.redraw)
+		self._layout = RelativeLayout(size_hint = (None, None), on_resize = self.redraw,
+			on_touch_up = self.__stopTouches, on_touch_down = self.__stopTouches, on_touch_move = self.__stopTouches
+		)
 		self._renderGuardian = RenderObjectGuardian()
 		self.loadValues(attributes)
 		self._fbo = Fbo(size=self._layout.size, with_stencilbuffer=True)
@@ -426,7 +430,6 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			self.setIsCtrlPressed(False)
 
 	def processKeyDown(self, keycode, modifiers = None):
-		t = time()
 		if (modifiers is not None and 'ctrl' in modifiers and keycode[1] == 'a'):
 			self.__sceneList[self.__currentIndex].selectAll()
 
@@ -491,9 +494,6 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			Clock.unschedule(self.__scheduleTextureUpdate)
 			Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
-		print "Time to process touch down: ", time() - t
-
-
 	def __scheduleTextureUpdate(self, *args):
 		ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
 
@@ -551,10 +551,10 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		if (self._isRightPressed == True or self._isLeftPressed == False):
 			self._layout.do_scroll = True
 
-
 		if (touch.button == "left"):
 			if (self.__clickedObject is not None):
-				print "Calling touch up"
+				touch.pos = self._layout.to_local(*touch.pos)
+				touch.x, touch.y = touch.pos
 				self.__clickedObject.on_touch_up(touch)
 
 			if (self.__startTransction != self.__sceneList[self.__currentIndex].getTransaction()):
@@ -593,8 +593,10 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 					if (touch.is_double_tap == False):
 						self.__selectObject(selectedObject)
 						self.__clickedObject = selectedObject
+						touch.pos = self._layout.to_local(*touch.pos)
+						touch.x, touch.y = touch.pos
 						self.__clickedObject.on_touch_down(touch)
-						print "Calling selected object touch down"
+						return True
 					else:
 						self.__unselectObject(selectedObject)
 						self.__clickedObject = None
@@ -606,12 +608,13 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 				return True
 
 	def __handleScrollAndPassMoveToChildren(self, touch):
-		if (self.__clickedObject is not None):
-			print "Calling selected object touch move"
-			self.__clickedObject.on_touch_move(touch)
-
 		if (touch.button == "right"):
 			self.__defaultTouchMove(touch)
+
+		elif (self.__clickedObject is not None):
+			touch.pos = self._layout.to_local(*touch.pos)
+			touch.x, touch.y = touch.pos
+			self.__clickedObject.on_touch_move(touch)
 
 		return True
 
