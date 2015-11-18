@@ -525,7 +525,6 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		return selectedObject
 
 	def __selectObject(self, objectToSelect):
-		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
 		if (self._isCtrlPressed == False):
 			selectedList = self.__sceneList[self.__currentIndex].getRenderGuardian().getSelection()
 			if (objectToSelect in selectedList):
@@ -559,7 +558,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 			if (self.__startTransction != self.__sceneList[self.__currentIndex].getTransaction()):
 				self.__sceneList[self.__currentIndex].redraw()
-				ModulesAccess.get('MiniMap').updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
+				Clock.unschedule(self.__scheduleTextureUpdate)
+				Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
 
 			if (self.__clickedObject is not None):
 				self.__clickedObject = None

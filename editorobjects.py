@@ -3,23 +3,28 @@ from kivy.uix.image import Image
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
-from os import sep as pathSeparator
+from os.path import basename
 
 from collision import CollisionInformation
 from editorutils import AutoReloadTexture
 from editorheritage import SpaceLimitedObject
 
 class SceneAction:
-	def __init__(self, action, objectsList, args = []):
+	def __init__(self, action, objectsList, undoArgs = [], redoArgs = []):
 		assert (type(objectsList) is list)
-		assert ((len (args) == 0) or (len(args) == len (objectsList)))
+		assert ((len(undoArgs) == 0) or (len(undoArgs) == len (objectsList)))
+		assert ((len(redoArgs) == 0) or (len(redoArgs) == len (objectsList)))
 
 		self.__objectsList = objectsList[:]
 		self.__undoList = []
 		self.__redoList = []
-		self.__actionArgs = args[:]
-		self.__name = action
+		self.__undoArgs = undoArgs[:]
+		if (len(undoArgs) != 0 and len(redoArgs) == 0):
+			self.__redoArgs = self.__undoArgs
+		else:
+			self.__redoArgs = redoArgs[:]
 
+		self.__name = action
 		if (action == "increaseScale"):
 			for obj in self.__objectsList:
 				self.__undoList.append(obj.decreaseScale)
@@ -63,19 +68,19 @@ class SceneAction:
 	def redo(self):
 		i = 0
 		for method in self.__redoList:
-			if (self.__actionArgs == []):
+			if (self.__redoArgs == []):
 				method()
 			else:
-				method(self.__actionArgs[i])
+				method(self.__redoArgs[i])
 				i += 1
 
 	def undo(self):
 		i = 0
 		for method in self.__undoList:
-			if (self.__actionArgs == []):
+			if (self.__undoArgs == []):
 				method()
 			else:
-				method(self.__actionArgs[i])
+				method(self.__undoArgs[i])
 				i += 1
 
 	def getName(self):
@@ -263,9 +268,6 @@ class RenderObjectGuardian:
 		return self.__multiSelectionObjects
 
 	def propagateTranslation(self, callingObject, translation, post, anchor):
-		if (len(self.__multiSelectionObjects) == 1):
-			return
-
 		if (self.__moveStarted == False):
 			self.__movePositions = []
 			for obj in self.__multiSelectionObjects:
@@ -273,8 +275,11 @@ class RenderObjectGuardian:
 
 			self.__moveStarted = True
 
-		limitObjects = set(self.__objectLimits)
+		# If only one object is selected, there is no need to execute the propagation code.
+		if (len(self.__multiSelectionObjects) == 1):
+			return
 
+		limitObjects = set(self.__objectLimits)
 		res = True
 		for obj in limitObjects:
 			if (obj != callingObject):
@@ -766,7 +771,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__defaultTouchDown(touch)
 
 	def __handleTouchUp(self, touch):
-		#print "Touch up Event on child.", touch.pos, touch.x, touch.y
+		#print "Touch up Event on child.", touch.uid, touch.pos, touch.x, touch.y
 		self.__renderGuardian.endMovement()
 
 		self.__defaultTouchUp(touch)
@@ -784,15 +789,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		path = obj.getPath()
 
 		#TODO: Find why this is not working on Windows.
-		sepIndex = path.rfind(pathSeparator)
-		if (sepIndex != -1):
-			self.__name = path[sepIndex+1:-4] + '_' + str(self.__id)
-		else:
-			sepIndex = path.rfind('/')
-			if (sepIndex != -1):
-				self.__name = path[sepIndex+1:-4] + '_' + str(self.__id)
-			else:
-				self.__name = path[0:-4] + '_' + str(self.__id)
+		self.__name = basename(path)[0:-4] + '_' + str(self.__id)
 
 		if (isinstance(obj, BaseObject)):
 			self.__baseSize = obj.getSize()

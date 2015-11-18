@@ -110,7 +110,11 @@ class NewBaseObjectDisplay(LayoutGetter):
 			self._currentObject = obj
 			ModulesAccess.get('ObjectDescriptor').set(obj)
 		elif (draw == True):
-			ModulesAccess.get('SceneHandler').draw(self._currentObject)
+			if (ModulesAccess.get('ObjectDescriptor').getCurrentObject() == self._currentObject):
+				ModulesAccess.get('SceneHandler').draw(self._currentObject)
+			else:
+				ModulesAccess.get('ObjectDescriptor').set(self._currentObject)
+
 
 class OptionMenuTree(TreeView):
 	def __processTouchDown(self, touch):
@@ -335,7 +339,7 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 						fileData.st_ctime)
 
 			self._lastUpdate = lastUpdate
-	
+
 	def _copyDropedFile(self, filepath):
 		if (filepath[-4:] in ['.png', '.opf'] and basename(filepath) not in self._filenameToNode):
 			copy2(filepath, self._targetDir)
