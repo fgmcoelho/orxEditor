@@ -19,17 +19,15 @@ from modulesaccess import ModulesAccess
 from uisizes import defaultDoubleLineSize, defaultSmallButtonSize
 
 class CollisionPartDisplay(RelativeLayout):
-	def __drawObjectTexture(self, obj):
-		#scatter = Scatter(do_rotation = False, do_translation = False, do_scale = False)
+	def __drawObjectTexture(self, obj, considerChildren):
 		im = Image(texture = obj.getTexture(), size = obj.getBaseSize(), allow_strech = True)
-		#scatter.add_widget(im)
-		#scatter.size = obj.getBaseSize()
 		minX, minY, maxX, maxY = self.__limits
-		objPos = obj.getPos()
-		#scatter.pos = (self.__originalPos[0] + (objPos[0] - minX), self.__originalPos[1] + (objPos[1] - minY))
+		if (considerChildren == True):
+			objPos = obj.getPos()
+		else:
+			objPos = (0, 0)
 		im.pos = ((objPos[0] - minX), (objPos[1] - minY))
-		self.add_widget(im)
-		#self.__imageList.append(scatter)
+		self.__image.add_widget(im)
 
 	def __init__(self, obj, expandLevel = 1.0):
 		if (obj is None):
@@ -49,13 +47,21 @@ class CollisionPartDisplay(RelativeLayout):
 		else:
 			self.__originalPos = (self.size[0]/(expandLevel * 2.), self.size[1]/(expandLevel * 2.))
 
-		self.__imageList = []
-		self.__drawObjectTexture(obj)
+		minX, minY, maxX, maxY = self.__limits
+		self.__image = Scatter(do_translation = False, do_rotation = False, do_scale = False,
+			size = (maxX - minX, maxY - minY), pos = self.__originalPos)
+
+		if (obj.getChildren() == []):
+			self.__drawObjectTexture(obj, False)
+		else:
+			self.__drawObjectTexture(obj, True)
+
 		for childObj in obj.getChildren():
-			self.__drawObjectTexture(childObj)
+			self.__drawObjectTexture(childObj, True)
 
 		self.__operation = None
 		self.__expandLevel = expandLevel
+		self.add_widget(self.__image)
 		self.__zoom = 1
 
 	def clearDrawnForm(self):
@@ -189,7 +195,7 @@ class CollisionPartDisplay(RelativeLayout):
 		return self.__expandLevel
 
 	def getImage(self):
-		return self.__imageList[0]
+		return self.__image
 
 	def applyZoom(self, adjust):
 		newZoom = self.__zoom + adjust

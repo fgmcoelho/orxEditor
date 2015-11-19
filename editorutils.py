@@ -138,6 +138,14 @@ class AlignedToggleButton(ToggleButton, AutoAlign):
 		self.bind(size = self._set_on_size)
 
 class BaseWarnMethods(KeyboardAccess, SeparatorLabel):
+	def __createTextWithSize(self, text):
+		if (text.count('\n') >= 1):
+			multilineSize = defaultLineSize.copy()
+			multilineSize['height'] = defaultFontSize * (text.count('\n') + 1)
+			self.mainPopUpText = AlignedLabel(text = text, **multilineSize)
+		else:
+			self.mainPopUpText = AlignedLabel(text = text, **defaultLineSize)
+
 	def _setButtonSize(self, button, new_size):
 		if (button.texture_size[0] != 0 and button.texture_size[1] != 0):
 			button.unbind(size=self._setButtonSize)
@@ -152,11 +160,17 @@ class BaseWarnMethods(KeyboardAccess, SeparatorLabel):
 		self.mainPopUp.title = value
 
 	def setText(self, value):
-		self.mainPopUpText.text = value
+		if (self.mainPopUpText.text.count('\n') != value.count('\n')):
+			self.__createTextWithSize(value)
+			self._finishLayout()
+		else:
+			self.mainPopUpText.text = value
 
 	def _finishLayout(self):
+		self.mainPopUpBox.clear_widgets()
+		self.mainPopUpBox.add_widget(self.mainPopUpText)
+		self.mainPopUpBox.add_widget(self.getSeparator())
 		self.mainPopUpBox.add_widget(self.bottomLine)
-		self.mainPopUp.content = self.mainPopUpBox
 
 	def __init__(self, title, text, **kwargs):
 		super(BaseWarnMethods, self).__init__(**kwargs)
@@ -166,18 +180,12 @@ class BaseWarnMethods(KeyboardAccess, SeparatorLabel):
 			**warningSize
 		)
 		self.mainPopUpBox = BoxLayout(orientation = 'vertical')
-		if (text.count('\n') >= 1):
-			multilineSize = defaultLineSize.copy()
-			multilineSize['height'] = defaultFontSize * (text.count('\n') + 1)
-			self.mainPopUpText = AlignedLabel(text = text, **multilineSize)
-		else:
-			self.mainPopUpText = AlignedLabel(text = text, **defaultLineSize)
+		self.__createTextWithSize(text)
 
 		self.bottomLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
 		self.bottomLine.add_widget(Label(text = '', **defaultLineSize))
 
-		self.mainPopUpBox.add_widget(self.mainPopUpText)
-		self.mainPopUpBox.add_widget(self.getSeparator())
+		self.mainPopUp.content = self.mainPopUpBox
 
 class Dialog(BaseWarnMethods):
 	def __doNothing(self, notUsed = None):

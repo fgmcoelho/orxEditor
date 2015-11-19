@@ -769,18 +769,40 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 			self.__errorPopUp.setText('No object is selected!\nYou need to select at least one object from the scene.')
 			self.__errorPopUp.open()
 		else:
-			firstSize = objList[0].getBaseSize()
-			# TODO: Add check for objects with children
-
+			parent = None
+			parentCount = 0
 			for obj in objList:
-				sizeToCompare = obj.getBaseSize()
-				if (firstSize[0] != sizeToCompare[0] or firstSize[1] != sizeToCompare[1]):
-					self.__errorPopUp.setText(
-						'Collision editor can only work on multiple\n'\
-						'objects that have the same base size.'
-					)
-					self.__errorPopUp.open()
-					return
+				if (obj.getParent() is not None):
+					parentCount += 1
+
+			if (parentCount != 0 and parentCount != len(objList) - 1):
+				self.__errorPopUp.setText(
+					'Your selection has a combination of merged and non\n'\
+					'merged objects. The editor can only work on a single\n'\
+					'merged object per time.'
+				)
+				self.__errorPopUp.open()
+				return
+
+			if (parentCount != 0):
+				parent = None
+				for obj in objList:
+					parent = obj.getParent()
+					if (parent is not None):
+						objList = [ parent ]
+						break
+				assert parent != None
+			else:
+				firstSize = objList[0].getBaseSize()
+				for obj in objList:
+					sizeToCompare = obj.getBaseSize()
+					if (firstSize[0] != sizeToCompare[0] or firstSize[1] != sizeToCompare[1]):
+						self.__errorPopUp.setText(
+							'Collision editor can only work on multiple\n'\
+							'objects that have the same base size.'
+						)
+						self.__errorPopUp.open()
+						return
 
 			KeyboardGuardian.Instance().acquireKeyboard(self)
 			self.__objectsList = objList
