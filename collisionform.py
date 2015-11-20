@@ -18,6 +18,24 @@ from keyboard import KeyboardAccess, KeyboardGuardian
 from modulesaccess import ModulesAccess
 from uisizes import defaultDoubleLineSize, defaultSmallButtonSize
 
+class CollisionFormScatterCache:
+	def clearCache(self):
+		self.__cacheDict = {}
+
+	def getFromCache(self, obj):
+		if (obj.getIdentifier() in self.__cacheDict):
+			return self.__cacheDict[obj.getIdentifier()]
+		else:
+			return None
+
+	def addToCache(self, obj, scatter):
+		assert obj.getIdentifier() not in self.__cacheDict, "Inserted element that is already on cache!"
+		self.__cacheDict[obj.getIdentifier()] = scatter
+
+	def __init__(self):
+		self.__cacheDict = {}
+		ModulesAccess.add("CollisionFormCache", self)
+
 class CollisionPartDisplay(RelativeLayout):
 	def __drawObjectTexture(self, obj, considerChildren):
 		im = Image(texture = obj.getTexture(), size = obj.getBaseSize(), allow_strech = True)
@@ -48,17 +66,26 @@ class CollisionPartDisplay(RelativeLayout):
 			self.__originalPos = (self.size[0]/(expandLevel * 2.), self.size[1]/(expandLevel * 2.))
 
 		minX, minY, maxX, maxY = self.__limits
-		self.__image = Scatter(do_translation = False, do_rotation = False, do_scale = False,
-			size = (maxX - minX, maxY - minY), pos = self.__originalPos)
+		self.__image = ModulesAccess.get("CollisionFormCache").getFromCache(obj)
+		if (self.__image is None):
+			self.__image = Scatter(do_translation = False, do_rotation = False, do_scale = False,
+				size = (maxX - minX, maxY - minY))
+			if (obj.getChildren() == []):
+				self.__drawObjectTexture(obj, False)
+			else:
+				self.__drawObjectTexture(obj, True)
 
-		if (obj.getChildren() == []):
-			self.__drawObjectTexture(obj, False)
+			for childObj in obj.getChildren():
+				self.__drawObjectTexture(childObj, True)
+
+			ModulesAccess.get("CollisionFormCache").addToCache(obj, self.__image)
+
 		else:
-			self.__drawObjectTexture(obj, True)
+			self.__image.scale = 1
+			if self.__image.parent is not None:
+				self.__image.parent.remove_widget(self.__image)
 
-		for childObj in obj.getChildren():
-			self.__drawObjectTexture(childObj, True)
-
+		self.__image.pos = self.__originalPos
 		self.__operation = None
 		self.__expandLevel = expandLevel
 		self.add_widget(self.__image)
@@ -143,7 +170,7 @@ class CollisionPartDisplay(RelativeLayout):
 			imgSize = (maxX - minX, maxY - minY)
 			self.__operation = Mesh (
 				vertices = [
-					imgPos[0], imgPos[0], 0, 0,
+					imgPos[0], imgPos[1], 0, 0,
 					imgPos[0] + imgSize[0], imgPos[1], 0, 0,
 					imgPos[0] + imgSize[0], imgPos[1] + imgSize[1], 0, 0,
 					imgPos[0], imgPos[1] + imgSize[1], 0, 0,
@@ -525,7 +552,7 @@ class CollisionFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers, Ke
 	def render(self, part, obj):
 		CollisionFormEditorPoints.resetStartingState()
 		self._layout.clear_widgets()
-		print "Creating collision part display from form!"
+		#print "Creating collision part display from form!"
 		self.__display = CollisionPartDisplay(obj, 2.0)
 		displaySize = self.__display.getSize()
 		self.__originalPart = part
@@ -614,7 +641,6 @@ class CollisionFormEditorPopup:
 		if (self.__mainScreen.savePoints() == False):
 			self.__meshErrorAlert.open()
 		else:
-			ModulesAccess.get('CollisionEditor').preview()
 			self.close()
 
 	def __init__(self):
@@ -651,6 +677,7 @@ class CollisionFormEditorPopup:
 		self.__layout.add_widget(self.__bottomMenu)
 
 	def close(self, *args):
+		ModulesAccess.get('CollisionEditor').preview()
 		KeyboardGuardian.Instance().dropKeyboard(self.__mainScreen)
 		self.__popup.dismiss()
 

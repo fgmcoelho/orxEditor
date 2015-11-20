@@ -13,7 +13,7 @@ from editorheritage import SeparatorLabel, AutoFocusInputUser
 from editorutils import Alert, Dialog, EmptyScrollEffect, CancelableButton, distance, AlignedLabel, AlignedToggleButton
 from keyboard import KeyboardAccess, KeyboardGuardian
 from collisioninfo import CollisionPartInformation, CollisionInformation
-from collisionform import CollisionPartDisplay
+from collisionform import CollisionPartDisplay, CollisionFormScatterCache
 from modulesaccess import ModulesAccess
 from uisizes import defaultSmallButtonSize, defaultLineSize, defaultInputSize, defaultLabelSize, defaultCheckboxSize,\
 	defaultFontSize, defaultSwitchSize, defaultLargeButtonSize, collisionBodyInfoSize, collisionTabbedSize
@@ -510,7 +510,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 
 	def __reloadObjectsCollisionDisplay(self, expandLevel = 1.0):
 		self.__objectsCollisionDisplay.clear_widgets()
-		print "Creating collision part display from collision!"
+		# print "Creating collision part display from collision!"
 		self.__partDisplay = CollisionPartDisplay(self.__objectsList[self.__objectsListIndex], expandLevel)
 		self.__objectsCollisionDisplay.size = self.__partDisplay.getSize()
 		self.__objectsCollisionDisplay.add_widget(self.__partDisplay)
@@ -605,7 +605,8 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 		points = part.getPoints()
 		if (points != None):
 			form = part.getFormType()
-			limits = self.__objectsList[self.__objectsListIndex].getBaseSize()
+			minX, minY, maxX, maxY = self.__objectsList[self.__objectsListIndex].getLimits()
+			limits = (maxX - minX, maxY - minY)
 			if form == 'box' or form == 'mesh':
 				for point in points:
 					if ((floor(point[0]) < 0 or floor(point[1]) < 0) or
@@ -723,6 +724,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 			'This will replace information of other objects.', 'Yes', 'No')
 		self.__errorPopUp = Alert('Error', 'No Object selected!\nYou need to select one object from the scene.',
 			'Ok')
+		CollisionFormScatterCache()
 
 	def preview(self, *args):
 		if (len(args) > 0 and isinstance(args[0], TabbedPanelHeader)):
@@ -804,6 +806,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 						self.__errorPopUp.open()
 						return
 
+			ModulesAccess.get("CollisionFormCache").clearCache()
 			KeyboardGuardian.Instance().acquireKeyboard(self)
 			self.__objectsList = objList
 			self.__copiesDict = {}
@@ -811,6 +814,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 			self.__objectsListIndex = 0
 			self.__createTemporatyCopies()
 			self.__render()
+			self.preview()
 			self.__collisionPopUp.open()
 
 	def close(self, *args):

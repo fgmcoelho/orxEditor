@@ -881,7 +881,7 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 	def getLimits(self):
 		pos = self.getPos()
-		size = self.getSize()
+		size = self.getBaseSize()
 		l = [pos, (pos[0] + size[0], pos[1] + size[1])]
 		for childObj in self.__children:
 			pos = childObj.getPos()

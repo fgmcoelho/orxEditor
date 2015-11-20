@@ -396,6 +396,9 @@ class FilesManager:
 						parser.set(partSectionName, 'SelfFlags', selfFlags)
 
 					points = currentPart.getPoints()
+					if (obj.getChildren() != []):
+						points = CollisionPartInformation.convertPointsForParent(obj, points)
+
 					if (points is not None):
 						if (form == 'box'):
 							topX = max(points[0][0], points[1][0])

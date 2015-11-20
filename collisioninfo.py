@@ -19,7 +19,7 @@ class CollisionGuardian:
 	def __startFlags(self):
 		self.__id = 0
 		self.__flagsDict = {}
-	
+
 	def __init__(self):
 		ModulesAccess.add('CollisionGuardian', self)
 		self.__startFlags()
@@ -67,6 +67,18 @@ class CollisionPartInformation:
 			part.getPoints()
 		)
 
+	@staticmethod
+	def convertPointsForParent(obj, points):
+		assert obj.getChildren() != []
+		minX, minY, maxX, maxY = obj.getLimits()
+		x, y = obj.getPos()
+		dx = x - minX
+		dy = y - minY
+		l = []
+		for point in points:
+			l.append((point[0] - dx, point[1] - dy))
+		return l
+
 	def __assertPointsValue(self, form, points):
 		assert (points is None) or (form == "box" and len(points) == 2) or (form == "sphere" and \
 			len(points) == 2) or (form == "mesh" and len(points) >= 3),\
@@ -94,14 +106,14 @@ class CollisionPartInformation:
 						break
 				if (hasFlag == False):
 					return False
-		
+
 		return True
 
 	def __compareFormTypeAndPoints(self, part):
 		if (self.__formType != part.getFormType()):
 			return False
 
-		otherPoints = part.getPoints() 
+		otherPoints = part.getPoints()
 		if (self.__points is None and otherPoints is None):
 			return True
 
