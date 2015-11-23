@@ -324,6 +324,9 @@ class Scene(OrderSceneObjects, LayoutGetter):
 	def mergeObjects(self):
 		self._renderGuardian.mergeObjects()
 
+	def unmergeObjects(self):
+		self._renderGuardian.unmergeObjects()
+
 	def resetAllWidgets(self):
 		for objectId in self._objectDict.keys():
 			self._objectDict[objectId].resetAllWidgets()
@@ -489,6 +492,9 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 		elif (keycode[1] == 'm'):
 			self.__sceneList[self.__currentIndex].mergeObjects()
+
+		elif (keycode[1] == 'n'):
+			self.__sceneList[self.__currentIndex].unmergeObjects()
 
 		if (keycode[1] not in ['ctrl', 'lctrl', 'rctrl'] and keycode[1] != 'shift'):
 			Clock.unschedule(self.__scheduleTextureUpdate)

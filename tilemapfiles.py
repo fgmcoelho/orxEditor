@@ -102,6 +102,14 @@ class FilesManager:
 			parser.set(newSectionName, 'Scale', str(obj.getScale()))
 			parser.set(newSectionName, 'Layer', obj.getLayer())
 			parser.set(newSectionName, 'Size', str(obj.getBaseSize()))
+			parser.set(newSectionName, 'Identifier', str(obj.getIdentifier()))
+
+			childList = obj.getChildren()
+			if childList != []:
+				childrenIds = []
+				for childObj in childList:
+					childrenIds.append(str(childObj.getIdentifier()))
+				parser.set(newSectionName, 'ChildrenId', ','.join(childrenIds))
 
 			collisionObject = obj.getCollisionInfo()
 			if (collisionObject is None):
@@ -229,15 +237,19 @@ class FilesManager:
 			loadedLayers.append(layer.getName())
 
 		try:
+			childLinks = {}
 			for name in objectNames:
 				fullPath = parser.get(name, 'AbsolutePath')
 				coords = self.__getSpriteCoords(parser, name)
-				identifier = int(name.split('_')[-1])
+				identifier = int(parser.get(name, 'Identifier'))
 				position = strToDoubleFloatTuple(parser.get(name, 'Position'))
 				scale = float(parser.get(name, 'Scale'))
 				flipX = strToBool(parser.get(name, 'FlipX'))
 				flipY = strToBool(parser.get(name, 'FlipY'))
 				layer = parser.get(name, 'Layer')
+				if ('ChildrenId' in parser.options(name)):
+					childLinks[identifier] = map(int, parser.get(name, 'ChildrenId').split(','))
+
 				assert layer in loadedLayers, 'layer of the object ' + name + ' was not loaded.'
 				if (strToBool(parser.get(name, 'HasCollisionInfo')) == False):
 					collisionInfo = None
@@ -266,6 +278,16 @@ class FilesManager:
 
 				ModulesAccess.get('SceneHandler').addObjectByInfo(tempBaseObjects[(fullPath, coords)], identifier,
 					position, scale, flipX, flipY, layer, collisionInfo)
+
+			if (childLinks != {}):
+				sceneObjectsList = ModulesAccess.get('SceneHandler').getCurrentSceneObjects()
+				sceneObjectsDict = {}
+				for obj in sceneObjectsList:
+					sceneObjectsDict[obj.getIdentifier()] = obj
+
+				for key, value in childLinks.iteritems():
+					for childObjId in value:
+						sceneObjectsDict[key].addChild(sceneObjectsDict[childObjId])
 
 		except Exception, e:
 			raise Exception('Error loading the objecs to the list:' + str(e))

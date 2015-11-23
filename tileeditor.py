@@ -39,7 +39,7 @@ class TileEditor(App, KeyboardAccess):
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
-		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcvm') or
+		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcvmn') or
 				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete', 'pageup', 'pagedown']):
 			self.__sceneHandler.processKeyDown(keycode, modifiers)
 		elif (keycode[1] == 'spacebar'):

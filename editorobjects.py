@@ -6,7 +6,7 @@ from kivy.graphics import Color
 from os.path import basename
 
 from collision import CollisionInformation
-from editorutils import AutoReloadTexture
+from editorutils import AutoReloadTexture, Dialog
 from editorheritage import SpaceLimitedObject
 
 class SceneAction:
@@ -533,31 +533,63 @@ class RenderObjectGuardian:
 
 		return renderedObject
 
+	def __doMergeObjects(self):
+		parentObjects = []
+		for obj in self.__multiSelectionObjects:
+			if (obj.getParent() is None and len(obj.getChildren()) > 0):
+				parentObjects.append(obj)
+			obj.setCollisionInfo(None)
+
+		numberOfParents = len(parentObjects)
+		if (numberOfParents == 0):
+			parent = self.__multiSelectionObjects[0]
+		elif (numberOfParents == 1):
+			parent = parentObjects[0]
+		else:
+			numberOfChildren = 0
+			for obj in parentObjects:
+				if (numberOfChildren < len(obj.getChildren())):
+					numberOfChildren = len(obj.getChildren())
+					parent = obj
+
+			for obj in parentObjects:
+				obj.resetChildren()
+
+		for obj in self.__multiSelectionObjects:
+			if (obj != parent and obj.getParent() is not parent):
+				parent.addChild(obj)
+
+	def __doUnmergeObjects(self):
+		for obj in self.__multiSelectionObjects:
+			if (obj.getChildren() != []):
+				obj.setCollisionInfo(None)
+			obj.resetChildren()
+
+	def __checkMergingColliders(self, action, method):
+		confirm = False
+		for obj in self.__multiSelectionObjects:
+			if (obj.getCollisionInfo() is not None):
+				confirm = True
+
+		if (confirm == True):
+			confirmMerge = Dialog(
+				method,
+				'Confirm operation:',
+				'%s the objects will destroy the colliders.\nContinue?' % (action,),
+				'Yes',
+				'No'
+			)
+			confirmMerge.open()
+		else:
+			method()
+
 	def mergeObjects(self):
 		if (len(self.__multiSelectionObjects) >= 2):
-			parentObjects = []
-			for obj in self.__multiSelectionObjects:
-				if (obj.getParent() is None and len(obj.getChildren()) > 0):
-					parentObjects.append(obj)
+			self.__checkMergingColliders('Merging', self.__doMergeObjects)
 
-			numberOfParents = len(parentObjects)
-			if (numberOfParents == 0):
-				parent = self.__multiSelectionObjects[0]
-			elif (numberOfParents == 1):
-				parent = parentObjects[0]
-			else:
-				numberOfChildren = 0
-				for obj in parentObjects:
-					if (numberOfChildren < len(obj.getChildren())):
-						numberOfChildren = len(obj.getChildren())
-						parent = obj
-
-				for obj in parentObjects:
-					obj.resetChildren()
-
-			for obj in self.__multiSelectionObjects:
-				if (obj != parent and obj.getParent() is not parent):
-					parent.addChild(obj)
+	def unmergeObjects(self):
+		if (len(self.__multiSelectionObjects) >= 2):
+			self.__checkMergingColliders('unmerging', self.__doUnmergeObjects)
 
 class SpritedObjectInfo:
 	def __init__(self, virtualPath, coords, spriteSize):
