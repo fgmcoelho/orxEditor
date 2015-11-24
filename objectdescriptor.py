@@ -142,6 +142,14 @@ class MultipleSelectionDescriptor(CleanDescriptorLayoutGetter, SeparatorLabel, D
 		super(MultipleSelectionDescriptor, self).__init__()
 		self._selectedLabel = AlignedLabel(text = 'Selected: 0', **defaultLabelSize)
 
+		self._mergeButton = CancelableButton(text = 'Merge (m)', on_release = self._call_on_press,
+			**defaultSmallButtonSize)
+		self._unmergeButton = CancelableButton(text = 'Break (n)', on_release = self._call_on_press,
+			**defaultSmallButtonSize)
+
+		self._linesList[2].add_widget(self._mergeButton)
+		self._linesList[3].add_widget(self._unmergeButton)
+
 	def set(self, objects = None):
 		layout = self._getParentLayout()
 		layout.add_widget(self._selectedLabel)

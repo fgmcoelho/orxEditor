@@ -9,6 +9,26 @@ from collision import CollisionInformation
 from editorutils import AutoReloadTexture, Dialog
 from editorheritage import SpaceLimitedObject
 
+class SceneActionList:
+	def __init__(self):
+		self.__actionList = []
+
+	def addAction(self, action):
+		assert isinstance(action, SceneAction)
+		self.__actionList.append(action)
+
+	def redo(self):
+		for action in self.__actionList:
+			action.redo()
+
+	def undo(self):
+		for action in reversed(self.__actionList):
+			action.undo()
+
+	def clear(self):
+		for action in self.__actionList:
+			action.clear()
+
 class SceneAction:
 	def __init__(self, action, objectsList, undoArgs = [], redoArgs = []):
 		assert (type(objectsList) is list)
@@ -65,6 +85,22 @@ class SceneAction:
 				self.__undoList.append(obj.hide)
 				self.__redoList.append(obj.show)
 
+		elif (action == "setCollision"):
+			for obj in self.__objectsList:
+				self.__undoList.append(obj.setCollisionInfo)
+				self.__redoList.append(obj.setCollisionInfo)
+
+		elif (action == "resetChildren"):
+			for obj in self.__objectsList:
+				self.__undoList.append(obj.addChild)
+				self.__redoList.append(obj.resetChildren)
+
+		elif (action == "addChild"):
+			for obj in self.__objectsList:
+				self.__undoList.append(obj.removeChild)
+				self.__redoList.append(obj.addChild)
+
+
 	def redo(self):
 		i = 0
 		for method in self.__redoList:
@@ -104,7 +140,7 @@ class SceneActionHistory:
 		self.__redoList = []
 
 	def registerAction(self, action):
-		assert(isinstance(action, SceneAction))
+		assert isinstance(action, SceneAction) or isinstance(action, SceneActionList)
 		self.__historyList.append(action)
 		if (self.__redoList != []):
 			self.__clearRedoList()
@@ -181,11 +217,16 @@ class RenderObjectGuardian:
 	def __reviewSelection(self):
 		newSelection = []
 		updateSelection = False
+		selectionSet = set(self.__multiSelectionObjects)
 		for obj in self.__multiSelectionObjects:
 			if (obj.getHidden() == False):
 				newSelection.append(obj)
 				if (updateSelection == False and obj in self.__objectLimits):
 					updateSelection = True
+			if (obj.getParent() is not None and obj.getParent() not in selectionSet):
+				self.addObjectToSelection(obj.getParent())
+				selectionSet = set(self.__multiSelectionObjects)
+				updateSelection = True
 
 		if (updateSelection == True):
 			self.__updateSelectionLimits()
@@ -534,11 +575,23 @@ class RenderObjectGuardian:
 		return renderedObject
 
 	def __doMergeObjects(self):
+		actionList = SceneActionList()
+		historyObjList = []
+		undoList = []
+		redoList = []
+
 		parentObjects = []
 		for obj in self.__multiSelectionObjects:
 			if (obj.getParent() is None and len(obj.getChildren()) > 0):
 				parentObjects.append(obj)
+
+			collisionInfo = obj.getCollisionInfo()
+			historyObjList.append(obj)
+			undoList.append(collisionInfo)
+			redoList.append(None)
 			obj.setCollisionInfo(None)
+
+		actionList.addAction(SceneAction("setCollision", historyObjList, undoList, redoList))
 
 		numberOfParents = len(parentObjects)
 		if (numberOfParents == 0):
@@ -553,17 +606,57 @@ class RenderObjectGuardian:
 					parent = obj
 
 			for obj in parentObjects:
+				historyObjList = []
+				undoList = []
+				redoList = []
+				for childObj in obj.getChildren():
+					historyObjList.append(obj)
+					undoList.append(childObj)
+					redoList.append(None)
+
+				actionList.addAction(SceneAction("resetChildren", historyObjList, undoList, redoList))
 				obj.resetChildren()
 
+		historyObjList = []
+		undoList = []
+		redoList = []
 		for obj in self.__multiSelectionObjects:
 			if (obj != parent and obj.getParent() is not parent):
+				historyObjList.append(parent)
+				undoList.append(obj)
 				parent.addChild(obj)
 
+		actionList.addAction(SceneAction("addChild", historyObjList, undoList, redoList))
+		self.__history.registerAction(actionList)
+
 	def __doUnmergeObjects(self):
+		actionList = SceneActionList()
+		historyObjList = []
+		undoList = []
+		redoList = []
 		for obj in self.__multiSelectionObjects:
 			if (obj.getChildren() != []):
+				collisionInfo = obj.getCollisionInfo()
+				historyObjList.append(obj)
+				undoList.append(collisionInfo)
+				redoList.append(None)
 				obj.setCollisionInfo(None)
-			obj.resetChildren()
+
+		actionList.addAction(SceneAction("setCollision", historyObjList, undoList, redoList))
+
+		historyObjList = []
+		undoList = []
+		redoList = []
+		for obj in self.__multiSelectionObjects:
+			if (obj.getChildren() != []):
+				for childObj in obj.getChildren():
+					historyObjList.append(obj)
+					undoList.append(childObj)
+					redoList.append(None)
+				obj.resetChildren()
+
+		actionList.addAction(SceneAction("resetChildren", historyObjList, undoList, redoList))
+		self.__history.registerAction(actionList)
 
 	def __checkMergingColliders(self, action, method):
 		confirm = False
@@ -906,7 +999,12 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		child.setParent(self)
 		self.__children.append(child)
 
-	def resetChildren(self):
+	def removeChild(self, child):
+		child.setParent(None)
+		if (self.__children != []):
+			self.__children.remove(child)
+
+	def resetChildren(self, *notUsed):
 		for obj in self.__children:
 			obj.setParent(None)
 		self.__children = []
