@@ -9,7 +9,7 @@ from kivy.clock import Clock
 
 from operator import itemgetter
 
-from editorheritage import LayoutGetter, KeyboardModifiers, MouseModifiers
+from editorheritage import LayoutGetter, KeyboardModifiers
 from editorobjects import RenderObjectGuardian
 from editorutils import Alert, EmptyScrollEffect
 from modulesaccess import ModulesAccess
@@ -424,7 +424,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 	def getTransaction(self):
 		return self._renderGuardian.getTransaction()
 
-class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
+class SceneHandler(LayoutGetter, KeyboardModifiers):
 	def processKeyUp(self, keycode):
 		if (keycode[1] == 'shift'):
 			self.setIsShiftPressed(False)
@@ -552,9 +552,18 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		ModulesAccess.get('ObjectDescriptor').set(selectedObjectsList)
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		self.updateMouseUp(touch)
-		if (self._isRightPressed == True or self._isLeftPressed == False):
-			self._layout.do_scroll = True
+		if (self.__sceneSelection.getStarted() == True):
+			touch.pos = self._layout.to_local(*touch.pos)
+			self.__sceneSelection.finish(touch.pos)
+			allObjectsList = self.getCurrentSceneObjects()
+			objectsToSelect = self.__sceneSelection.filterObjects(allObjectsList)
+			self.__sceneList[self.__currentIndex].unselectAll()
+
+			for obj in objectsToSelect:
+				self.__sceneList[self.__currentIndex].getRenderGuardian().addObjectToSelection(obj)
+			ModulesAccess.get('ObjectDescriptor').set(objectsToSelect)
+
+			return True
 
 		if (touch.button == "left"):
 			if (self.__clickedObject is not None):
@@ -587,13 +596,14 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 			ModulesAccess.get('BaseObjectsMenu').updateSelectedNode('leftright')
 			return True
 
-		self.__startTransction = self.__sceneList[self.__currentIndex].getTransaction()
 		if (self._layout.collide_point(*touch.pos) == True):
-			self.updateMouseDown(touch)
-			if (self._isLeftPressed == True and self._isRightPressed == False):
-				self._layout.do_scroll = False
-
 			if (touch.button == "left"):
+				if (self._isShiftPressed == True):
+					touch.pos = self._layout.to_local(*touch.pos)
+					self.__sceneSelection.start(touch.pos)
+					return True
+
+				self.__startTransction = self.__sceneList[self.__currentIndex].getTransaction()
 				selectedObject = self.__getSelectedObjectByClick(touch)
 				if (selectedObject is not None):
 					if (touch.is_double_tap == False):
@@ -614,6 +624,11 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 				return True
 
 	def __handleScrollAndPassMoveToChildren(self, touch):
+		if (self.__sceneSelection.getStarted() == True):
+			touch.pos = self._layout.to_local(*touch.pos)
+			self.__sceneSelection.update(touch.pos)
+			return True
+
 		if (touch.button == "right"):
 			self.__defaultTouchMove(touch)
 
@@ -647,6 +662,8 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 		self.__sceneList.append(Scene())
 		self.__currentIndex = 0
 		self.__clickedObject = None
+		self.__startTransction = None
+		self.__sceneSelection = SceneSelection(self.__sceneList[self.__currentIndex].getLayout())
 
 		self._layout.add_widget(self.__sceneList[self.__currentIndex].getLayout())
 		ModulesAccess.add('SceneHandler', self)
@@ -709,10 +726,10 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 	# TODO: This method still considers a single scene condition.
 	def newScene(self, attributes):
-		newScene = Scene(attributes)
+		scene = Scene(attributes)
 		self._layout.clear_widgets()
-		self._layout.add_widget(newScene.getLayout())
-		self.__sceneList[self.__currentIndex] = newScene
+		self._layout.add_widget(scene.getLayout())
+		self.__sceneList[self.__currentIndex] = scene
 		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
 
 		Clock.unschedule(self.__scheduleTextureUpdate)
@@ -730,3 +747,69 @@ class SceneHandler(LayoutGetter, MouseModifiers, KeyboardModifiers):
 
 	def getSceneObjectId(self):
 		return self.__sceneList[self.__currentIndex].getCurrentId()
+
+class SceneSelection:
+	def __init__(self, layout):
+		self.__startPoint = None
+		self.__endPoint = None
+		self.__operation = None
+		self.__started = False
+		self.__layoutRef = layout
+
+	def getStarted(self):
+		return self.__started
+
+	def start(self, point):
+		self.__started = True
+		self.__startingPoint = tuple(point)
+
+	def update(self, point):
+		if (self.__operation is not None):
+			self.__layoutRef.canvas.remove(self.__operation)
+
+		x = min(self.__startingPoint[0], point[0])
+		y = min(self.__startingPoint[1], point[1])
+		sx = abs(self.__startingPoint[0] - point[0])
+		sy = abs(self.__startingPoint[1] - point[1])
+
+		with self.__layoutRef.canvas:
+			Color(0., 1., 0., 0.3)
+			self.__operation = Rectangle(
+				size = (sx, sy),
+				pos = (x, y)
+			)
+
+	def finish(self, point):
+		if (self.__operation is not None):
+			self.__layoutRef.canvas.remove(self.__operation)
+			self.__operation = None
+
+		self.__endPoint = tuple(point)
+		self.__started = False
+
+	def filterObjects(self, objList):
+		if (self.__startingPoint[0] < self.__endPoint[0]):
+			left = self.__startingPoint[0]
+			right = self.__endPoint[0]
+		else:
+			left = self.__endPoint[0]
+			right = self.__startingPoint[0]
+
+		if (self.__startingPoint[1] < self.__endPoint[1]):
+			bottom = self.__startingPoint[1]
+			top = self.__endPoint[1]
+		else:
+			bottom = self.__endPoint[1]
+			top = self.__startingPoint[1]
+
+		selectedObjects = []
+		for obj in objList:
+			pos = obj.getPos()
+			size = obj.getSize()
+			objLeft, objBottom = pos
+			objRight = pos[0] + size[0]
+			objTop = pos[1] + size[1]
+			if not(left > objRight or right < objLeft or top < objBottom or bottom > objTop):
+				selectedObjects.append(obj)
+
+		return selectedObjects
