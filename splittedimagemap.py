@@ -128,4 +128,3 @@ class SplittedImageImporter:
 			resourceInfo.addSelection(selection)
 
 		return resourceInfo
-

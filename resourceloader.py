@@ -79,8 +79,6 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 
 		end = (self.__originalSize[1]) - self.__ySkip
 		start = end - (self.__rows * self.__ySize)
-		#print "Checking y start: ", y, start, ", end: ", y, end, ")"
-		#print "Start math: ", end, " - (", self.__rows, " * ", self.__ySize, ")"
 		if (y < start or y > end):
 			return (None, None)
 
@@ -167,8 +165,6 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 			self.__gridGraphics[i][j].select()
 
 	def __doDrawGrid(self):
-		#print self.__xSkip, self.__ySkip, self.__xSize, self.__ySize
-		#print self._scrollLayout.size
 		j = self.__originalSize[1] - self.__ySkip
 		while j - self.__ySize >= 0:
 			i = self.__xSkip
@@ -225,7 +221,6 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		if (self.__currentImage is not None and self.__gridGraphics != [] and self.__selectionStarted == False):
 			self.__clearGraphicGrid()
 			posToUse = self.__currentImage.to_widget(*touch.pos)
-			#print "Starting: ", posToUse
 			sj, si = self.__posToGridCoords(*posToUse)
 			if (sj == None or si == None):
 				return
@@ -236,7 +231,6 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def finishSelection(self, touch):
 		if (self.__currentImage is not None and self.__gridGraphics != [] and self.__selectionStarted == True):
 			pos = self.__currentImage.to_widget(*touch.pos)
-			#print "Finishing: ", pos
 			fj, fi = self.__posToGridCoords(*pos)
 			sj, si = self.__posToGridCoords(*self.__selectionStartPos)
 			if (fj == None or fi == None or sj == None or si == None):
@@ -696,8 +690,14 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 
 		dialog.open()
 
+	def __doNothing(self, *args):
+		return
+
 	def __createRightMenuUi(self):
 		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 0.75), showMethod = self.__showSelection)
+
+		self.__addAnimation = CancelableButton(text = 'Add animation', on_release = self.__doNothing,
+			**defaultLabelSize)
 		self.__addFullSelection = CancelableButton(text = 'Add as one', on_release = self.__processAddSelection,
 			**defaultLabelSize)
 		self.__addPartSelection = CancelableButton(text = 'Add parts', on_release = self.__processAddPartsSelection,
@@ -710,6 +710,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 			**defaultLabelSize)
 
 		self.__rightMenu.add_widget(self.__selectionTree.getLayout())
+		self.__rightMenu.add_widget(self.__addAnimation)
 		self.__rightMenu.add_widget(self.__addFullSelection)
 		self.__rightMenu.add_widget(self.__addPartSelection)
 		self.__rightMenu.add_widget(self.__showSelection)

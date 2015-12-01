@@ -31,9 +31,9 @@ class SceneActionList:
 
 class SceneAction:
 	def __init__(self, action, objectsList, undoArgs = [], redoArgs = []):
-		assert (type(objectsList) is list)
-		assert ((len(undoArgs) == 0) or (len(undoArgs) == len (objectsList)))
-		assert ((len(redoArgs) == 0) or (len(redoArgs) == len (objectsList)))
+		assert type(objectsList) is list
+		assert len(undoArgs) == 0 or len(undoArgs) == len (objectsList)
+		assert len(redoArgs) == 0 or len(redoArgs) == len (objectsList)
 
 		self.__objectsList = objectsList[:]
 		self.__undoList = []
@@ -492,7 +492,7 @@ class RenderObjectGuardian:
 			self.__objectLimits = []
 
 	def copySelection(self, direction, newId, tileSize, maxX, maxY):
-		assert (direction in ['left', 'right', 'up', 'down'])
+		assert direction in ['left', 'right', 'up', 'down']
 
 		if (self.__multiSelectionObjects == []):
 			return []
@@ -906,8 +906,8 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 		self.__defaultTouchMove(touch)
 
 	def __init__(self, identifier, obj, pos, tileSize, maxX, maxY, guardianToUse):
-		assert (isinstance(obj, BaseObject) or isinstance(obj, RenderedObject))
-		assert (type(maxX) is int and type(maxY) is int)
+		assert isinstance(obj, BaseObject) or isinstance(obj, RenderedObject)
+		assert type(maxX) is int and type(maxY) is int
 
 		self.__id = identifier
 		self.__spriteInfo = obj.getSpriteInfo()
