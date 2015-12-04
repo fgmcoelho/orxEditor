@@ -220,11 +220,16 @@ class RenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGette
 			self._setValues()
 
 class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, SeparatorLabel):
-	def _openResourceLoader(self, *args):
+	def _openLoader(self, buttonPressed, touch):
 		if (self._describedObject is None or isinstance(self._describedObject, BaseObject) == False):
 			Alert('Error', 'No compatible object selected.', 'Ok').open()
 		else:
-			ModulesAccess.get('ResourceLoader').open(self._describedObject.getPath())
+			if (buttonPressed.id == 'resource'):
+				ModulesAccess.get('ResourceLoader').open(self._describedObject.getPath())
+			elif (buttonPressed.id == 'animation'):
+				ModulesAccess.get('AnimationEditor').open(self._describedObject.getPath())
+			else:
+				raise Exception('Invalid button received!')
 
 	def __draw(self, *args):
 		if (self._describedObject is not None):
@@ -234,8 +239,10 @@ class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter
 		super(NewBaseObjectDescriptor, self).__init__()
 		self._sizeLabel = AlignedLabel(text = 'Size: ', **defaultLabelSize)
 		self._loaderLine = BoxLayout(orientation = 'horizontal', height = defaultLabelSize['height'])
-		self._loaderLine.add_widget(CancelableButton(text = 'Resource Loader', on_release = self._openResourceLoader,
-			**defaultLargeButtonSize))
+		self._loaderLine.add_widget(CancelableButton(text = 'Resource Loader', on_release = self._openLoader,
+			id = 'resource', **defaultLargeButtonSize))
+		self._loaderLine.add_widget(CancelableButton(text = 'Animation Editor', on_release = self._openLoader,
+			id = 'animation', **defaultLargeButtonSize))
 		self._loaderLine.add_widget(CancelableButton(text = 'Draw', on_release = self.__draw,
 			**defaultSmallButtonSize))
 

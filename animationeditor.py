@@ -2,9 +2,12 @@ from kivy.uix.image import Image
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.popup import Popup
-from editorutils import EmptyScrollEffect
+
+from keyboard import KeyboardAccess, KeyboardGuardian
+from editorutils import EmptyScrollEffect, SeparatorLabel
 from editorheritage import LayoutGetter
 from modulesaccess import ModulesAccess
+from splittedimagemap import SpriteSelection, SplittedImageImporter
 
 class Frame:
 	def __init__(self, image):
@@ -32,7 +35,7 @@ class AnimationLink:
 
 class SelectableFrame:
 	def __init__(self, base,  pos, size):
-		texture = base.texture.get_region(pos[0], pos[1]. size[0], size[1])
+		texture = base.texture.get_region(pos[0], pos[1], size[0], size[1])
 		self.__displayImage = Image(texture = texture, size = (190, 190))
 		self.__realImage = Image(texture = texture, size = size)
 
@@ -44,9 +47,9 @@ class SelectableFrame:
 
 class FrameEditor(LayoutGetter):
 	def __init__(self):
-		self._layout = BoxLayout(orientation = 'vertical', width = 200)
+		self._layout = BoxLayout(orientation = 'vertical', width = 200, size_hint = (None, 1.0))
 		self._scroll = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
-		self._scrollLayout = BoxLayout(orientation = 'vertical', width = 200)
+		self._scrollLayout = BoxLayout(orientation = 'vertical', width = 200, size_hint = (None, 1.0))
 		self._layout.add_widget(self._scroll)
 		self._scroll.add_widget(self._scrollLayout)
 
@@ -65,11 +68,13 @@ class FrameEditor(LayoutGetter):
 
 		self._scrollLayout.height = layoutHeight
 
-class AnimationEditor:
+class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	def __init__(self):
+		super(AnimationEditor, self).__init__()
 		self._layout = BoxLayout(orientation = 'horizontal')
 		self.__frameEditor = FrameEditor()
 		self._layout.add_widget(self.__frameEditor.getLayout())
+		self._layout.add_widget(self.getSeparator())
 		self.__popup = Popup(
 			title = 'Animation Editor',
 			auto_dismiss = False,
@@ -78,6 +83,13 @@ class AnimationEditor:
 
 		ModulesAccess.add('AnimationEditor', self)
 
-	#def open(self
+	def open(self, path):
+		KeyboardGuardian.Instance().acquireKeyboard(self)
+		self.__resourceInfo = SplittedImageImporter().load(path)
+		self.__frameEditor.load(self.__resourceInfo)
+		self.__popup.open()
 
+	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
+		self.__popup.dismiss()
 

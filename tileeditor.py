@@ -16,6 +16,8 @@ from collision import CollisionFlagEditorPopup, CollisionEditorPopup
 from collisionform import CollisionFormEditorPopup
 from collisioninfo import CollisionGuardian
 from resourceloader import ResourceLoaderPopup
+from animationeditor import AnimationEditor
+
 from layer import LayerInformationPopup
 from layerinfo import LayerGuardian
 from editorobjects import BaseObject
@@ -118,6 +120,7 @@ class TileEditor(App, KeyboardAccess):
 		CollisionEditorPopup()
 		CollisionFormEditorPopup()
 		ResourceLoaderPopup()
+		AnimationEditor()
 
 		# Left Menu Handler
 		NewBaseObjectDisplay()
