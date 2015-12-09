@@ -2,12 +2,14 @@ from kivy.uix.image import Image
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.popup import Popup
+from kivy.uix.treeview import TreeView, TreeViewNode
 
 from keyboard import KeyboardAccess, KeyboardGuardian
-from editorutils import EmptyScrollEffect, SeparatorLabel
+from editorutils import EmptyScrollEffect, SeparatorLabel, AlignedLabel
 from editorheritage import LayoutGetter
 from modulesaccess import ModulesAccess
 from splittedimagemap import SpriteSelection, SplittedImageImporter
+from uisizes import defaultLabelSize, defaultFontSize
 
 class Frame:
 	def __init__(self, image):
@@ -45,19 +47,39 @@ class SelectableFrame:
 	def getRealImage(self):
 		return self.__realImage
 
+class AnimationNode(TreeViewNode):
+	def __init__(self):
+		super(AnimationNode, self).__init__()
+		self.__animation = Animation('New animation', 0)
+
+class AnimationTree(LayoutGetter):
+	def __init__(self):
+		self._layout = TreeView(root_options = { 'text' : 'Animations'})
+
+class AnimationDisplay(LayoutGetter):
+	def __init__(self):
+		self._layout = ScrollView(size_hint = (1.0, 1.0), do_scroll = (1, 1), effect_cls = EmptyScrollEffect)
+
+class FrameDisplay(LayoutGetter):
+	def __init__(self):
+		self._layout = ScrollView(size_hint = (1.0, 1.0), do_scroll = (1, 1), effect_cls = EmptyScrollEffect)
+
+class AnimationAndFrameEditor(LayoutGetter):
+	def __init__(self):
+		self._layout = BoxLayout(orientation = 'horizontal', height = 200, size_hint = (1.0, None))
+
 class FrameEditor(LayoutGetter):
 	def __init__(self):
-		self._layout = BoxLayout(orientation = 'vertical', width = 200, size_hint = (None, 1.0))
-		self._scroll = ScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
-		self._scrollLayout = BoxLayout(orientation = 'vertical', width = 200, size_hint = (None, 1.0))
-		self._layout.add_widget(self._scroll)
-		self._scroll.add_widget(self._scrollLayout)
+		self._layout = ScrollView(do_scroll = (0, 1), effect_cls = EmptyScrollEffect, width = 200, size_hint = (None, 1.0))
+		self._scrollLayout = BoxLayout(orientation = 'vertical', size_hint = (None, None), size = (200, 100))
+		self._layout.add_widget(self._scrollLayout)
 
 	def load(self, resourceInfo):
 		self.__objectsList = []
 		im = Image(source = resourceInfo.getPath())
 		self._scrollLayout.clear_widgets()
-		layoutHeight = 0
+		self._scrollLayout.add_widget(AlignedLabel(text = 'Frames:', **defaultLabelSize))
+		layoutHeight = defaultFontSize
 		for selection in resourceInfo.getSelectionList():
 			pos = (selection.getX(), selection.getY())
 			size = (selection.getSizeX(), selection.getSizeY())
@@ -73,8 +95,19 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		super(AnimationEditor, self).__init__()
 		self._layout = BoxLayout(orientation = 'horizontal')
 		self.__frameEditor = FrameEditor()
+		self.__animationDisplay = AnimationDisplay()
+		self.__frameDisplay = FrameDisplay()
+		self.__animationAndFrame = AnimationAndFrameEditor()
+		self.__animationTree = AnimationTree()
+
+
 		self._layout.add_widget(self.__frameEditor.getLayout())
-		self._layout.add_widget(self.getSeparator())
+		middleBox = BoxLayout(orientation = 'vertical')
+		middleBox.add_widget(self.__animationDisplay.getLayout())
+		middleBox.add_widget(self.__frameDisplay.getLayout())
+		middleBox.add_widget(self.__animationAndFrame.getLayout())
+		self._layout.add_widget(middleBox)
+		self._layout.add_widget(self.__animationTree.getLayout())
 		self.__popup = Popup(
 			title = 'Animation Editor',
 			auto_dismiss = False,
