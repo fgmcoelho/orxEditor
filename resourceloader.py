@@ -138,6 +138,10 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 			for cell in line:
 				cell.clear()
 		self.__gridGraphics = []
+
+		if (self.__selectionPreview is not None):
+			self.__currentImage.canvas.remove(self.__selectionPreview)
+
 		self.__selectionPreview = None
 		self.__currentSelection = None
 
@@ -336,7 +340,7 @@ class ResourceLoaderList(LayoutGetter):
 	def __callShowMethod(self, label, touch):
 		if (label.collide_point(*touch.pos) == True and touch.is_mouse_scrolling == False and
 				touch.is_double_tap == True and self.getSelection() is not None):
-			self.__showMethod(self.getSelection)
+			self.__showMethod()
 
 	def __doAddItemRender(self, selection, identifier):
 		pos = convertKivyCoordToOrxCoord((selection.getX(), selection.getY() + selection.getSizeY()), self.__maxY)
@@ -694,7 +698,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		return
 
 	def __createRightMenuUi(self):
-		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 0.75), showMethod = self.__showSelection)
+		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 1.0), showMethod = self.__showSelection)
 
 		self.__addAnimation = CancelableButton(text = 'Add animation', on_release = self.__doNothing,
 			**defaultLabelSize)
