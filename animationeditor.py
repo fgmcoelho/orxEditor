@@ -48,7 +48,7 @@ class SelectableFrame:
 class AnimationNode(TreeViewLabel):
 	def __init__(self, name):
 		self.__animation = Animation(name)
-		super(AnimationNode, self).__init__()
+		super(AnimationNode, self).__init__(text = name)
 
 	def getAnimation(self):
 		return self.__animation
@@ -60,20 +60,25 @@ class AnimationHandler(LayoutGetter):
 			size_hint = (None, 1.0))
 		self._scrollLayout = TreeView(root_options = { 'text' : 'Animations'})
 		self._layout.add_widget(self._scrollLayout)
-		self._scrollLayout.add_node(node)
 
 		ModulesAccess.add('AnimationHandler', self)
 
 	def addFrameToCurrentAnimation(self, sf):
-		if (self._layout.selected_node != self._layout.root):
-			animation = self._layout.selected_node.getAnimation()
+		if (self._scrollLayout.selected_node != self._scrollLayout.root):
+			animation = self._scrollLayout.selected_node.getAnimation()
 			animation.addFrame(sf)
 
-	def createNewAnimation(self):
+	def createNewAnimation(self, *args):
 		count = 0
-		for node in self._layout.nodes:
-			if node[0:] == self.__defaultName):
-				count = int(node[len(self.__defaultName)])
+		lenToUse = len(self.__defaultName)
+		for node in self._scrollLayout.children:
+			if (node.text[0:lenToUse] == self.__defaultName and len(node.text) > lenToUse):
+				newCount = int(node.text[lenToUse:])
+				if (newCount > count):
+					count = newCount
+		count += 1
+		an = AnimationNode(self.__defaultName + str(count))
+		self._scrollLayout.add_node(an)
 
 class AnimationDisplay(LayoutGetter):
 	def __init__(self):
@@ -166,7 +171,9 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 
 		rightMenu = BoxLayout(orientation = 'vertical', size_hint = (None, 1), width = 200)
 		rightMenu.add_widget(self.__animationTree.getLayout())
-		#self._
+		self.__newAnimationButton = CancelableButton(text = 'New animation', 
+			on_release = self.__animationTree.createNewAnimation, **defaultLineSize)
+		rightMenu.add_widget(self.__newAnimationButton)
 
 		self._layout.add_widget(leftMenu)
 		self._layout.add_widget(middleBox)
