@@ -49,9 +49,9 @@ class NumberInput(TextInput):
 
 	def insert_text(self, substring, from_undo = False):
 		if (substring in "0123456789"):
+			if (len(self.text) == 1 and self.text[0] == '0'):
+				self.text = ''
 			super(NumberInput, self).insert_text(substring, from_undo = from_undo)
-			if (len(self.text) > 1 and self.text[0] == '0'):
-				self.text = self.text[1:]
 
 	def __init__(self, **kwargs):
 		super(NumberInput, self).__init__(**kwargs)
@@ -63,6 +63,16 @@ class NumberInput(TextInput):
 				NumberInput.modulesDict[self.__module].append(self)
 		else:
 			self.__module = None
+
+class FloatInput(NumberInput):
+	def insert_text(self, substring, from_undo = False):
+		if substring == '.' and self.text.count('.') == 0:
+			super(NumberInput, self).insert_text(substring, from_undo)
+		else:
+			super(FloatInput, self).insert_text(substring, from_undo)
+
+	def __init__(self, **kwargs):
+		super(FloatInput, self).__init__(**kwargs)
 
 class AutoAlign(object):
 	def _set_on_size(self, obj, new_texture_size):

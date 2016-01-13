@@ -6,13 +6,16 @@ from kivy.uix.treeview import TreeView, TreeViewLabel
 from kivy.clock import Clock
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
+from kivy.uix.textinput import TextInput
 
 from keyboard import KeyboardAccess, KeyboardGuardian
-from editorutils import EmptyScrollEffect, SeparatorLabel, AlignedLabel, CancelableButton, Alert
+from editorutils import EmptyScrollEffect, SeparatorLabel, AlignedLabel, CancelableButton, Alert, FloatInput
 from editorheritage import LayoutGetter
 from modulesaccess import ModulesAccess
 from splittedimagemap import SpriteSelection, SplittedImageImporter
-from uisizes import defaultLabelSize, defaultFontSize, defaultSmallButtonSize, defaultLineSize
+from uisizes import defaultLabelSize, defaultSmallButtonSize, defaultLineSize, defaultInputSize, animationStatsSize,\
+	defaultLargeButtonSize
+from string import letters, digits
 
 class AnimationBaseScroll(object):
 	"""Class that implements the default behavior we want for a ScrollView, which is scrolling with the left button
@@ -65,6 +68,15 @@ class Animation:
 	It holds a list of frames that are part of it, in an ORX context each Frame in the list is a KeyData entry in the
 	final ini file.
 	If a frame doesn't have a duration set, it will use the animation duration instead."""
+	validCharacters = digits + letters + '_'
+	@staticmethod
+	def filterInvalidCharacters(name):
+		l = []
+		for c in name:
+			if (c not in Animation.validCharacters):
+				l.append(c)
+		return ''.join(l)
+
 	def __init__(self, name, duration = 1.0):
 		self.__name = name
 		self.__duration = duration
@@ -80,9 +92,90 @@ class Animation:
 	def getDuration(self):
 		return self.__duration
 
-class AnimationStatusEditor:
+	def getName(self):
+		return self.__name
+
+	def setName(self, value):
+		self.__name = value
+
+	def setDuration(self, value):
+		self.__duration = value
+
+class AnimationStatsEditor(SeparatorLabel):
+	def __processOk(self, *args):
+		invalidChars = Animation.filterInvalidCharacters(self.__nameInput.text)
+		if (invalidChars != ''):
+			Alert(
+				title = 'Error',
+				text = 'Invalid characters on animation name:\n' + invalidChars,
+				closeButtonText = 'Ok'
+			).open()
+			return
+		self.__currentAnimation.setName(self.__nameInput.text)
+
+		try:
+			duration = float(self.__durationInput.text)
+			assert(duration > 0.0)
+			self.__currentAnimation.setDuration(duration)
+		except:
+			Alert(
+				title = 'Error',
+				text = 'Duration entered is not valid.',
+				closeButtonText = 'Ok'
+			).open()
+			return
+
+		self.__popup.dismiss()
+		self.__okMethod(self.__currentAnimation)
+
 	def __init__(self):
+		super(AnimationStatsEditor, self).__init__()
+
+		self.__popup = Popup(
+			title = 'Animation Stats',
+			auto_dismiss = False,
+			**animationStatsSize
+		)
+
 		self._layout = BoxLayout(orientation = 'vertical')
+
+		boxSizes = defaultInputSize.copy()
+
+		nameBox = BoxLayout(orientation = 'horizontal', **boxSizes)
+		self.__nameLabel = AlignedLabel(text = 'Name:', **defaultLabelSize)
+		self.__nameInput = TextInput(text = '')
+		nameBox.add_widget(self.__nameLabel)
+		nameBox.add_widget(self.__nameInput)
+
+		durationBox = BoxLayout(orientation = 'horizontal', **boxSizes)
+		self.__durationLabel = AlignedLabel(text = 'Duration:', **defaultLabelSize)
+		self.__durationInput = FloatInput(**defaultInputSize)
+		durationBox.add_widget(self.__durationLabel)
+		durationBox.add_widget(self.__durationInput)
+
+		bottomButtonBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		okButton = CancelableButton(text = 'Ok', on_release = self.__processOk, **defaultSmallButtonSize)
+		cancelButton = CancelableButton(text = 'Cancel', on_release = self.__popup.dismiss, **defaultSmallButtonSize)
+		bottomButtonBox.add_widget(self.getSeparator())
+		bottomButtonBox.add_widget(okButton)
+		bottomButtonBox.add_widget(cancelButton)
+
+		self._layout.add_widget(nameBox)
+		self._layout.add_widget(durationBox)
+		self._layout.add_widget(self.getSeparator())
+		self._layout.add_widget(bottomButtonBox)
+
+		self.__popup.content = self._layout
+		self.__currentAnimation = None
+
+	def open(self, animation, okMethod):
+		assert isinstance(animation, Animation), "Invalid parameter received!"
+		self.__nameInput.text = animation.getName()
+		self.__durationInput.text = str(animation.getDuration())
+		self.__currentAnimation = animation
+		self.__okMethod = okMethod
+
+		self.__popup.open()
 
 class AnimationLink:
 	"""Class that controls the animation links (which describes how ORX will go from one animation to the other)."""
@@ -96,7 +189,7 @@ class SelectableFrame:
 	"""Class that holds the information of the left menu image.
 	It holds a smaller version of the frame (used by the left menu) and a copy of the original message, that is used
 	in the animation display."""
-	def __init__(self, base,  pos, size):
+	def __init__(self, base, pos, size):
 		self.__texture = base.texture.get_region(pos[0], pos[1], size[0], size[1])
 		self.__size = size
 		self.__displayImage = Image(texture = self.__texture, size = (64, 64))
@@ -109,12 +202,16 @@ class SelectableFrame:
 
 class AnimationNode(TreeViewLabel):
 	"""Class that implements the node for the TreeView of the right menu and holds the animation it refers to."""
-	def __init__(self, name):
-		self.__animation = Animation(name)
-		super(AnimationNode, self).__init__(text = name)
+	def __init__(self, animation):
+		assert isinstance(animation, Animation), "Invalid parameter received!"
+		self.__animation = animation
+		super(AnimationNode, self).__init__(text = animation.getName())
 
 	def getAnimation(self):
 		return self.__animation
+
+	def update(self):
+		self.text = self.__animation.getName()
 
 class AnimationHandler(LayoutGetter):
 	"""Class that implements the TreeView of the right menu, inside a scrollview. It is also reponsible to control the
@@ -138,6 +235,7 @@ class AnimationHandler(LayoutGetter):
 		self.__defaultSelectNode = self._scrollLayout.select_node
 		self._scrollLayout.select_node = self.selectNode
 		self.__errorAlert = Alert("Error", "No animation selected.\nSelect one on the right menu.", "Ok")
+		self.__animationStats = AnimationStatsEditor()
 		ModulesAccess.add('AnimationHandler', self)
 
 	def addFrameToCurrentAnimation(self, sf):
@@ -150,18 +248,39 @@ class AnimationHandler(LayoutGetter):
 		else:
 			self.__errorAlert.open()
 
+	def insertAnimation(self, animation):
+		an = AnimationNode(animation)
+		self._scrollLayout.add_node(an)
+		self._scrollLayout.select_node(an)
+
+	def editAnimation(self, animation):
+		node = self._scrollLayout.selected_node
+		root = self._scrollLayout.root
+		assert node != root and node is not None and node.getAnimation() == animation, "Invalid parameter received!"
+		node.update()
+
 	def createNewAnimation(self, *args):
 		count = 0
 		lenToUse = len(self.__defaultName)
 		for node in self._scrollLayout.children:
 			if (node.text[0:lenToUse] == self.__defaultName and len(node.text) > lenToUse):
-				newCount = int(node.text[lenToUse:])
-				if (newCount > count):
-					count = newCount
+				try:
+					newCount = int(node.text[lenToUse:]) # may not be and int
+					if (newCount > count):
+						count = newCount
+				except:
+					pass
 		count += 1
-		an = AnimationNode(self.__defaultName + str(count))
-		self._scrollLayout.add_node(an)
-		self._scrollLayout.select_node(an)
+		tempAnimation = Animation(self.__defaultName + str(count))
+		self.__animationStats.open(tempAnimation, self.insertAnimation)
+
+	def editCurrentAnimation(self, *args):
+		node = self._scrollLayout.selected_node
+		if (node is not None and node != self._scrollLayout.root):
+			animation = node.getAnimation()
+			self.__animationStats.open(animation, self.editAnimation)
+		else:
+			self.__errorAlert.open()
 
 class AnimationDisplay(LayoutGetter):
 	"""Class that creates a visual display for an animation."""
@@ -304,7 +423,7 @@ class FrameDisplay(AnimationBaseScroll, LayoutGetter):
 		self.__frameSelected = None
 
 	def updateAnimation(self):
-		frames =  self.__currentAnimation.getFrames()
+		frames = self.__currentAnimation.getFrames()
 		curIndex = len(self.__framesList)
 		index = len(frames)
 		if (index > curIndex):
@@ -316,6 +435,15 @@ class FrameDisplay(AnimationBaseScroll, LayoutGetter):
 
 		self._scrollLayout.width = len(self.__framesList) * 200
 
+	def moveSelectedFrameLeft(self, *args):
+		if (self.__frameSelected is None or self.__framesList == [] or self.__frameSelected == self.__framesList[0]):
+			return
+
+		index = self.__framesList.index(self.__frameSelected)
+		swap = self.__framesList[index - 1]
+		self.__framesList[index - 1] = self.__frameSelected
+		self.__framesList[index] = swap
+
 class AnimationAndFrameEditor(LayoutGetter, SeparatorLabel):
 	"""Class that implements the bottom menu and allows the user to operate on a frame selected in the FrameDisplay
 	class."""
@@ -323,14 +451,21 @@ class AnimationAndFrameEditor(LayoutGetter, SeparatorLabel):
 		super(AnimationAndFrameEditor, self).__init__()
 		self._layout = BoxLayout(orientation = 'vertical', height = 100, size_hint = (1.0, None))
 		middleButtonBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		frameButtonBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
 		bottomButtonBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+
 
 		self._durationLabel = AlignedLabel(text = 'Duration: ', **defaultLineSize)
 		copyLeftButton = CancelableButton(text = 'Copy left', **defaultSmallButtonSize)
 		copyRightButton = CancelableButton(text = 'Copy right', **defaultSmallButtonSize)
-		moveLeftButton = CancelableButton(text = 'Move left', **defaultSmallButtonSize)
+		moveLeftButton = CancelableButton(text = 'Move left',
+			on_release = ModulesAccess.get('AnimationFrameDisplay').moveSelectedFrameLeft,
+			**defaultSmallButtonSize)
 		moveRightButton = CancelableButton(text = 'Move right', **defaultSmallButtonSize)
-		deleteButton = CancelableButton(text = 'Delete', **defaultSmallButtonSize)
+		setDurationButton = CancelableButton(text = 'Set Duration', **defaultLargeButtonSize)
+		resetDurationButton = CancelableButton(text = 'Reset Duration', **defaultLargeButtonSize)
+		deleteButton = CancelableButton(text = 'Delete Frame', **defaultLargeButtonSize)
+
 
 		self._layout.add_widget(self._durationLabel)
 		self._layout.add_widget(self.getSeparator())
@@ -338,9 +473,14 @@ class AnimationAndFrameEditor(LayoutGetter, SeparatorLabel):
 		middleButtonBox.add_widget(copyRightButton)
 		middleButtonBox.add_widget(moveLeftButton)
 		middleButtonBox.add_widget(moveRightButton)
+		frameButtonBox.add_widget(setDurationButton)
+		frameButtonBox.add_widget(resetDurationButton)
 		bottomButtonBox.add_widget(deleteButton)
 		self._layout.add_widget(middleButtonBox)
+		self._layout.add_widget(frameButtonBox)
 		self._layout.add_widget(bottomButtonBox)
+
+		ModulesAccess.add("AnimationAndFrameEditor", self)
 
 class FrameEditor(AnimationBaseScroll, LayoutGetter):
 	"""Class that implements the list of the available frames (each on is a SelectableFrame) in the left menu."""
@@ -412,7 +552,7 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__newAnimationButton = CancelableButton(text = 'New animation',
 			on_release = self.__animationTree.createNewAnimation, **defaultLineSize)
 		self.__editAnimationButton = CancelableButton(text = 'Edit animation',
-			**defaultLineSize)
+			on_release = self.__animationTree.editCurrentAnimation, **defaultLineSize)
 		self.__deleteAnimationButton = CancelableButton(text = 'Delete animation',
 			**defaultLineSize)
 

@@ -46,7 +46,7 @@ defaultDoubleLineSize = {
 
 # Modules specifics:
 mainLayoutSize = {
-'leftMenuWidth' : 200,
+	'leftMenuWidth' : 200,
 	'leftMenuSizeHint' : (None, 1.0),
 	'bottomMenuHeight' : 220
 }
@@ -106,6 +106,11 @@ collisionTabbedSize = {
 
 orxViewerSize = {
 	'size' : (300, 400),
+	'size_hint' : (None, None),
+}
+
+animationStatsSize = {
+	'size': (300, 200),
 	'size_hint' : (None, None),
 }
 
