@@ -17,7 +17,7 @@ from uisizes import defaultLabelSize, defaultSmallButtonSize, defaultLineSize, d
 	defaultLargeButtonSize
 from string import letters, digits
 
-class AnimationBaseScroll(object):
+class AnimationBaseScroll(LayoutGetter):
 	"""Class that implements the default behavior we want for a ScrollView, which is scrolling with the left button
 	only."""
 	def _touchInside(self, touch):
@@ -38,8 +38,9 @@ class AnimationBaseScroll(object):
 			self._defaultTouchDown(touch)
 		return False
 
-	def __init__(self):
+	def __init__(self, **kwargs):
 		super(AnimationBaseScroll, self).__init__()
+		self._layout = ScrollView(**kwargs)
 		self._defaultTouchUp = self._layout.on_touch_up
 		self._defaultTouchMove = self._layout.on_touch_move
 		self._defaultTouchDown = self._layout.on_touch_down
@@ -53,15 +54,35 @@ class Frame:
 		assert isinstance(sf, SelectableFrame), "Invalid parameter received!"
 		self.__duration = None
 		self.__image = sf.getRealImage()
+		self.__selectableFrameRef = sf
+		self.__animationRef = None
 
 	def getDuration(self):
+		if (self.__duration is None):
+			return self.__animationRef.getDuration()
+
 		return self.__duration
 
 	def setDuration(self, newDuration):
 		self.__duration = newDuration
 
+	def resetDuration(self):
+		self.__duration = None
+
 	def getImage(self):
 		return self.__image
+
+	def copy(self):
+		return Frame(self.__selectableFrameRef)
+
+	def setAnimation(self, animation):
+		assert self.__animationRef is None, "Invalid state reached!"
+		assert isinstance(animation, Animation), "Invalid parameter received!"
+		self.__animationRef = animation
+
+	def getAnimation(self):
+		return self.__animationRef
+
 
 class Animation:
 	"""Class that holds the information an ORX animation.
@@ -82,9 +103,13 @@ class Animation:
 		self.__duration = duration
 		self.__frames = []
 
-	def addFrame(self, frame):
+	def addFrame(self, frame, index = None):
 		assert isinstance(frame, Frame), "Invalid parameter received!"
-		self.__frames.append(frame)
+		frame.setAnimation(self)
+		if (index is None):
+			self.__frames.append(frame)
+		else:
+			self.__frames.insert(index, frame)
 
 	def getFrames(self):
 		return self.__frames
@@ -100,6 +125,15 @@ class Animation:
 
 	def setDuration(self, value):
 		self.__duration = value
+
+	def swapFrames(self, fromIndex, toIndex):
+		swap = self.__frames[fromIndex]
+		self.__frames[fromIndex] = self.__frames[toIndex]
+		self.__frames[toIndex] = swap
+
+	def copyFrame(self, fromIndex, toIndex):
+		copy = self.__frames[fromIndex].copy()
+		self.addFrame(copy, toIndex)
 
 class AnimationStatsEditor(SeparatorLabel):
 	def __processOk(self, *args):
@@ -216,13 +250,25 @@ class AnimationNode(TreeViewLabel):
 class AnimationHandler(LayoutGetter):
 	"""Class that implements the TreeView of the right menu, inside a scrollview. It is also reponsible to control the
 	other components of the screen that show information of the animation and update the animations' information."""
+	def updateAnimation(self):
+		ModulesAccess.get("AnimationDisplay").updateAnimation()
+		ModulesAccess.get("AnimationFrameDisplay").updateAnimation()
+
+	def setAnimation(self, animation):
+		assert isinstance(animation, Animation), "Invalid argument received!"
+		ModulesAccess.get("AnimationDisplay").setAnimation(animation)
+		ModulesAccess.get("AnimationFrameDisplay").setAnimation(animation)
+
+	def unsetAnimation(self):
+		ModulesAccess.get("AnimationDisplay").unsetAnimation()
+		ModulesAccess.get("AnimationFrameDisplay").unsetAnimation()
+		ModulesAccess.get("AnimationAndFrameEditor").unsetDuration()
+
 	def selectNode(self, node):
 		if (isinstance(node, AnimationNode)):
-			ModulesAccess.get("AnimationDisplay").setAnimation(node.getAnimation())
-			ModulesAccess.get("AnimationFrameDisplay").setAnimation(node.getAnimation())
+			self.setAnimation(node.getAnimation())
 		else:
-			ModulesAccess.get("AnimationDisplay").unsetAnimation()
-			ModulesAccess.get("AnimationFrameDisplay").unsetAnimation()
+			self.unsetAnimation()
 
 		self.__defaultSelectNode(node)
 
@@ -243,8 +289,7 @@ class AnimationHandler(LayoutGetter):
 		if (node is not None and node != self._scrollLayout.root):
 			animation = node.getAnimation()
 			animation.addFrame(Frame(sf))
-			ModulesAccess.get("AnimationDisplay").updateAnimation()
-			ModulesAccess.get("AnimationFrameDisplay").updateAnimation()
+			self.updateAnimation()
 		else:
 			self.__errorAlert.open()
 
@@ -307,8 +352,8 @@ class AnimationDisplay(LayoutGetter):
 
 	def setAnimation(self, animation):
 		assert isinstance(animation, Animation), "Invalid argument received!"
+		self.unsetAnimation()
 		self.__currentAnimation = animation
-		self.__index = None
 		self.updateAnimation()
 
 	def unsetAnimation(self):
@@ -356,7 +401,7 @@ class FramePreview:
 	def getOriginalFrame(self):
 		return self.__frameRef
 
-	def select(self):
+	def select(self, *args):
 		with self.__image.canvas:
 			Color(1., 0., 0.)
 			sx, sy = self.__image.size
@@ -367,12 +412,14 @@ class FramePreview:
 				px + sx, py + sy - 1,
 				px, py + sy - 1,
 				px + 1, py])
+		ModulesAccess.get("AnimationAndFrameEditor").setDuration(self.__frameRef.getDuration())
 
 	def unselect(self):
 		self.__image.canvas.remove(self.__operation)
 		self.__operation = None
+		ModulesAccess.get("AnimationAndFrameEditor").unsetDuration()
 
-class FrameDisplay(AnimationBaseScroll, LayoutGetter):
+class FrameDisplay(AnimationBaseScroll):
 	"""Class that implements a display to show each frame of the animation and allows the user to select one to be
 	edited."""
 	def _processTouchDown(self, touch):
@@ -383,7 +430,7 @@ class FrameDisplay(AnimationBaseScroll, LayoutGetter):
 			self._defaultTouchDown(touch)
 		elif (touch.button == "left"):
 			pos = self._layout.to_local(*touch.pos)
-			for fp in self.__framesList:
+			for fp in self.__framePreviewDict.values():
 				if (fp.getImage().collide_point(*pos) == True):
 					if (self.__frameSelected is not None):
 						self.__frameSelected.unselect()
@@ -393,56 +440,105 @@ class FrameDisplay(AnimationBaseScroll, LayoutGetter):
 
 		return False
 
+	def __findSelectedFrameIndex(self):
+		frames = self.__currentAnimation.getFrames()
+		index = 0
+		for frame in frames:
+			if (self.__framePreviewDict[frame] == self.__frameSelected):
+				break
+			index += 1
+		return index
+
+	def __getIndexOfSelectedFrameAndValidate(self, adj, expand = 0):
+		if (self.__frameSelected is None or self.__currentAnimation is None or self.__framePreviewDict == {}):
+			return -1
+
+		index = self.__findSelectedFrameIndex()
+		frames = self.__currentAnimation.getFrames()
+		assert index != len(frames), "Invalid state reached!"
+		if (index + adj < 0 or index + adj >= len(frames) + expand):
+			return -1
+
+		return index
+
+	def __copySelectedFrame(self, adj):
+		if (adj > 0):
+			index = self.__getIndexOfSelectedFrameAndValidate(adj, 1)
+		else:
+			index = self.__getIndexOfSelectedFrameAndValidate(adj)
+
+		if (index == -1):
+			return
+
+		self.__currentAnimation.copyFrame(index, index + adj)
+		ModulesAccess.get("AnimationHandler").updateAnimation()
+
+	def __moveSelectedFrame(self, adj):
+		index = self.__getIndexOfSelectedFrameAndValidate(adj)
+		if (index == -1):
+			return
+
+		self.__currentAnimation.swapFrames(index, index + adj)
+		ModulesAccess.get("AnimationHandler").updateAnimation()
+
 	def __init__(self):
-		self._layout = ScrollView(size_hint = (1.0, None), do_scroll = (1, 0), effect_cls = EmptyScrollEffect,
-			height = 200)
+		super(FrameDisplay, self).__init__(size_hint = (1.0, None), do_scroll = (1, 0),
+			effect_cls = EmptyScrollEffect, height = 200)
 		self._scrollLayout = BoxLayout(orientation = 'horizontal', height = 200, size_hint = (None, None))
 		self._layout.add_widget(self._scrollLayout)
-		super(FrameDisplay, self).__init__()
 		ModulesAccess.add('AnimationFrameDisplay', self)
 		self.__currentAnimation = None
-		self.__framesList = []
+		self.__framePreviewDict = {}
 		self.__frameSelected = None
 
 	def setAnimation(self, animation):
+		assert isinstance(animation, Animation), "Invalid argument received!"
+		self.unsetAnimation()
 		self.__currentAnimation = animation
 		self._scrollLayout.clear_widgets()
-		self.__framesList = []
-		for frame in animation.getFrames():
-			fp = FramePreview(frame)
-			self.__framesList.append(fp)
-			self._scrollLayout.add_widget(fp.getImage())
-
-		self._scrollLayout.width = len(self.__framesList) * 200
+		self.__framePreviewDict = {}
+		self.updateAnimation()
 
 	def unsetAnimation(self):
 		self._scrollLayout.clear_widgets()
 		self._scrollLayout.width = 1
-		self.__framesList = []
+		self.__framePreviewDict = {}
 		self.__currentAnimation = None
+		if (self.__frameSelected is not None):
+			self.__frameSelected.unselect()
 		self.__frameSelected = None
 
 	def updateAnimation(self):
 		frames = self.__currentAnimation.getFrames()
-		curIndex = len(self.__framesList)
-		index = len(frames)
-		if (index > curIndex):
-			while index > curIndex:
-				fp = FramePreview(frames[curIndex])
-				self.__framesList.append(fp)
-				self._scrollLayout.add_widget(fp.getImage())
-				curIndex += 1
+		if (self.__frameSelected is not None):
+			self.__frameSelected.unselect()
 
-		self._scrollLayout.width = len(self.__framesList) * 200
+		self._scrollLayout.clear_widgets()
+
+		for frame in frames:
+			if (frame not in self.__framePreviewDict):
+				fp = FramePreview(frame)
+				self.__framePreviewDict[frame] = fp
+			else:
+				fp = self.__framePreviewDict[frame]
+
+			self._scrollLayout.add_widget(fp.getImage())
+		self._scrollLayout.width = len(self.__framePreviewDict) * 200
+
+		if (self.__frameSelected is not None):
+			Clock.schedule_once(self.__frameSelected.select)
 
 	def moveSelectedFrameLeft(self, *args):
-		if (self.__frameSelected is None or self.__framesList == [] or self.__frameSelected == self.__framesList[0]):
-			return
+		self.__moveSelectedFrame(-1)
 
-		index = self.__framesList.index(self.__frameSelected)
-		swap = self.__framesList[index - 1]
-		self.__framesList[index - 1] = self.__frameSelected
-		self.__framesList[index] = swap
+	def moveSelectedFrameRight(self, *args):
+		self.__moveSelectedFrame(1)
+
+	def copySelectedFrameLeft(self, *args):
+		self.__copySelectedFrame(-1)
+
+	def copySelectedFrameRight(self, *args):
+		self.__copySelectedFrame(1)
 
 class AnimationAndFrameEditor(LayoutGetter, SeparatorLabel):
 	"""Class that implements the bottom menu and allows the user to operate on a frame selected in the FrameDisplay
@@ -454,18 +550,23 @@ class AnimationAndFrameEditor(LayoutGetter, SeparatorLabel):
 		frameButtonBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
 		bottomButtonBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
 
-
-		self._durationLabel = AlignedLabel(text = 'Duration: ', **defaultLineSize)
-		copyLeftButton = CancelableButton(text = 'Copy left', **defaultSmallButtonSize)
-		copyRightButton = CancelableButton(text = 'Copy right', **defaultSmallButtonSize)
+		self._durationBaseStr = 'Duration: '
+		self._durationLabel = AlignedLabel(text = self._durationBaseStr, **defaultLineSize)
+		copyLeftButton = CancelableButton(text = 'Copy left',
+			on_release = ModulesAccess.get('AnimationFrameDisplay').copySelectedFrameLeft,
+			**defaultSmallButtonSize)
+		copyRightButton = CancelableButton(text = 'Copy right',
+			on_release = ModulesAccess.get('AnimationFrameDisplay').copySelectedFrameRight,
+			**defaultSmallButtonSize)
 		moveLeftButton = CancelableButton(text = 'Move left',
 			on_release = ModulesAccess.get('AnimationFrameDisplay').moveSelectedFrameLeft,
 			**defaultSmallButtonSize)
-		moveRightButton = CancelableButton(text = 'Move right', **defaultSmallButtonSize)
+		moveRightButton = CancelableButton(text = 'Move right',
+			on_release = ModulesAccess.get('AnimationFrameDisplay').moveSelectedFrameRight,
+			**defaultSmallButtonSize)
 		setDurationButton = CancelableButton(text = 'Set Duration', **defaultLargeButtonSize)
 		resetDurationButton = CancelableButton(text = 'Reset Duration', **defaultLargeButtonSize)
 		deleteButton = CancelableButton(text = 'Delete Frame', **defaultLargeButtonSize)
-
 
 		self._layout.add_widget(self._durationLabel)
 		self._layout.add_widget(self.getSeparator())
@@ -482,7 +583,13 @@ class AnimationAndFrameEditor(LayoutGetter, SeparatorLabel):
 
 		ModulesAccess.add("AnimationAndFrameEditor", self)
 
-class FrameEditor(AnimationBaseScroll, LayoutGetter):
+	def setDuration(self, duration):
+		self._durationLabel.text = self._durationBaseStr + str(duration)
+
+	def unsetDuration(self):
+		self._durationLabel.text = self._durationBaseStr
+
+class FrameEditor(AnimationBaseScroll):
 	"""Class that implements the list of the available frames (each on is a SelectableFrame) in the left menu."""
 	def _processTouchDown(self, touch):
 		if (touch.button == "right"):
@@ -497,11 +604,9 @@ class FrameEditor(AnimationBaseScroll, LayoutGetter):
 		return False
 
 	def __init__(self):
-		self._layout = ScrollView(do_scroll = (0, 1), effect_cls = EmptyScrollEffect, width = 200,
+		super(FrameEditor, self).__init__(do_scroll = (0, 1), effect_cls = EmptyScrollEffect, width = 200,
 			size_hint = (None, 1.0))
 		self._scrollLayout = BoxLayout(orientation = 'vertical', size_hint = (None, None), size = (200, 100))
-
-		super(FrameEditor, self).__init__()
 		self._layout.add_widget(self._scrollLayout)
 
 	def load(self, resourceInfo):
