@@ -57,6 +57,10 @@ class Frame:
 		self.__image = sf.getRealImage()
 		self.__selectableFrameRef = sf
 		self.__animationRef = None
+		self.__selectionId = sf.getId()
+
+	def hasDuration(self):
+		return self.__duration is None
 
 	def getDuration(self):
 		if (self.__duration is None):
@@ -84,6 +88,8 @@ class Frame:
 	def getAnimation(self):
 		return self.__animationRef
 
+	def getSelectionId(self):
+		return self.__selectionId
 
 class Animation:
 	"""Class that holds the information an ORX animation.
@@ -148,6 +154,10 @@ class Animation:
 
 	def removeFrame(self, index):
 		self.__frames.pop(index)
+
+	def getUsedSelections(self):
+		return list(set(map(lambda x: x.getSelectionId(), self.__frames)))
+
 
 class AnimationStatsEditor(SeparatorLabel):
 	def __processOk(self, *args):
@@ -237,16 +247,20 @@ class SelectableFrame:
 	"""Class that holds the information of the left menu image.
 	It holds a smaller version of the frame (used by the left menu) and a copy of the original message, that is used
 	in the animation display."""
-	def __init__(self, base, pos, size):
+	def __init__(self, base, pos, size, id):
 		self.__texture = base.texture.get_region(pos[0], pos[1], size[0], size[1])
 		self.__size = size
 		self.__displayImage = Image(texture = self.__texture, size = (64, 64))
+		self.__id = id
 
 	def getDisplayImage(self):
 		return self.__displayImage
 
 	def getRealImage(self):
 		return Image(texture = self.__texture, size = self.__size)
+
+	def getId(self):
+		return self.__id
 
 class AnimationNode(TreeViewLabel):
 	"""Class that implements the node for the TreeView of the right menu and holds the animation it refers to."""
@@ -264,6 +278,26 @@ class AnimationNode(TreeViewLabel):
 class AnimationHandler(LayoutGetter):
 	"""Class that implements the TreeView of the right menu, inside a scrollview. It is also reponsible to control the
 	other components of the screen that show information of the animation and update the animations' information."""
+	def __init__(self):
+		self.__defaultName = 'NewAnimation'
+		self._layout = ScrollView(do_scroll = (0, 1), effect_cls = EmptyScrollEffect, width = 200,
+			size_hint = (None, 1.0))
+		self._scrollLayout = TreeView(root_options = { 'text' : 'Animations'})
+		self._layout.add_widget(self._scrollLayout)
+		self.__defaultSelectNode = self._scrollLayout.select_node
+		self._scrollLayout.select_node = self.selectNode
+		self.__errorAlert = Alert("Error", "No animation selected.\nSelect one on the right menu.", "Ok")
+		self.__animationStats = AnimationStatsEditor()
+		self.__deleteDialog = Dialog(
+			title = 'Confirmation',
+			text = 'Are you sure that you want to remove\nthe selected '\
+				'animation?\nThis operation may not be reverted!',
+			okMethod = self.removeAnimation,
+			dialogOkButtonText = 'Ok',
+			dialogCancelButtonText = 'Cancel',
+		)
+		ModulesAccess.add('AnimationHandler', self)
+
 	def updateAnimation(self):
 		ModulesAccess.get("AnimationDisplay").updateAnimation()
 		ModulesAccess.get("AnimationFrameDisplay").updateAnimation()
@@ -285,26 +319,6 @@ class AnimationHandler(LayoutGetter):
 			self.unsetAnimation()
 
 		self.__defaultSelectNode(node)
-
-	def __init__(self):
-		self.__defaultName = 'NewAnimation'
-		self._layout = ScrollView(do_scroll = (0, 1), effect_cls = EmptyScrollEffect, width = 200,
-			size_hint = (None, 1.0))
-		self._scrollLayout = TreeView(root_options = { 'text' : 'Animations'})
-		self._layout.add_widget(self._scrollLayout)
-		self.__defaultSelectNode = self._scrollLayout.select_node
-		self._scrollLayout.select_node = self.selectNode
-		self.__errorAlert = Alert("Error", "No animation selected.\nSelect one on the right menu.", "Ok")
-		self.__animationStats = AnimationStatsEditor()
-		self.__deleteDialog = Dialog(
-			title = 'Confirmation',
-			text = 'Are you sure that you want to remove\nthe selected '\
-				'animation?\nThis operation may not be reverted!',
-			okMethod = self.removeAnimation,
-			dialogOkButtonText = 'Ok',
-			dialogCancelButtonText = 'Cancel',
-		)
-		ModulesAccess.add('AnimationHandler', self)
 
 	def addFrameToCurrentAnimation(self, sf):
 		node = self._scrollLayout.selected_node
@@ -359,6 +373,13 @@ class AnimationHandler(LayoutGetter):
 			self.__deleteDialog.open()
 		else:
 			self.__errorAlert.open()
+
+	def getAnimations(self):
+		l = []
+		for node in self._scrollLayout.children:
+			if (isinstance(node, AnimationNode) == True):
+				l.append(node.getAnimation())
+		return l
 
 class AnimationDisplay(LayoutGetter):
 	"""Class that creates a visual display for an animation."""
@@ -724,13 +745,13 @@ class FrameEditor(AnimationBaseScroll):
 		im = Image(source = resourceInfo.getPath())
 		self._scrollLayout.clear_widgets()
 		layoutHeight = 0
-		for selection in resourceInfo.getSelectionList():
+		for id, selection in resourceInfo.getSelectionItems():
 			pos = (selection.getX(), selection.getY())
 			size = (selection.getSizeX(), selection.getSizeY())
-			sf = SelectableFrame(im, pos, size)
+			sf = SelectableFrame(im, pos, size, id)
 			self.__objectsList.append(sf)
 			self._scrollLayout.add_widget(sf.getDisplayImage())
-			layoutHeight += 67
+			layoutHeight += 64
 
 		self._scrollLayout.height = layoutHeight
 
@@ -743,7 +764,7 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__animationDisplay = AnimationDisplay()
 		self.__frameDisplay = FrameDisplay()
 		self.__animationAndFrame = AnimationAndFrameEditor()
-		self.__animationTree = AnimationHandler()
+		self.__animationHandler = AnimationHandler()
 
 		leftMenu = BoxLayout(orientation = 'vertical', size_hint = (None, 1), width = 200)
 		self._cancelButton = CancelableButton(text = 'Cancel', on_release = self.close,
@@ -765,13 +786,13 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 
 		rightMenu = BoxLayout(orientation = 'vertical', size_hint = (None, 1), width = 200)
 		self.__newAnimationButton = CancelableButton(text = 'New animation',
-			on_release = self.__animationTree.createNewAnimation, **defaultLineSize)
+			on_release = self.__animationHandler.createNewAnimation, **defaultLineSize)
 		self.__editAnimationButton = CancelableButton(text = 'Edit animation',
-			on_release = self.__animationTree.editCurrentAnimation, **defaultLineSize)
+			on_release = self.__animationHandler.editCurrentAnimation, **defaultLineSize)
 		self.__deleteAnimationButton = CancelableButton(text = 'Delete animation',
-			on_release = self.__animationTree.deleteCurrentAnimation, **defaultLineSize)
+			on_release = self.__animationHandler.deleteCurrentAnimation, **defaultLineSize)
 
-		rightMenu.add_widget(self.__animationTree.getLayout())
+		rightMenu.add_widget(self.__animationHandler.getLayout())
 		rightMenu.add_widget(self.__newAnimationButton)
 		rightMenu.add_widget(self.__editAnimationButton)
 		rightMenu.add_widget(self.__deleteAnimationButton)
@@ -789,12 +810,17 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		ModulesAccess.add('AnimationEditor', self)
 
 	def save(self, *args):
+		animations = ModulesAccess.get('AnimationHandler').getAnimations()
+		for animation in animations:
+			print animation.getUsedSelections()
+
 		self.close()
 
 	def open(self, path):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.__resourceInfo = SplittedImageImporter().load(path)
 		self.__frameEditor.load(self.__resourceInfo)
+		#self.__animationHandler.load(self.__resourceInfo)
 		self.__popup.open()
 
 	def close(self, *args):

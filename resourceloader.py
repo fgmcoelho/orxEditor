@@ -395,7 +395,7 @@ class ResourceLoaderList(LayoutGetter):
 	def addItemList(self, selectionList):
 		count = 0
 		for selection in selectionList:
-			if (self.__resourceInfo.hasSame(selection) == False):
+			if (self.__resourceInfo.hasSameSelection(selection) == False):
 				self.__doAddItem(selection)
 			else:
 				count += 1
@@ -411,7 +411,7 @@ class ResourceLoaderList(LayoutGetter):
 			warn.open()
 
 	def addItem(self, selection):
-		if (self.__resourceInfo.hasSame(selection) == True):
+		if (self.__resourceInfo.hasSameSelection(selection) == True):
 			warn = Alert('Error', 'This selection has already been added.', 'Ok')
 			warn.open()
 			return
@@ -689,7 +689,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 				'Ok', 'Cancel')
 		else:
 			dialog = Dialog(self.__doClearAllItems, 'Confirmation', 'This will remove ' + \
-					str(numberOfSelections) + ' selections.\nThis operation can\'t be reverted.',
+				str(numberOfSelections) + ' selections.\nThis operation can\'t be reverted.',
 				'Ok', 'Cancel')
 
 		dialog.open()

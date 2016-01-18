@@ -247,11 +247,11 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 			self._loadSubitems(node, newResourceInfo, mainImage, spriteSize)
 		else:
 			for childNode in node.nodes[:]:
-				if (newResourceInfo.hasSame(childNode.getSelection()) == False):
+				if (newResourceInfo.hasSameSelection(childNode.getSelection()) == False):
 					self._tree.remove_node(childNode)
 
 			for selection in newResourceInfo.getSelectionList():
-				if (oldResourceInfo.hasSame(selection) == False):
+				if (oldResourceInfo.hasSameSelection(selection) == False):
 					self._createAndAddBaseObject(node, selection, mainImage, spriteSize, path)
 
 		node.setResourceInfo(newResourceInfo)
