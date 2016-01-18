@@ -114,3 +114,8 @@ animationStatsSize = {
 	'size_hint' : (None, None),
 }
 
+animationFrameDurationSize = {
+	'size': (300, 200),
+	'size_hint' : (None, None),
+}
+
