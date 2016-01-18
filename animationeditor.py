@@ -9,12 +9,13 @@ from kivy.graphics import Color
 from kivy.uix.textinput import TextInput
 
 from keyboard import KeyboardAccess, KeyboardGuardian
-from editorutils import EmptyScrollEffect, SeparatorLabel, AlignedLabel, CancelableButton, Alert, FloatInput
+from editorutils import EmptyScrollEffect, SeparatorLabel, AlignedLabel, CancelableButton, Alert, FloatInput,\
+	Dialog
 from editorheritage import LayoutGetter
 from modulesaccess import ModulesAccess
 from splittedimagemap import SpriteSelection, SplittedImageImporter
 from uisizes import defaultLabelSize, defaultSmallButtonSize, defaultLineSize, defaultInputSize, animationStatsSize,\
-	defaultLargeButtonSize
+	defaultLargeButtonSize, animationFrameDurationSize
 from string import letters, digits
 
 class AnimationBaseScroll(LayoutGetter):
@@ -103,9 +104,10 @@ class Animation:
 		self.__duration = duration
 		self.__frames = []
 
-	def addFrame(self, frame, index = None):
+	def addFrame(self, frame, index = None, autoSetAnimation = True):
 		assert isinstance(frame, Frame), "Invalid parameter received!"
-		frame.setAnimation(self)
+		if (autoSetAnimation == True):
+			frame.setAnimation(self)
 		if (index is None):
 			self.__frames.append(frame)
 		else:
@@ -134,6 +136,18 @@ class Animation:
 	def copyFrame(self, fromIndex, toIndex):
 		copy = self.__frames[fromIndex].copy()
 		self.addFrame(copy, toIndex)
+
+	def resetFrameDuration(self, index):
+		self.__frames[index].resetDuration()
+
+	def setFrameDuration(self, index, duration):
+		self.__frames[index].setDuration(duration)
+
+	def getFrameDuration(self, index):
+		return self.__frames[index].getDuration()
+
+	def removeFrame(self, index):
+		self.__frames.pop(index)
 
 class AnimationStatsEditor(SeparatorLabel):
 	def __processOk(self, *args):
@@ -282,6 +296,14 @@ class AnimationHandler(LayoutGetter):
 		self._scrollLayout.select_node = self.selectNode
 		self.__errorAlert = Alert("Error", "No animation selected.\nSelect one on the right menu.", "Ok")
 		self.__animationStats = AnimationStatsEditor()
+		self.__deleteDialog = Dialog(
+			title = 'Confirmation',
+			text = 'Are you sure that you want to remove\nthe selected '\
+				'animation?\nThis operation may not be reverted!',
+			okMethod = self.removeAnimation,
+			dialogOkButtonText = 'Ok',
+			dialogCancelButtonText = 'Cancel',
+		)
 		ModulesAccess.add('AnimationHandler', self)
 
 	def addFrameToCurrentAnimation(self, sf):
@@ -304,6 +326,10 @@ class AnimationHandler(LayoutGetter):
 		assert node != root and node is not None and node.getAnimation() == animation, "Invalid parameter received!"
 		node.update()
 
+	def removeAnimation(self):
+		self._scrollLayout.remove_node(self._scrollLayout.selected_node)
+		self._scrollLayout.select_node(self._scrollLayout.root)
+
 	def createNewAnimation(self, *args):
 		count = 0
 		lenToUse = len(self.__defaultName)
@@ -324,6 +350,13 @@ class AnimationHandler(LayoutGetter):
 		if (node is not None and node != self._scrollLayout.root):
 			animation = node.getAnimation()
 			self.__animationStats.open(animation, self.editAnimation)
+		else:
+			self.__errorAlert.open()
+
+	def deleteCurrentAnimation(self, *args):
+		node = self._scrollLayout.selected_node
+		if (node is not None and node != self._scrollLayout.root):
+			self.__deleteDialog.open()
 		else:
 			self.__errorAlert.open()
 
@@ -391,7 +424,7 @@ class FramePreview:
 		self.__frameRef = frame
 		self.__image = Image(
 			texture = frame.getImage().texture,
-			size = (198, 198)
+			size = (200, 200)
 		)
 		self.__operation = None
 
@@ -407,11 +440,11 @@ class FramePreview:
 			sx, sy = self.__image.size
 			px, py = self.__image.pos
 			self.__operation = Line(points = [
-				px + 1, py,
+				px, py,
 				px + sx, py,
 				px + sx, py + sy - 1,
 				px, py + sy - 1,
-				px + 1, py])
+				px, py])
 		ModulesAccess.get("AnimationAndFrameEditor").setDuration(self.__frameRef.getDuration())
 
 	def unselect(self):
@@ -419,7 +452,7 @@ class FramePreview:
 		self.__operation = None
 		ModulesAccess.get("AnimationAndFrameEditor").unsetDuration()
 
-class FrameDisplay(AnimationBaseScroll):
+class FrameDisplay(AnimationBaseScroll, SeparatorLabel):
 	"""Class that implements a display to show each frame of the animation and allows the user to select one to be
 	edited."""
 	def _processTouchDown(self, touch):
@@ -449,7 +482,7 @@ class FrameDisplay(AnimationBaseScroll):
 			index += 1
 		return index
 
-	def __getIndexOfSelectedFrameAndValidate(self, adj, expand = 0):
+	def __getIndexOfSelectedFrameAndValidate(self, adj = 0, expand = 0):
 		if (self.__frameSelected is None or self.__currentAnimation is None or self.__framePreviewDict == {}):
 			return -1
 
@@ -462,13 +495,9 @@ class FrameDisplay(AnimationBaseScroll):
 		return index
 
 	def __copySelectedFrame(self, adj):
-		if (adj > 0):
-			index = self.__getIndexOfSelectedFrameAndValidate(adj, 1)
-		else:
-			index = self.__getIndexOfSelectedFrameAndValidate(adj)
-
-		if (index == -1):
-			return
+		index = self.__getIndexOfSelectedFrameAndValidate()
+		if (adj < 0):
+			adj += 1
 
 		self.__currentAnimation.copyFrame(index, index + adj)
 		ModulesAccess.get("AnimationHandler").updateAnimation()
@@ -481,15 +510,72 @@ class FrameDisplay(AnimationBaseScroll):
 		self.__currentAnimation.swapFrames(index, index + adj)
 		ModulesAccess.get("AnimationHandler").updateAnimation()
 
+	def __confirmDuration(self, *args):
+		try:
+			duration = float(self.__durationInput.text)
+			assert duration > 0
+		except:
+			Alert(
+				title = 'Error',
+				text = 'Duration entered is not valid.',
+				closeButtonText = 'Ok'
+			).open()
+			return
+
+		index = self.__getIndexOfSelectedFrameAndValidate()
+		self.__currentAnimation.setFrameDuration(index, duration)
+		self.__popup.dismiss()
+		ModulesAccess.get("AnimationHandler").updateAnimation()
+
+	def __removeFrame(self, *args):
+		index = self.__getIndexOfSelectedFrameAndValidate()
+		self.__frameSelected.unselect()
+		self.__frameSelected = None
+		frames = self.__currentAnimation.getFrames()
+		del self.__framePreviewDict[frames[index]]
+		self.__currentAnimation.removeFrame(index)
+		ModulesAccess.get("AnimationHandler").updateAnimation()
+
 	def __init__(self):
-		super(FrameDisplay, self).__init__(size_hint = (1.0, None), do_scroll = (1, 0),
-			effect_cls = EmptyScrollEffect, height = 200)
+		super(FrameDisplay, self).__init__(size_hint = (1.0, None), do_scroll = (1, 0), height = 200,
+			effect_cls = EmptyScrollEffect)
 		self._scrollLayout = BoxLayout(orientation = 'horizontal', height = 200, size_hint = (None, None))
 		self._layout.add_widget(self._scrollLayout)
 		ModulesAccess.add('AnimationFrameDisplay', self)
 		self.__currentAnimation = None
 		self.__framePreviewDict = {}
 		self.__frameSelected = None
+
+		# duration frame editor popup
+		self.__popup = Popup(
+			title = 'Set Frame Duration',
+			auto_dismiss = False,
+			**animationFrameDurationSize
+		)
+		popupLayout = BoxLayout(orientation = 'vertical')
+		lineBox = BoxLayout(orientation = 'horizontal', **defaultInputSize)
+		lineBox.add_widget(AlignedLabel(text = 'Duration:', **defaultLineSize))
+		self.__durationInput = FloatInput(**defaultInputSize)
+		lineBox.add_widget(self.__durationInput)
+		popupLayout.add_widget(lineBox)
+		popupLayout.add_widget(self.getSeparator())
+		bottomButtonBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		cancelButton = CancelableButton(text = 'Cancel', on_release = self.__popup.dismiss, **defaultSmallButtonSize)
+		okButton = CancelableButton(text = 'Ok', on_release = self.__confirmDuration, **defaultSmallButtonSize)
+		bottomButtonBox.add_widget(self.getSeparator())
+		bottomButtonBox.add_widget(cancelButton)
+		bottomButtonBox.add_widget(okButton)
+		popupLayout.add_widget(bottomButtonBox)
+		self.__popup.content = popupLayout
+
+		#confirming frame removal
+		self.__deleteDialog = Dialog(
+			title = 'Confirmation',
+			text = 'Are you sure that you want to remove\nthe selected frame?\nThis operation may not be reverted!',
+			okMethod = self.__removeFrame,
+			dialogOkButtonText = 'Ok',
+			dialogCancelButtonText = 'Cancel',
+		)
 
 	def setAnimation(self, animation):
 		assert isinstance(animation, Animation), "Invalid argument received!"
@@ -540,6 +626,24 @@ class FrameDisplay(AnimationBaseScroll):
 	def copySelectedFrameRight(self, *args):
 		self.__copySelectedFrame(1)
 
+	def resetSelectedFrameDuration(self, *args):
+		index = self.__getIndexOfSelectedFrameAndValidate()
+		if (index != -1):
+			self.__currentAnimation.resetFrameDuration(index)
+			ModulesAccess.get("AnimationHandler").updateAnimation()
+
+	def setSelectedFrameDuration(self, *args):
+		index = self.__getIndexOfSelectedFrameAndValidate()
+		if (index != -1):
+			duration = self.__currentAnimation.getFrameDuration(index)
+			self.__durationInput.text = str(duration)
+			self.__popup.open()
+
+	def deleteSelectedFrame(self, *args):
+		index = self.__getIndexOfSelectedFrameAndValidate()
+		if (index != -1):
+			self.__deleteDialog.open()
+
 class AnimationAndFrameEditor(LayoutGetter, SeparatorLabel):
 	"""Class that implements the bottom menu and allows the user to operate on a frame selected in the FrameDisplay
 	class."""
@@ -564,9 +668,15 @@ class AnimationAndFrameEditor(LayoutGetter, SeparatorLabel):
 		moveRightButton = CancelableButton(text = 'Move right',
 			on_release = ModulesAccess.get('AnimationFrameDisplay').moveSelectedFrameRight,
 			**defaultSmallButtonSize)
-		setDurationButton = CancelableButton(text = 'Set Duration', **defaultLargeButtonSize)
-		resetDurationButton = CancelableButton(text = 'Reset Duration', **defaultLargeButtonSize)
-		deleteButton = CancelableButton(text = 'Delete Frame', **defaultLargeButtonSize)
+		setDurationButton = CancelableButton(text = 'Set Duration',
+			on_release = ModulesAccess.get('AnimationFrameDisplay').setSelectedFrameDuration,
+			**defaultLargeButtonSize)
+		resetDurationButton = CancelableButton(text = 'Reset Duration',
+			on_release = ModulesAccess.get('AnimationFrameDisplay').resetSelectedFrameDuration,
+			**defaultLargeButtonSize)
+		deleteButton = CancelableButton(text = 'Delete Frame',
+			on_release = ModulesAccess.get('AnimationFrameDisplay').deleteSelectedFrame,
+			**defaultLargeButtonSize)
 
 		self._layout.add_widget(self._durationLabel)
 		self._layout.add_widget(self.getSeparator())
@@ -659,7 +769,7 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__editAnimationButton = CancelableButton(text = 'Edit animation',
 			on_release = self.__animationTree.editCurrentAnimation, **defaultLineSize)
 		self.__deleteAnimationButton = CancelableButton(text = 'Delete animation',
-			**defaultLineSize)
+			on_release = self.__animationTree.deleteCurrentAnimation, **defaultLineSize)
 
 		rightMenu.add_widget(self.__animationTree.getLayout())
 		rightMenu.add_widget(self.__newAnimationButton)
