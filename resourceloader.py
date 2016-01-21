@@ -14,7 +14,9 @@ from editorheritage import SeparatorLabel, LayoutGetter, MouseModifiers
 from editorutils import CancelableButton, AutoReloadTexture, Alert, Dialog, convertKivyCoordToOrxCoord
 from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
 from keyboard import KeyboardAccess, KeyboardGuardian
-from splittedimagemap import SpriteSelection, SplittedImageExporter, SplittedImageImporter
+from splittedimagemap import SplittedImageExporter, SplittedImageImporter
+from spriteinfo import SpriteSelection
+
 from modulesaccess import ModulesAccess
 
 class GridCell:
