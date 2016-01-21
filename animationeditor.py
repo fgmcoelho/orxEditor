@@ -13,10 +13,11 @@ from editorutils import EmptyScrollEffect, SeparatorLabel, AlignedLabel, Cancela
 	Dialog
 from editorheritage import LayoutGetter
 from modulesaccess import ModulesAccess
-from splittedimagemap import SpriteSelection, SplittedImageImporter
+from splittedimagemap import SplittedImageImporter, SplittedImageExporter
 from uisizes import defaultLabelSize, defaultSmallButtonSize, defaultLineSize, defaultInputSize, animationStatsSize,\
 	defaultLargeButtonSize, animationFrameDurationSize
 from string import letters, digits
+from spriteinfo import SingleIdentifiedObject, AnimationInfo, FrameInfo
 
 class AnimationBaseScroll(LayoutGetter):
 	"""Class that implements the default behavior we want for a ScrollView, which is scrolling with the left button
@@ -91,7 +92,7 @@ class Frame:
 	def getSelectionId(self):
 		return self.__selectionId
 
-class Animation:
+class Animation(SingleIdentifiedObject):
 	"""Class that holds the information an ORX animation.
 	It holds a list of frames that are part of it, in an ORX context each Frame in the list is a KeyData entry in the
 	final ini file.
@@ -105,10 +106,12 @@ class Animation:
 				l.append(c)
 		return ''.join(l)
 
-	def __init__(self, name, duration = 1.0):
+	def __init__(self, name, duration = 1.0, identifier = None):
+		super(Animation, self).__init__()
 		self.__name = name
 		self.__duration = duration
 		self.__frames = []
+		self._id = identifier
 
 	def addFrame(self, frame, index = None, autoSetAnimation = True):
 		assert isinstance(frame, Frame), "Invalid parameter received!"
@@ -154,10 +157,6 @@ class Animation:
 
 	def removeFrame(self, index):
 		self.__frames.pop(index)
-
-	def getUsedSelections(self):
-		return list(set(map(lambda x: x.getSelectionId(), self.__frames)))
-
 
 class AnimationStatsEditor(SeparatorLabel):
 	def __processOk(self, *args):
@@ -297,6 +296,16 @@ class AnimationHandler(LayoutGetter):
 			dialogCancelButtonText = 'Cancel',
 		)
 		ModulesAccess.add('AnimationHandler', self)
+
+	def load(self, resourceInfo):
+		self.unsetAnimation()
+		self._scrollLayout.clear_widgets()
+		for identifier, animationInfo in resourceInfo.getAnimationInfoItems():
+			animation = Animation(animationInfo.getName(), animationInfo.getDuration(), animationInfo.getId())
+			for frameInfo in animationInfo.getFramesInfo():
+				sf = ModulesAccess.get('FrameEditor').getSelectableFrameBySelectionId(frameInfo.getId())
+				animation.addFrame(Frame(sf))
+				self.insertAnimation(animation)
 
 	def updateAnimation(self):
 		ModulesAccess.get("AnimationDisplay").updateAnimation()
@@ -727,7 +736,7 @@ class FrameEditor(AnimationBaseScroll):
 			self._defaultTouchDown(touch)
 		elif (touch.button == "left" and touch.is_double_tap == True):
 			pos = self._layout.to_local(*touch.pos)
-			for sf in self.__objectsList:
+			for sf in self.__selectableFrameDict.values():
 				if (sf.getDisplayImage().collide_point(*pos) == True):
 					ModulesAccess.get("AnimationHandler").addFrameToCurrentAnimation(sf)
 					return False
@@ -739,21 +748,26 @@ class FrameEditor(AnimationBaseScroll):
 			size_hint = (None, 1.0))
 		self._scrollLayout = BoxLayout(orientation = 'vertical', size_hint = (None, None), size = (200, 100))
 		self._layout.add_widget(self._scrollLayout)
+		ModulesAccess.add('FrameEditor', self)
 
 	def load(self, resourceInfo):
-		self.__objectsList = []
+		self.__selectableFrameDict = {}
 		im = Image(source = resourceInfo.getPath())
 		self._scrollLayout.clear_widgets()
 		layoutHeight = 0
-		for id, selection in resourceInfo.getSelectionItems():
+		for identifier, selection in resourceInfo.getSelectionItems():
 			pos = (selection.getX(), selection.getY())
 			size = (selection.getSizeX(), selection.getSizeY())
-			sf = SelectableFrame(im, pos, size, id)
-			self.__objectsList.append(sf)
+			sf = SelectableFrame(im, pos, size, identifier)
+			self.__selectableFrameDict[identifier] = sf
 			self._scrollLayout.add_widget(sf.getDisplayImage())
 			layoutHeight += 64
 
 		self._scrollLayout.height = layoutHeight
+
+	def getSelectableFrameBySelectionId(self, identifier):
+		assert identifier in self.__selectableFrameDict
+		return self.__selectableFrameDict[identifier]
 
 class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	"""Class that implements the popup of the animation editor."""
@@ -812,7 +826,23 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	def save(self, *args):
 		animations = ModulesAccess.get('AnimationHandler').getAnimations()
 		for animation in animations:
-			print animation.getUsedSelections()
+			name = animation.getName()
+			duration = animation.getDuration()
+			identifier = animation.getId()
+			animationInfo = AnimationInfo(name, duration, identifier)
+			for frame in animation.getFrames():
+				selectionId = frame.getSelectionId()
+				if (frame.hasDuration() == True):
+					duration = frame.getDuration()
+				else:
+					duration = None
+				fi = FrameInfo(selectionId, duration)
+				animationInfo.addFrameInfo(fi)
+			if (identifier is not None):
+				self.__resourceInfo.removeAnimationInfoById(identifier)
+			self.__resourceInfo.addAnimationInfo(animationInfo)
+
+		SplittedImageExporter.save(self.__resourceInfo)
 
 		self.close()
 
@@ -820,7 +850,8 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.__resourceInfo = SplittedImageImporter().load(path)
 		self.__frameEditor.load(self.__resourceInfo)
-		#self.__animationHandler.load(self.__resourceInfo)
+		self.__animationHandler.load(self.__resourceInfo)
+
 		self.__popup.open()
 
 	def close(self, *args):

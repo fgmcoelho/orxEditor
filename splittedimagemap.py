@@ -1,41 +1,8 @@
 from editorutils import strToDoubleIntTuple
+from spriteinfo import FrameInfo, AnimationInfo, SpriteSelection
 
 from ConfigParser import ConfigParser
 from os.path import isfile
-
-class SpriteSelection:
-	def __init__(self, x, y, xSize, ySize, xParts = 1, yParts = 1):
-		self.__x = x
-		self.__y = y
-		self.__xSize = xSize
-		self.__ySize = ySize
-		self.__xParts = xParts
-		self.__yParts = yParts
-
-	def compare(self, otherSelection):
-		if (self.__x == otherSelection.getX() and self.__xSize == otherSelection.getSizeX() and
-				self.__y == otherSelection.getY() and self.__ySize == otherSelection.getSizeY()):
-			return True
-		else:
-			return False
-
-	def getX(self):
-		return self.__x
-
-	def getY(self):
-		return self.__y
-
-	def getSizeX(self):
-		return self.__xSize
-
-	def getSizeY(self):
-		return self.__ySize
-
-	def getPartsX(self):
-		return self.__xParts
-
-	def getPartsY(self):
-		return self.__yParts
 
 class ResourceInformation:
 	def __addValueToDictWithId(self, whichDict, value, identifier, maxId):
@@ -57,68 +24,73 @@ class ResourceInformation:
 	def __init__(self, path, selectionId = 0, animationId = 0):
 		self.__path = path
 		self.__selectionDict = {}
-		self.__animationDict = {}
+		self.__animationInfoDict = {}
 		self.__selectionId = selectionId
-		self.__animationId = animationId
+		self.__animationInfoId = animationId
 
-	def addSelection(self, selection, identifier = None):
+	def addSelection(self, selection):
+		identifier = selection.getId()
 		if (identifier is None):
 			self.__selectionDict[self.__selectionId] = selection
+			selection.setId(self.__selectionId)
 			self.__selectionId += 1
-			return self.__selectionId - 1
+			return selection.getId()
 		else:
 			return self.__addValueToDictWithId(self.__selectionDict, selection, identifier, self.__selectionId)
 
-	def addAnimation(self, animation, identifier = None):
+	def addAnimationInfo(self, animationInfo):
+		identifier = animationInfo.getId()
 		if (identifier is None):
-			self.__animationDict[self.__animationId] = animation
-			self.__animationId += 1
-			return self.__animationId - 1
+			self.__animationInfoDict[self.__animationInfoId] = animationInfo
+			animationInfo.setId(self.__animationInfoId)
+			self.__animationInfoId += 1
+			return self.__animationInfoId - 1
 		else:
-			return self.__addValueToDictWithId(self.__animationDict, animation, identifier, self.__animationId)
+			return self.__addValueToDictWithId(self.__animationInfoDict, animationInfo, identifier,
+				self.__animationInfoId)
 
 	def removeSelectionById(self, identifier):
 		self.__removeById(self.__selectionDict, identifier)
-		for animationId, animation in self.__animationDict.iteritems():
-			if (identifier in animation.getUsedSelections()):
-				del self.__animationDict[animationId]
+		for animationId, animationInfo in self.__animationInfoDict.iteritems():
+			if (identifier in animationInfo.getUsedSelections()):
+				del self.__animationInfoDict[animationId]
 
-	def removeAnimationById(self, identifier):
-		self.__removeById(self.__animationDict, identifier)
+	def removeAnimationInfoById(self, identifier):
+		self.__removeById(self.__animationInfoDict, identifier)
 
 	def getSelectionById(self, identifier):
 		return self.__getById(self.__selectionDict, identifier)
 
-	def getAnimationById(self, identifier):
-		return self.__getById(self.__animationDict, identifier)
+	def getAnimationInfoById(self, identifier):
+		return self.__getById(self.__animationInfoDict, identifier)
 
 	def getNumberOfSelections(self):
 		return len(self.__selectionDict)
 
-	def getNumberOfAnimations(self):
-		return len(self.__animationDict)
+	def getNumberOfAnimationInfos(self):
+		return len(self.__animationInfoDict)
 
 	def getSelectionList(self):
 		return self.__selectionDict.values()
 
-	def getAnimationList(self):
+	def getAnimationInfoList(self):
 		return self.__selectionDict.values()
 
 	def getSelectionItems(self):
 		return self.__selectionDict.items()
 
-	def getAnimationItems(self):
-		return self.__animationDict.items()
+	def getAnimationInfoItems(self):
+		return self.__animationInfoDict.items()
 
 	def getSelectionId(self):
 		return self.__selectionId
 
-	def getAnimationId(self):
-		return self.__animationId
+	def getAnimationInfoId(self):
+		return self.__animationInfoId
 
 	def clear(self):
 		self.__selectionDict = {}
-		self.__animationDict = {}
+		self.__animationInfoDict = {}
 
 	def hasSameSelection(self, otherSelection):
 		for savedSelection in self.__selectionDict.values():
@@ -126,10 +98,10 @@ class ResourceInformation:
 				return True
 		return False
 
-	def countAnimationWithSelectionId(self, selectionId):
+	def countAnimationInfoWithSelectionId(self, selectionId):
 		count = 0
-		for animation in self.__animationDict.values():
-			if (selectionId in animation.getUsedSelections()):
+		for animationInfo in self.__animationInfoDict.values():
+			if (selectionId in animationInfo.getUsedSelections()):
 				count += 1
 		return count
 
@@ -146,27 +118,29 @@ class SplittedImageExporter:
 		parser.add_section('General')
 		parser.set('General', 'Path', resourceInfo.getPath())
 		parser.set('General', 'SelectionIdNext', resourceInfo.getSelectionId())
+		parser.set('General', 'AnimationInfoIdNext', resourceInfo.getAnimationInfoId())
 
-		for id, selection in resourceInfo.getSelectionItems():
-			sectionName = 'SelectionInfo' + str(id)
+		for identifier, selection in resourceInfo.getSelectionItems():
+			sectionName = 'SelectionInfo' + str(identifier)
 			parser.add_section(sectionName)
-			parser.set(sectionName, 'Id', str(id))
+			parser.set(sectionName, 'Id', str(identifier))
 			parser.set(sectionName, 'Position', str((selection.getX(), selection.getY())))
 			parser.set(sectionName, 'Size', str((selection.getSizeX(), selection.getSizeY())))
 
-		for id, animation in resourceInfo.getAnimationItems():
-			sectionName = 'AnimationInfo' + str(id)
+		for identifier, animationInfo in resourceInfo.getAnimationInfoItems():
+			sectionName = 'AnimationInfo' + str(identifier)
 			parser.add_section(sectionName)
-			parser.set(sectionName, 'Name', str(animation.getName()))
-			parser.set(sectionName, 'Duration', str(animation.getDuration()))
-			parser.set(sectionName, 'NumberOfFrames', str(len(animation.getFrames())))
+			parser.set(sectionName, 'Id', str(animationInfo.getId()))
+			parser.set(sectionName, 'Name', str(animationInfo.getName()))
+			parser.set(sectionName, 'Duration', str(animationInfo.getDuration()))
+			parser.set(sectionName, 'NumberOfFrames', str(len(animationInfo.getFramesInfo())))
 			i = 0
-			for frame in animation.getFrames():
-				frameSectionName = 'Animation%dFrame%d' % (id, i)
+			for frameInfo in animationInfo.getFramesInfo():
+				frameSectionName = 'Animation%dFrame%d' % (identifier, i)
 				parser.add_section(frameSectionName)
-				parser.set(frameSectionName, 'SelectionId', str(frame.getSelectionId()))
-				if (frame.hasDuration() == True):
-					parser.set(frameSectionName, 'Duration', str(frame.getDuration()))
+				parser.set(frameSectionName, 'SelectionId', str(frameInfo.getId()))
+				if (frameInfo.getDuration() is not None):
+					parser.set(frameSectionName, 'Duration', str(frameInfo.getDuration()))
 
 				i += 1
 
@@ -191,14 +165,39 @@ class SplittedImageImporter:
 		parser.read(filename)
 
 		imagePath = parser.get('General', 'Path')
-		selectionId = parser.get('General', 'SelectionIdNext')
-		resourceInfo = ResourceInformation(imagePath, selectionId)
+		selectionId = int(parser.get('General', 'SelectionIdNext'))
+		animationInfoId = int(parser.get('General', 'AnimationInfoIdNext'))
+		resourceInfo = ResourceInformation(imagePath, selectionId, animationInfoId)
+		loadedSelectionsSet = set()
+		animationUsedSelectionsSet = set()
 		for sectionName in parser.sections():
 			if sectionName.startswith('SelectionInfo'):
 				x, y = strToDoubleIntTuple(parser.get(sectionName, 'Position'))
 				sizeX, sizeY = strToDoubleIntTuple(parser.get(sectionName, 'Size'))
-				id = int(parser.get(sectionName, 'Id'))
-				selection = SpriteSelection(x, y, sizeX, sizeY)
-				resourceInfo.addSelection(selection, id)
+				identifier = int(parser.get(sectionName, 'Id'))
+				selection = SpriteSelection(x, y, sizeX, sizeY, identifier = identifier)
+				resourceInfo.addSelection(selection)
+				loadedSelectionsSet.add(identifier)
 
+			elif sectionName.startswith('AnimationInfo'):
+				name = parser.get(sectionName, 'Name')
+				duration = float(parser.get(sectionName, 'Duration'))
+				identifier = int(parser.get(sectionName, 'Id'))
+				animationInfo = AnimationInfo(name, duration, identifier)
+				numberOfFrames = int(parser.get(sectionName, 'NumberOfFrames'))
+				for i in range(numberOfFrames):
+					frameSectionName = 'Animation%dFrame%d' % (identifier, i)
+					selectionId = int(parser.get(frameSectionName, 'SelectionId'))
+					if parser.has_option(frameSectionName, 'Duration'):
+						duration = float(parser.get(frameSectionName, 'Duration'))
+					else:
+						duration = None
+					fi = FrameInfo(selectionId, duration)
+					animationInfo.addFrameInfo(fi)
+					animationUsedSelectionsSet.add(selectionId)
+
+				resourceInfo.addAnimationInfo(animationInfo)
+
+		assert animationUsedSelectionsSet <= loadedSelectionsSet, \
+			"Error, animations on file %s use non existant selection!" % (filename, )
 		return resourceInfo
