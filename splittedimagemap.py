@@ -51,9 +51,13 @@ class ResourceInformation:
 
 	def removeSelectionById(self, identifier):
 		self.__removeById(self.__selectionDict, identifier)
+		toRemove = []
 		for animationId, animationInfo in self.__animationInfoDict.iteritems():
 			if (identifier in animationInfo.getUsedSelections()):
-				del self.__animationInfoDict[animationId]
+				toRemove.append(animationId)
+
+		for key in toRemove:
+			del self.__animationInfoDict[key]
 
 	def removeAnimationInfoById(self, identifier):
 		self.__removeById(self.__animationInfoDict, identifier)
