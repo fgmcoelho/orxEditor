@@ -381,6 +381,16 @@ class ResourceLoaderList(LayoutGetter):
 			return self.__resourceInfo.getNumberOfSelections()
 		return 0
 
+	def getNumberOfAnimations(self):
+		if (self.__resourceInfo is not None):
+			return self.__resourceInfo.getNumberOfAnimations()
+		return 0
+
+	def getNumberOfRelatedAnimations(self, selection):
+		if (selection is not None and self.__resourceInfo is not None and selection.getId() is not None):
+			return self.__resourceInfo.countAnimationInfoWithSelectionId(selection.getId())
+		return 0
+
 	def clearAllItems(self):
 		self.__clearUi()
 		self.__resourceInfo.clear()
@@ -673,9 +683,24 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		if (selection is not None):
 			self.__display.previewSelection(selection)
 
-	def __processRemoveFromSelection(self, *args):
+	def __doClearSelection(self, *args):
 		self.__selectionTree.removeItem()
 		self.__display.clearPreview()
+
+	def __processRemoveFromSelection(self, *args):
+		selection = self.__selectionTree.getSelection()
+		if (selection is not None):
+			animationNumber = self.__selectionTree.getNumberOfRelatedAnimations(selection)
+			if animationNumber == 0:
+				message = 'This will remove the selecton.\nThis operation can\'t be reverted!'
+			else:
+				message = 'This will remove the selection and\n%d animation%s.\nThis operation can\'t be reverted!' %\
+					(animationNumber, 's' if animationNumber > 1 else '')
+
+			dialog = Dialog(self.__doClearSelection,
+				'Confirmation', message,
+				'Ok', 'Cancel')
+			dialog.open()
 
 	def __doClearAllItems(self, *args):
 		self.__selectionTree.clearAllItems()
@@ -685,16 +710,22 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		numberOfSelections = self.__selectionTree.getNumberOfSelections()
 		if (numberOfSelections == 0):
 			return
-		elif (numberOfSelections == 1):
-			dialog = Dialog(self.__doClearAllItems,
-				'Confirmation', 'This will remove 1 selection.\nThis operation can\'t be reverted.',
-				'Ok', 'Cancel')
 		else:
-			dialog = Dialog(self.__doClearAllItems, 'Confirmation', 'This will remove ' + \
-				str(numberOfSelections) + ' selections.\nThis operation can\'t be reverted.',
-				'Ok', 'Cancel')
+			animationNumber = self.__selectionTree.getNumberOfAnimations()
+			if animationNumber > 0:
+				message = 'This will remove %d selection%s and\n%d animation%s.\nThis operation can\'t be reverted.' %\
+					(numberOfSelections,
+					"s" if numberOfSelections > 1 else "",
+					animationNumber,
+					"s" if animationNumber > 1 else "")
+			else:
+				message = 'This will remove %d selection%s and\n%d animation%s.\nThis operation can\'t be reverted.' %\
+					(numberOfSelections, "s" if numberOfSelections == 0 else "")
 
-		dialog.open()
+			dialog = Dialog(self.__doClearAllItems,
+				'Confirmation', message,
+				'Ok', 'Cancel')
+			dialog.open()
 
 	def __doNothing(self, *args):
 		return

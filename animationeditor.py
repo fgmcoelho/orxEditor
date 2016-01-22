@@ -182,6 +182,8 @@ class AnimationStatsEditor(SeparatorLabel):
 			).open()
 			return
 
+        #TODO: Validate if name wasn't already used.
+
 		self.__popup.dismiss()
 		self.__okMethod(self.__currentAnimation)
 
@@ -295,17 +297,22 @@ class AnimationHandler(LayoutGetter):
 			dialogOkButtonText = 'Ok',
 			dialogCancelButtonText = 'Cancel',
 		)
+		self.__deletedAnimations = []
 		ModulesAccess.add('AnimationHandler', self)
 
 	def load(self, resourceInfo):
+		self.__deletedAnimations = []
 		self.unsetAnimation()
-		self._scrollLayout.clear_widgets()
+		for node in self._scrollLayout.children:
+			self._scrollLayout.remove_node(node)
+
 		for identifier, animationInfo in resourceInfo.getAnimationInfoItems():
 			animation = Animation(animationInfo.getName(), animationInfo.getDuration(), animationInfo.getId())
 			for frameInfo in animationInfo.getFramesInfo():
 				sf = ModulesAccess.get('FrameEditor').getSelectableFrameBySelectionId(frameInfo.getId())
 				animation.addFrame(Frame(sf))
-				self.insertAnimation(animation)
+			self.insertAnimation(animation)
+		self._scrollLayout.select_node(self._scrollLayout.root)
 
 	def updateAnimation(self):
 		ModulesAccess.get("AnimationDisplay").updateAnimation()
@@ -350,8 +357,10 @@ class AnimationHandler(LayoutGetter):
 		node.update()
 
 	def removeAnimation(self):
+		animation = self._scrollLayout.selected_node.getAnimation()
 		self._scrollLayout.remove_node(self._scrollLayout.selected_node)
 		self._scrollLayout.select_node(self._scrollLayout.root)
+		self.__deletedAnimations.append(animation)
 
 	def createNewAnimation(self, *args):
 		count = 0
@@ -389,6 +398,9 @@ class AnimationHandler(LayoutGetter):
 			if (isinstance(node, AnimationNode) == True):
 				l.append(node.getAnimation())
 		return l
+
+	def getDeletedAnimations(self):
+		return self.__deletedAnimations
 
 class AnimationDisplay(LayoutGetter):
 	"""Class that creates a visual display for an animation."""
@@ -780,6 +792,9 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__animationAndFrame = AnimationAndFrameEditor()
 		self.__animationHandler = AnimationHandler()
 
+		doubleLine = defaultLineSize.copy()
+		doubleLine['height'] = defaultLineSize['height'] * 2
+
 		leftMenu = BoxLayout(orientation = 'vertical', size_hint = (None, 1), width = 200)
 		self._cancelButton = CancelableButton(text = 'Cancel', on_release = self.close,
 			**defaultLineSize)
@@ -787,6 +802,9 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 			**defaultLineSize)
 		leftMenu.add_widget(AlignedLabel(text = 'Frames:', **defaultLabelSize))
 		leftMenu.add_widget(self.__frameEditor.getLayout())
+		leftMenu.add_widget(AlignedLabel(
+			text = 'Double click on the items\nabove to add a new frame.', **doubleLine
+		))
 		leftMenu.add_widget(self._doneButton)
 		leftMenu.add_widget(self._cancelButton)
 
@@ -824,6 +842,13 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		ModulesAccess.add('AnimationEditor', self)
 
 	def save(self, *args):
+		deletedAnimations = ModulesAccess.get('AnimationHandler').getDeletedAnimations()
+		for animation in deletedAnimations:
+			identifier = animation.getId()
+			if (identifier is not None):
+				# Saved animation was removed!
+				self.__resourceInfo.removeAnimationInfoById(identifier)
+
 		animations = ModulesAccess.get('AnimationHandler').getAnimations()
 		for animation in animations:
 			name = animation.getName()
