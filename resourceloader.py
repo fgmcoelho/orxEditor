@@ -8,6 +8,8 @@ from kivy.uix.scrollview import ScrollView
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
+from os.path import basename
+
 from uisizes import resourceLoderSize, defaultLabelSize, defaultButtonSize, defaultInputSize, defaultFontSize,\
 	defaultDoubleLineSize
 from editorheritage import SeparatorLabel, LayoutGetter, MouseModifiers
@@ -16,7 +18,6 @@ from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import SplittedImageExporter, SplittedImageImporter
 from spriteinfo import SpriteSelection
-
 from modulesaccess import ModulesAccess
 
 class GridCell:
@@ -452,6 +453,8 @@ class ResourceLoaderList(LayoutGetter):
 
 	def save(self):
 		if (self.__resourceInfo is not None):
+			futureName = basename(self.__resourceInfo.getPath())
+			ModulesAccess.get('BaseObjectsMenu').ignoreUpdate(futureName)
 			SplittedImageExporter.save(self.__resourceInfo)
 			ModulesAccess.get('BaseObjectsMenu').updateResource(self.__resourceInfo)
 
