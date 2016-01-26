@@ -256,6 +256,9 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 
 		node.setResourceInfo(newResourceInfo)
 
+	def ignoreUpdate(self, filenameToIgnore):
+		self.__ignoreUpdates[filenameToIgnore] = True
+
 	def updateResource(self, newResourceInfo):
 		filename = basename(newResourceInfo.getPath())
 		node = self._filenameToNode[filename]
@@ -335,8 +338,11 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 				pathname = join(self._targetDir, filename)
 				fileData = stat(pathname)
 				if (fileData is not None and fileData.st_ctime >= self._lastUpdate):
-					self._filesWaitingFinish[pathname] = (pathname, fileData.st_mtime, fileData.st_atime,
-						fileData.st_ctime)
+					if (filename in self.__ignoreUpdates):
+						del self.__ignoreUpdates[filename]
+					else:
+						self._filesWaitingFinish[pathname] = (pathname, fileData.st_mtime, fileData.st_atime,
+							fileData.st_ctime)
 
 			self._lastUpdate = lastUpdate
 
@@ -360,7 +366,7 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		self._layout.add_widget(self._scrollLayout)
 		self._tree.bind(minimum_height=self._adjustTreeSize)
 
-
+		self.__ignoreUpdates = {}
 		self.__defaultTouchDown = self._layout.on_touch_down
 		self.__defaultTouchUp = self._layout.on_touch_up
 		self.__defaultTouchMove = self._layout.on_touch_move
