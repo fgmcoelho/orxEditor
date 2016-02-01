@@ -3,14 +3,15 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.popup import Popup
 from kivy.uix.treeview import TreeView, TreeViewLabel
+from kivy.uix.textinput import TextInput
+from kivy.uix.gridlayout import GridLayout
 from kivy.clock import Clock
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
-from kivy.uix.textinput import TextInput
 
 from keyboard import KeyboardAccess, KeyboardGuardian
 from editorutils import EmptyScrollEffect, SeparatorLabel, AlignedLabel, CancelableButton, Alert, FloatInput,\
-	Dialog
+	Dialog, NumberInput, AlignedToggleButton
 from editorheritage import LayoutGetter
 from modulesaccess import ModulesAccess
 from splittedimagemap import SplittedImageImporter, SplittedImageExporter
@@ -791,6 +792,7 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__frameDisplay = FrameDisplay()
 		self.__animationAndFrame = AnimationAndFrameEditor()
 		self.__animationHandler = AnimationHandler()
+		self.__linkDisplay = AnimationLinkDisplay()
 
 		doubleLine = defaultLineSize.copy()
 		doubleLine['height'] = defaultLineSize['height'] * 2
@@ -821,12 +823,15 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 			on_release = self.__animationHandler.createNewAnimation, **defaultLineSize)
 		self.__editAnimationButton = CancelableButton(text = 'Edit animation',
 			on_release = self.__animationHandler.editCurrentAnimation, **defaultLineSize)
+		self.__editLinksButton = CancelableButton(text = 'Edit links',
+			on_release = self.__linkDisplay.open, **defaultLineSize)
 		self.__deleteAnimationButton = CancelableButton(text = 'Delete animation',
 			on_release = self.__animationHandler.deleteCurrentAnimation, **defaultLineSize)
 
 		rightMenu.add_widget(self.__animationHandler.getLayout())
 		rightMenu.add_widget(self.__newAnimationButton)
 		rightMenu.add_widget(self.__editAnimationButton)
+		rightMenu.add_widget(self.__editLinksButton)
 		rightMenu.add_widget(self.__deleteAnimationButton)
 
 		self._layout.add_widget(leftMenu)
@@ -882,3 +887,70 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__popup.dismiss()
+
+class AnimationLinkDisplay(AnimationBaseScroll):
+	def __init__(self):
+		self.__popupLayout = BoxLayout(orientation = 'vertical')
+		self._scrollLayout = GridLayout(cols = 1, rows = 1)
+
+		super(AnimationLinkDisplay, self).__init__()
+
+		ModulesAccess.add('AnimationLinkDisplay', self)
+		linkEditor = AnimationLinkEditor()
+		self._layout.add_widget(self._scrollLayout)
+
+		self.__popupLayout.add_widget(self._layout)
+		self.__popupLayout.add_widget(linkEditor.getLayout())
+
+		self.__popup = Popup(
+			title = 'Animation links',
+			auto_dismiss = True,
+			content = self.__popupLayout
+		)
+
+	def save(self, *args):
+		self.__popup.dismiss()
+
+	def close(self, *args):
+		self.__popup.dismiss()
+
+	def open(self, *args):
+		self.__popup.open()
+
+class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
+	def __init__(self):
+		super(AnimationLinkEditor, self).__init__()
+		inputSize = defaultInputSize.copy()
+		inputSize['width'] = defaultSmallButtonSize['width']
+
+		self._layout = BoxLayout(orientation = 'vertical', height = 200, size_hint = (1.0, None))
+		priorityLine = BoxLayout(orientation = 'horizontal', **defaultInputSize)
+		priorityLine.add_widget(AlignedLabel(text = 'Priority: ', **defaultInputSize))
+		self.__priorityInput = NumberInput(**inputSize)
+		priorityLine.add_widget(self.__priorityInput)
+
+		propertyLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		self.__noPropertyButton = AlignedToggleButton(text = ' No property', group = 'property', **defaultLineSize)
+		self.__immediateButton = AlignedToggleButton(text = ' Immeditate', group = 'property', **defaultLineSize)
+		self.__clearTargetButton = AlignedToggleButton(text = ' Clear Target', group = 'property', **defaultLineSize)
+		propertyLine.add_widget(self.__noPropertyButton)
+		propertyLine.add_widget(self.__immediateButton)
+		propertyLine.add_widget(self.__clearTargetButton)
+
+		bottomLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		doneButton = CancelableButton(text = 'Done', on_release = ModulesAccess.get('AnimationLinkDisplay').save,
+			**defaultSmallButtonSize)
+		cancelButton = CancelableButton(text = 'Cancel', on_release = ModulesAccess.get('AnimationLinkDisplay').close,
+			**defaultSmallButtonSize)
+
+		bottomLine.add_widget(self.getSeparator())
+		bottomLine.add_widget(doneButton)
+		bottomLine.add_widget(cancelButton)
+
+		self._layout.add_widget(priorityLine)
+		self._layout.add_widget(AlignedLabel(text = 'Property:', **defaultLabelSize))
+		self._layout.add_widget(propertyLine)
+		self._layout.add_widget(self.getSeparator())
+		self._layout.add_widget(bottomLine)
+
+		ModulesAccess.add('AnimationLinkEditor', self)
