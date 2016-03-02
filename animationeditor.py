@@ -29,16 +29,19 @@ class AnimationBaseScroll(LayoutGetter):
 	def _processTouchUp(self, touch):
 		if (touch.button == "right"):
 			self._defaultTouchUp(touch)
+			return True
 		return False
 
 	def _processTouchMove(self, touch):
 		if (touch.button == "right"):
 			self._defaultTouchMove(touch)
+			return True
 		return False
 
 	def _processTouchDown(self, touch):
 		if (touch.button == "right"):
 			self._defaultTouchDown(touch)
+			return True
 		return False
 
 	def __init__(self, **kwargs):
@@ -183,7 +186,15 @@ class AnimationStatsEditor(SeparatorLabel):
 			).open()
 			return
 
-        #TODO: Validate if name wasn't already used.
+		animations = ModulesAccess.get('AnimationHandler').getAnimations()
+		for animation in animations:
+			if (animation.getName() == self.__nameInput.text):
+				Alert(
+					title = 'Error',
+					text = 'Name is already in use.',
+					closeButtonText = 'Ok'
+				).open()
+				return
 
 		self.__popup.dismiss()
 		self.__okMethod(self.__currentAnimation)
@@ -231,6 +242,7 @@ class AnimationStatsEditor(SeparatorLabel):
 	def open(self, animation, okMethod):
 		assert isinstance(animation, Animation), "Invalid parameter received!"
 		self.__nameInput.text = animation.getName()
+		self.__nameInput.cursor = (0, 0)
 		self.__durationInput.text = str(animation.getDuration())
 		self.__currentAnimation = animation
 		self.__okMethod = okMethod
@@ -895,6 +907,7 @@ class AnimationLinkButton(AlignedToggleButton):
 
 		if (self.collide_point(*touch.pos) == True and self._touchUid is not None and touch.uid == self._touchUid):
 			if (self.state == 'down'):
+				ModulesAccess.get('AnimationLinkEditor').reset()
 				self.state = 'normal'
 			else:
 				ModulesAccess.get('AnimationLinkEditor').setValues(self)
@@ -934,6 +947,34 @@ class AnimationLinkButton(AlignedToggleButton):
 		self._priority = priority
 
 class AnimationLinkDisplay(AnimationBaseScroll):
+	def _processTouchUp(self, touch):
+		if (touch.button == "right"):
+			self._defaultTouchUp(touch)
+			return True
+
+		elif (touch.button == "left"):
+			touch.pos = self._layout.to_local(*touch.pos)
+			touch.x, touch.y = touch.pos
+			for item in self.__linksList:
+				if item.collide_point(*touch.pos):
+					item.on_touch_up(touch)
+					return True
+
+	def _processTouchDown(self, touch):
+		if self._touchInside(touch) == False:
+			return
+
+		if (touch.button == "right"):
+			self._defaultTouchDown(touch)
+			return True
+		elif (touch.button == "left"):
+			touch.pos = self._layout.to_local(*touch.pos)
+			touch.x, touch.y = touch.pos
+			for item in self.__linksList:
+				if item.collide_point(*touch.pos):
+					item.on_touch_down(touch)
+					return True
+
 	def __init__(self):
 		self.__popupLayout = BoxLayout(orientation = 'vertical')
 		self._scrollLayout = GridLayout(cols = 1, rows = 1, size_hint = (None, None))
@@ -948,6 +989,7 @@ class AnimationLinkDisplay(AnimationBaseScroll):
 		self.__popupLayout.add_widget(self._layout)
 		self.__popupLayout.add_widget(linkEditor.getLayout())
 
+		self.__linksList = []
 		self.__popup = Popup(
 			title = 'Animation links',
 			auto_dismiss = False,
@@ -964,6 +1006,7 @@ class AnimationLinkDisplay(AnimationBaseScroll):
 		ModulesAccess.get('AnimationLinkEditor').reset()
 		animations = ModulesAccess.get('AnimationHandler').getAnimations()
 		numberOfAnimations = len(animations)
+		self.__linksList = []
 		self._scrollLayout.clear_widgets()
 		self._scrollLayout.cols = numberOfAnimations + 1
 		self._scrollLayout.rows = numberOfAnimations + 1
@@ -979,9 +1022,9 @@ class AnimationLinkDisplay(AnimationBaseScroll):
 				if (i == 0):
 					self._scrollLayout.add_widget(AlignedLabel(text = animation.getName(), **defaultLabelSize))
 				else:
-					self._scrollLayout.add_widget(
-						AnimationLinkButton(animation, animations[i-1], '', 0, text = '', **defaultLabelSize)
-					)
+					linkButton = AnimationLinkButton(animation, animations[i-1], '', 0, text = '', **defaultLabelSize)
+					self.__linksList.append(linkButton)
+					self._scrollLayout.add_widget(linkButton)
 
 		self.__popup.open()
 
@@ -997,10 +1040,10 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 
 		self._layout.add_widget(self.__sourceAnimationLabel)
 		self._layout.add_widget(self.__destinationAnimationLabel)
-		priorityLine = BoxLayout(orientation = 'horizontal', **defaultInputSize)
-		priorityLine.add_widget(AlignedLabel(text = 'Priority: ', **defaultInputSize))
+		self.__priorityLine = BoxLayout(orientation = 'horizontal', **defaultInputSize)
+		self.__priorityLine.add_widget(AlignedLabel(text = 'Priority: ', **defaultInputSize))
 		self.__priorityInput = NumberInput(**inputSize)
-		priorityLine.add_widget(self.__priorityInput)
+		self.__priorityLine.add_widget(self.__priorityInput)
 
 		propertyLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
 		self.__noPropertyButton = AlignedToggleButton(text = ' No property', group = 'property', **defaultLineSize)
@@ -1020,8 +1063,9 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		bottomLine.add_widget(doneButton)
 		bottomLine.add_widget(cancelButton)
 
-		self._layout.add_widget(priorityLine)
-		self._layout.add_widget(AlignedLabel(text = 'Property:', **defaultLabelSize))
+		self.__propertyLabel = AlignedLabel(text = 'Property:', **defaultLabelSize)
+		self._layout.add_widget(self.__priorityLine)
+		self._layout.add_widget(self.__propertyLabel)
 		self._layout.add_widget(propertyLine)
 		self._layout.add_widget(self.getSeparator())
 		self._layout.add_widget(bottomLine)
@@ -1030,10 +1074,20 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 
 		ModulesAccess.add('AnimationLinkEditor', self)
 
+	def __disableElements(self, value):
+		self.__sourceAnimationLabel.disabled = value
+		self.__destinationAnimationLabel.disabled = value
+		self.__noPropertyButton.disabled = value
+		self.__immediateButton.disabled = value
+		self.__clearTargetButton.disabled = value
+		self.__priorityLine.disabled = value
+		self.__propertyLabel = value
+
 	def reset(self):
+		self.__disableElements(True)
 		self.__sourceAnimationLabel.text = 'Source: '
 		self.__destinationAnimationLabel.text = 'Destination: '
-		self.__noPropertyButton.state = 'down'
+		self.__noPropertyButton.state = 'normal'
 		self.__immediateButton.state = 'normal'
 		self.__clearTargetButton.state = 'normal'
 		self.__priorityInput.text = ''
@@ -1041,6 +1095,8 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 
 	def setValues(self, obj):
 		assert isinstance(obj, AnimationLinkButton)
+
+		self.__disableElements(False)
 		if (self.__currentObj is not None):
 			try:
 				priority = int(self.__priorityInput.text)
