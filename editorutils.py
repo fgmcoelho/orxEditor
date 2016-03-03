@@ -18,6 +18,33 @@ from math import sqrt
 
 from uisizes import defaultButtonSize, defaultFontSize, warningSize, defaultLineSize
 
+class ChangesConfirm(object):
+	def __init__(self, **kwargs):
+		self._hasChanges = False
+		self.__dialog = Dialog(
+			title = 'Confirm',
+			text = 'Unsaved changes will be lost.\nAre you sure?',
+			dialogOkButtonText = 'Ok',
+			dialogCancelButtonText = 'Cancel',
+			okMethod = self.__closeDialog
+		)
+
+	def resetChanges(self):
+		self._hasChanges = False
+
+	def registerChanges(self, *args):
+		self._hasChanges = True
+
+	def __closeDialog(self):
+		self.resetChanges()
+		self.close()
+
+	def alertExit(self, *args):
+		if (self._hasChanges == True):
+			self.__dialog.open()
+		else:
+			self.close()
+
 class NumberInput(TextInput):
 	modulesDict = {}
 	@staticmethod
