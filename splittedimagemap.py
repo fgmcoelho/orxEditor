@@ -21,12 +21,14 @@ class ResourceInformation:
 		if (identifier in whichDict):
 			del whichDict[identifier]
 
-	def __init__(self, path, selectionId = 0, animationId = 0):
+	def __init__(self, path, selectionId = 0, animationId = 0, linkId = 0):
 		self.__path = path
 		self.__selectionDict = {}
 		self.__animationInfoDict = {}
+		self.__linkDict = {}
 		self.__selectionId = selectionId
 		self.__animationInfoId = animationId
+		self.__linkId = linkId
 
 	def addSelection(self, selection):
 		identifier = selection.getId()
@@ -49,6 +51,16 @@ class ResourceInformation:
 			return self.__addValueToDictWithId(self.__animationInfoDict, animationInfo, identifier,
 				self.__animationInfoId)
 
+	def addLink(self, linkInfo):
+		identifier = linkInfo.getId()
+		if (identifier is None):
+			self.__linkDict[self.__linkId] = linkInfo
+			linkInfo.setId(self.__linkId)
+			self.__linkId += 1
+			return self.__linkId - 1
+		else:
+			return self.__addValueToDictWithId(self.__linkDict, linkInfo, identifier, self.__linkId)
+
 	def removeSelectionById(self, identifier):
 		self.__removeById(self.__selectionDict, identifier)
 		toRemove = []
@@ -57,10 +69,20 @@ class ResourceInformation:
 				toRemove.append(animationId)
 
 		for key in toRemove:
-			del self.__animationInfoDict[key]
+			self.removeAnimationInfoById(key)
 
 	def removeAnimationInfoById(self, identifier):
 		self.__removeById(self.__animationInfoDict, identifier)
+		toRemove = []
+		for linkId, linkInfo in self.__linkDict.iteritems():
+			if (identifier == linkInfo.getSourceId() or identifier == linkInfo.getDestinationId()):
+				toRemove.append(linkId)
+
+		for key in toRemove:
+			del self.__linkDict[key]
+
+	def removeLinkById(self, identifier):
+		self.__removeById(self.__linkDict, identifier)
 
 	def getSelectionById(self, identifier):
 		return self.__getById(self.__selectionDict, identifier)
@@ -68,17 +90,26 @@ class ResourceInformation:
 	def getAnimationInfoById(self, identifier):
 		return self.__getById(self.__animationInfoDict, identifier)
 
+	def getLinkById(self, identifier):
+		return self.__getById(self.__linkDict, identifier)
+
 	def getNumberOfSelections(self):
 		return len(self.__selectionDict)
 
 	def getNumberOfAnimationInfos(self):
 		return len(self.__animationInfoDict)
 
+	def getNumberOfLinks(self):
+		return len(self.__linkDict)
+
 	def getSelectionList(self):
 		return self.__selectionDict.values()
 
 	def getAnimationInfoList(self):
-		return self.__selectionDict.values()
+		return self.__animationInfoDict.values()
+
+	def getLinksList(self):
+		return self.__linkDict.values()
 
 	def getSelectionItems(self):
 		return self.__selectionDict.items()
@@ -86,15 +117,22 @@ class ResourceInformation:
 	def getAnimationInfoItems(self):
 		return self.__animationInfoDict.items()
 
+	def getLinkItems(self):
+		return self.__linkDict.items()
+
 	def getSelectionId(self):
 		return self.__selectionId
 
 	def getAnimationInfoId(self):
 		return self.__animationInfoId
 
+	def getLinkId(self):
+		return self.__linkId
+
 	def clear(self):
 		self.__selectionDict = {}
 		self.__animationInfoDict = {}
+		self.__linkDict = {}
 
 	def hasSameSelection(self, otherSelection):
 		for savedSelection in self.__selectionDict.values():
@@ -106,6 +144,13 @@ class ResourceInformation:
 		count = 0
 		for animationInfo in self.__animationInfoDict.values():
 			if (selectionId in animationInfo.getUsedSelections()):
+				count += 1
+		return count
+
+	def countLinkWithAnimationId(self, animationId):
+		count = 0
+		for link in self.__linkDict.values():
+			if (link.getSourceId() == animationId or link.getDestinationId() == animationId):
 				count += 1
 		return count
 

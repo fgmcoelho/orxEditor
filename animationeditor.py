@@ -8,6 +8,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.clock import Clock
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
+from kivy.uix.togglebutton import ToggleButton
 
 from keyboard import KeyboardAccess, KeyboardGuardian
 from editorutils import EmptyScrollEffect, SeparatorLabel, AlignedLabel, CancelableButton, Alert, FloatInput,\
@@ -222,13 +223,13 @@ class AnimationStatsEditor(SeparatorLabel, KeyboardAccess, ChangesConfirm):
 
 		nameBox = BoxLayout(orientation = 'horizontal', **boxSizes)
 		self.__nameLabel = AlignedLabel(text = 'Name:', **defaultLabelSize)
-		self.__nameInput = TextInput(text = '')
+		self.__nameInput = TextInput(text = '', multiline=False)
 		nameBox.add_widget(self.__nameLabel)
 		nameBox.add_widget(self.__nameInput)
 
 		durationBox = BoxLayout(orientation = 'horizontal', **boxSizes)
 		self.__durationLabel = AlignedLabel(text = 'Duration:', **defaultLabelSize)
-		self.__durationInput = FloatInput(**defaultInputSize)
+		self.__durationInput = FloatInput(multiline = False, **defaultInputSize)
 		durationBox.add_widget(self.__durationLabel)
 		durationBox.add_widget(self.__durationInput)
 
@@ -266,13 +267,15 @@ class AnimationStatsEditor(SeparatorLabel, KeyboardAccess, ChangesConfirm):
 		self.resetChanges()
 		self.__popup.open()
 
-class AnimationLink:
+class AnimationLink(SingleIdentifiedObject):
 	"""Class that controls the animation links (which describes how ORX will go from one animation to the other)."""
-	def __init__(self, source, destination, priority = 8, property = None):
+	def __init__(self, source, destination, priority = 8, property = None, identifier = None):
+		super(AnimationLink, self).__init__()
 		self.__source = source
 		self.__destination = destination
 		self.__priority = priority
 		self.__property = property
+		self._id = identifier
 
 class SelectableFrame:
 	"""Class that holds the information of the left menu image.
@@ -543,7 +546,7 @@ class FrameDurationPopup(SeparatorLabel, ChangesConfirm, KeyboardAccess):
 		popupLayout = BoxLayout(orientation = 'vertical')
 		lineBox = BoxLayout(orientation = 'horizontal', **defaultInputSize)
 		lineBox.add_widget(AlignedLabel(text = 'Duration:', **defaultLineSize))
-		self.__durationInput = FloatInput(**defaultInputSize)
+		self.__durationInput = FloatInput(multiline = False, **defaultInputSize)
 		lineBox.add_widget(self.__durationInput)
 		popupLayout.add_widget(lineBox)
 		popupLayout.add_widget(self.getSeparator())
@@ -1016,18 +1019,20 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__popup.dismiss()
 
-class AnimationLinkButton(AlignedToggleButton):
+class AnimationLinkButton(BoxLayout, ToggleButton):
 	def on_touch_up(self, touch):
 		if (touch.button == 'right'):
 			return False
 
 		if (self.collide_point(*touch.pos) == True and self._touchUid is not None and touch.uid == self._touchUid):
-			if (self.state == 'down'):
-				ModulesAccess.get('AnimationLinkEditor').reset()
-				self.state = 'normal'
-			else:
+			if (touch.is_double_tap == False):
+				if (self.state == 'normal'):
+					self.state = 'down'
 				ModulesAccess.get('AnimationLinkEditor').setValues(self)
-				self.state = 'down'
+			else:
+				if (self.state == 'down'):
+					ModulesAccess.get('AnimationLinkEditor').reset()
+					self.state = 'normal'
 
 	def on_touch_down(self, touch):
 		if (touch.button == 'right'):
@@ -1042,7 +1047,11 @@ class AnimationLinkButton(AlignedToggleButton):
 		self._destination = destination
 		self._property = property
 		self._priority = priority
-		super(AnimationLinkButton, self).__init__(**kwargs)
+		super(AnimationLinkButton, self).__init__(orientation = 'vertical', **kwargs)
+		sourceLine = AlignedLabel(text = 'Source: ' + source.getName(), **defaultLineSize)
+		destinationLine = AlignedLabel(text = 'Destination: ' + destination.getName(), **defaultLineSize)
+		self.add_widget(sourceLine)
+		self.add_widget(destinationLine)
 
 	def getSourceName(self):
 		return self._source.getName()
@@ -1071,7 +1080,7 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess):
 		elif (touch.button == "left"):
 			touch.pos = self._layout.to_local(*touch.pos)
 			touch.x, touch.y = touch.pos
-			for item in self.__linksList:
+			for item in self._scrollLayout.children:
 				if item.collide_point(*touch.pos):
 					item.on_touch_up(touch)
 					return True
@@ -1086,7 +1095,7 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess):
 		elif (touch.button == "left"):
 			touch.pos = self._layout.to_local(*touch.pos)
 			touch.x, touch.y = touch.pos
-			for item in self.__linksList:
+			for item in self._scrollLayout.children:
 				if item.collide_point(*touch.pos):
 					item.on_touch_down(touch)
 					return True
@@ -1105,14 +1114,38 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess):
 		self.__popupLayout.add_widget(self._layout)
 		self.__popupLayout.add_widget(linkEditor.getLayout())
 
-		self.__linksList = []
 		self.__popup = Popup(
 			title = 'Animation links',
 			auto_dismiss = False,
 			content = self.__popupLayout
 		)
 
+		self.__validLinksList = []
+		self.__removedLinks = []
+
+	def load(self, resourceInfo):
+		self.__linksList = {}
+		animations = ModulesAccess.get('AnimationHandler').getAnimations()
+		numberOfAnimations = len(animations)
+		for animation in animations:
+			for i in range(numberOfAnimations):
+				linkButton = AnimationLinkButton(
+					animation, animations[i], '', 0,
+					width = baseWidth,
+					height = baseHeight,
+					size_hint = (None, None)
+				)
+				self.__linksList[animation.getId()][animations[i].getId()] = linkButton
+
+		for linkInfo in resourceInfo.getLinksList():
+			sourceId = linkInfo.getSourceId()
+			destinationId = linkInfo.getDestinationId()
+			self.__linksList[sourceId][destinationId].setPriority(linkInfo.getPriority())
+			self.__linksList[sourceId][destinationId].setProperty(linkInfo.getProperty())
+			self.__linksList[sourceId][destinationId].state = 'down'
+
 	def save(self, *args):
+		self.__linksList = self.__copyLinks
 		self.close()
 
 	def close(self, *args):
@@ -1124,24 +1157,44 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess):
 		ModulesAccess.get('AnimationLinkEditor').reset()
 		animations = ModulesAccess.get('AnimationHandler').getAnimations()
 		numberOfAnimations = len(animations)
-		self.__linksList = []
 		self._scrollLayout.clear_widgets()
 		self._scrollLayout.cols = numberOfAnimations + 1
 		self._scrollLayout.rows = numberOfAnimations + 1
-		self._scrollLayout.width = (numberOfAnimations + 1) * 200
-		self._scrollLayout.height = (numberOfAnimations + 1) * defaultLineSize['height']
+		baseWidth = 300
+		baseHeight = defaultLineSize['height'] * 2
+		self._scrollLayout.width = (numberOfAnimations + 1) * baseWidth
+		self._scrollLayout.height = (numberOfAnimations + 1) * baseHeight
+		linksSize = {
+			'width': baseWidth,
+			'height': baseHeight,
+			'size_hint': (None, None)
+		}
 
-		self._scrollLayout.add_widget(AlignedLabel(text = 'Source \\/ | Destination ->', **defaultLabelSize))
+		from copy import deepcopy
+		self.__copyLinks = deepcopy(self.__linksList)
+		self._scrollLayout.add_widget(AlignedLabel(text = 'Destination ->\nSource \\/', **linksSize))
 		for animation in animations:
-			self._scrollLayout.add_widget(AlignedLabel(text = animation.getName(), **defaultLabelSize))
+			self._scrollLayout.add_widget(AlignedLabel(text = animation.getName(), **linksSize))
 
 		for animation in animations:
 			for i in range(numberOfAnimations + 1):
 				if (i == 0):
-					self._scrollLayout.add_widget(AlignedLabel(text = animation.getName(), **defaultLabelSize))
+					if (animation.getId() in self.__copyLinks):
+						self.__copyLinks[animation.getId()] = {}
+
+					self._scrollLayout.add_widget(AlignedLabel(text = animation.getName(), **linksSize))
 				else:
-					linkButton = AnimationLinkButton(animation, animations[i-1], '', 0, text = '', **defaultLabelSize)
-					self.__linksList.append(linkButton)
+					if animation.getId() in self.__copyLinks and animations[i-1].getId() in
+							self.__copyLinks[animation.getId()]:
+						linkButton = self.__copyLinks[animation.getId()][animations[i-1].getId()]
+					else:
+						linkButton = AnimationLinkButton(
+							animation, animations[i-1], '', 0,
+							width = baseWidth,
+							height = baseHeight,
+							size_hint = (None, None)
+						)
+						self.__copyLinks[animation.getId()][animations[i-1].getId()] = linkButton
 					self._scrollLayout.add_widget(linkButton)
 
 		self.__popup.open()
@@ -1160,7 +1213,7 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		self._layout.add_widget(self.__destinationAnimationLabel)
 		self.__priorityLine = BoxLayout(orientation = 'horizontal', **defaultInputSize)
 		self.__priorityLine.add_widget(AlignedLabel(text = 'Priority: ', **defaultInputSize))
-		self.__priorityInput = NumberInput(**inputSize)
+		self.__priorityInput = NumberInput(multiline = False, **inputSize)
 		self.__priorityLine.add_widget(self.__priorityInput)
 
 		propertyLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
@@ -1199,7 +1252,7 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		self.__immediateButton.disabled = value
 		self.__clearTargetButton.disabled = value
 		self.__priorityLine.disabled = value
-		self.__propertyLabel = value
+		self.__propertyLabel.disabled = value
 
 	def reset(self):
 		self.__disableElements(True)
