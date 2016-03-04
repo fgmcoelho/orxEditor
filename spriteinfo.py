@@ -56,6 +56,26 @@ class FrameInfo:
 	def getDuration(self):
 		return self.__duration
 
+class LinkInfo(SingleIdentifiedObject):
+	def __init__(self, sourceId, destinationId, priority, property, identifier = None):
+		self.__sourceId = sourceId
+		self.__destinationId = destinationId
+		self.__priority = priority
+		self.__property = property
+		self._id = identifier
+
+	def getSourceId(self):
+		return self.__sourceId
+
+	def getDestinationId(self):
+		return self.__destinationId
+
+	def getProperty(self):
+		return self.__property
+
+	def getPriority(self):
+		return self.__priority
+
 class AnimationInfo(SingleIdentifiedObject):
 	def __init__(self, name, duration, identifier = None):
 		super(AnimationInfo, self).__init__()
@@ -73,11 +93,13 @@ class AnimationInfo(SingleIdentifiedObject):
 	def getFramesInfo(self):
 		return self.__framesInfo
 
+	def getLinksInfo(self):
+		return self.__linksInfo
+
 	def addFrameInfo(self, fi):
 		assert isinstance(fi, FrameInfo), "Invalid parameter received!"
 		self.__framesInfo.append(fi)
 
 	def getUsedSelections(self):
 		return list(set(map(lambda x: x.getId(), self.__framesInfo)))
-
 
