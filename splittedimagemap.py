@@ -1,5 +1,5 @@
 from editorutils import strToDoubleIntTuple
-from spriteinfo import FrameInfo, AnimationInfo, SpriteSelection
+from spriteinfo import FrameInfo, AnimationInfo, SpriteSelection, LinkInfo
 
 from ConfigParser import ConfigParser
 from os.path import isfile
@@ -7,7 +7,7 @@ from os.path import isfile
 class ResourceInformation:
 	def __addValueToDictWithId(self, whichDict, value, identifier, maxId):
 		assert identifier not in whichDict, 'Error, selection already added.'
-		assert identifier < maxId, 'Error invalid state reached.'
+		assert identifier < maxId, 'Error invalid state reached. Id: %d | Max id: %d' % (identifier, maxId)
 		whichDict[identifier] = value
 		return identifier
 
@@ -168,6 +168,7 @@ class SplittedImageExporter:
 		parser.set('General', 'Path', resourceInfo.getPath())
 		parser.set('General', 'SelectionIdNext', resourceInfo.getSelectionId())
 		parser.set('General', 'AnimationInfoIdNext', resourceInfo.getAnimationInfoId())
+		parser.set('General', 'LinkIdNext', str(resourceInfo.getLinkId()))
 
 		for identifier, selection in resourceInfo.getSelectionItems():
 			sectionName = 'SelectionInfo' + str(identifier)
@@ -193,6 +194,15 @@ class SplittedImageExporter:
 
 				i += 1
 
+		for identifier, linkInfo in resourceInfo.getLinkItems():
+			sectionName = 'LinkInfo' + str(linkInfo.getId())
+			parser.add_section(sectionName)
+			parser.set(sectionName, 'Id', str(linkInfo.getId()))
+			parser.set(sectionName, 'SourceId', str(linkInfo.getSourceId()))
+			parser.set(sectionName, 'DestinationId', str(linkInfo.getDestinationId()))
+			parser.set(sectionName, 'Property', str(linkInfo.getProperty()))
+			parser.set(sectionName, 'Priority', str(linkInfo.getPriority()))
+
 		f = open(filename, 'w')
 		parser.write(f)
 		f.close()
@@ -216,7 +226,8 @@ class SplittedImageImporter:
 		imagePath = parser.get('General', 'Path')
 		selectionId = int(parser.get('General', 'SelectionIdNext'))
 		animationInfoId = int(parser.get('General', 'AnimationInfoIdNext'))
-		resourceInfo = ResourceInformation(imagePath, selectionId, animationInfoId)
+		linkId = int(parser.get('General', 'LinkIdNext'))
+		resourceInfo = ResourceInformation(imagePath, selectionId, animationInfoId, linkId)
 		loadedSelectionsSet = set()
 		animationUsedSelectionsSet = set()
 		for sectionName in parser.sections():
@@ -246,6 +257,15 @@ class SplittedImageImporter:
 					animationUsedSelectionsSet.add(selectionId)
 
 				resourceInfo.addAnimationInfo(animationInfo)
+
+			elif sectionName.startswith('LinkInfo'):
+				identifier = int(parser.get(sectionName, 'Id'))
+				sourceId = int(parser.get(sectionName, 'SourceId'))
+				destinationId = int(parser.get(sectionName, 'DestinationId'))
+				property = parser.get(sectionName, 'Property')
+				priority  = int(parser.get(sectionName, 'Priority'))
+				li = LinkInfo(sourceId, destinationId, priority, property, identifier)
+				resourceInfo.addLink(li)
 
 		assert animationUsedSelectionsSet <= loadedSelectionsSet, \
 			"Error, animations on file %s use non existant selection!" % (filename, )

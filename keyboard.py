@@ -45,3 +45,6 @@ class KeyboardAccess (object):
 
 		self._keyboard.bind(on_key_down = self._processKeyDown)
 		self._keyboard.bind(on_key_up = self._processKeyUp)
+
+	def __init__(self, **kwargs):
+		super(KeyboardAccess, self).__init__()

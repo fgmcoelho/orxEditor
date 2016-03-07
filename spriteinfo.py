@@ -1,5 +1,5 @@
 class SingleIdentifiedObject(object):
-	def __init__(self):
+	def __init__(self, **kwargs):
 		super(SingleIdentifiedObject, self).__init__()
 
 	def getId(self):
