@@ -19,7 +19,7 @@ from splittedimagemap import SplittedImageImporter, SplittedImageExporter
 from uisizes import defaultLabelSize, defaultSmallButtonSize, defaultLineSize, defaultInputSize, animationStatsSize,\
 	defaultLargeButtonSize, animationFrameDurationSize
 from string import letters, digits
-from spriteinfo import SingleIdentifiedObject, AnimationInfo, FrameInfo
+from spriteinfo import SingleIdentifiedObject, AnimationInfo, FrameInfo, LinkInfo
 
 class AnimationBaseScroll(LayoutGetter):
 	"""Class that implements the default behavior we want for a ScrollView, which is scrolling with the left button
@@ -57,16 +57,16 @@ class AnimationBaseScroll(LayoutGetter):
 
 class Frame:
 	"""Class that holds the information of a frame inside the animation."""
-	def __init__(self, sf):
+	def __init__(self, sf, duration = None):
 		assert isinstance(sf, SelectableFrame), "Invalid parameter received!"
-		self.__duration = None
+		self.__duration = duration
 		self.__image = sf.getRealImage()
 		self.__selectableFrameRef = sf
 		self.__animationRef = None
 		self.__selectionId = sf.getId()
 
 	def hasDuration(self):
-		return self.__duration is None
+		return self.__duration is not None
 
 	def getDuration(self):
 		if (self.__duration is None):
@@ -84,7 +84,7 @@ class Frame:
 		return self.__image
 
 	def copy(self):
-		return Frame(self.__selectableFrameRef)
+		return Frame(self.__selectableFrameRef, self.__duration)
 
 	def setAnimation(self, animation):
 		assert self.__animationRef is None, "Invalid state reached!"
@@ -269,13 +269,44 @@ class AnimationStatsEditor(SeparatorLabel, KeyboardAccess, ChangesConfirm):
 
 class AnimationLink(SingleIdentifiedObject):
 	"""Class that controls the animation links (which describes how ORX will go from one animation to the other)."""
-	def __init__(self, source, destination, priority = 8, property = None, identifier = None):
+	def __init__(self, source, destination, priority = 8, property = '', active = False, identifier = None):
 		super(AnimationLink, self).__init__()
-		self.__source = source
-		self.__destination = destination
-		self.__priority = priority
-		self.__property = property
+		self._source = source
+		self._destination = destination
+		self._priority = priority
+		self._property = property
+		self._active = active
 		self._id = identifier
+
+	def getSource(self):
+		return self._source
+
+	def getDestination(self):
+		return self._destination
+
+	def getSourceName(self):
+		return self._source.getName()
+
+	def getDestinationName(self):
+		return self._destination.getName()
+
+	def getProperty(self):
+		return self._property
+
+	def getActive(self):
+		return self._active
+
+	def setProperty(self, property):
+		self._property = property
+
+	def getPriority(self):
+		return self._priority
+
+	def setPriority(self, priority):
+		self._priority = priority
+
+	def setActive(self, value):
+		self._active = value
 
 class SelectableFrame:
 	"""Class that holds the information of the left menu image.
@@ -330,11 +361,13 @@ class AnimationHandler(LayoutGetter):
 			dialogOkButtonText = 'Ok',
 			dialogCancelButtonText = 'Cancel',
 		)
+		self.__animations = []
 		self.__deletedAnimations = []
 		ModulesAccess.add('AnimationHandler', self)
 
 	def load(self, resourceInfo):
 		self.__deletedAnimations = []
+		self.__animations = []
 		self.unsetAnimation()
 		for node in self._scrollLayout.children:
 			self._scrollLayout.remove_node(node)
@@ -343,11 +376,12 @@ class AnimationHandler(LayoutGetter):
 			animation = Animation(animationInfo.getName(), animationInfo.getDuration(), animationInfo.getId())
 			for frameInfo in animationInfo.getFramesInfo():
 				sf = ModulesAccess.get('FrameEditor').getSelectableFrameBySelectionId(frameInfo.getId())
-				animation.addFrame(Frame(sf))
+				animation.addFrame(Frame(sf, frameInfo.getDuration()))
 			self.insertAnimation(animation)
 		self._scrollLayout.select_node(self._scrollLayout.root)
 
 	def updateAnimation(self):
+		ModulesAccess.get('AnimationEditor').registerChanges()
 		ModulesAccess.get("AnimationDisplay").updateAnimation()
 		ModulesAccess.get("AnimationFrameDisplay").updateAnimation()
 
@@ -379,21 +413,26 @@ class AnimationHandler(LayoutGetter):
 			self.__errorAlert.open()
 
 	def insertAnimation(self, animation):
+		self.__animations.append(animation)
 		an = AnimationNode(animation)
 		self._scrollLayout.add_node(an)
 		self._scrollLayout.select_node(an)
+		ModulesAccess.get('AnimationEditor').registerChanges()
 
 	def editAnimation(self, animation):
 		node = self._scrollLayout.selected_node
 		root = self._scrollLayout.root
 		assert node != root and node is not None and node.getAnimation() == animation, "Invalid parameter received!"
 		node.update()
+		self.updateAnimation()
 
 	def removeAnimation(self):
 		animation = self._scrollLayout.selected_node.getAnimation()
 		self._scrollLayout.remove_node(self._scrollLayout.selected_node)
 		self._scrollLayout.select_node(self._scrollLayout.root)
+		self.__animations.remove(animation)
 		self.__deletedAnimations.append(animation)
+		ModulesAccess.get('AnimationEditor').registerChanges()
 
 	def createNewAnimation(self, *args):
 		count = 0
@@ -426,11 +465,7 @@ class AnimationHandler(LayoutGetter):
 			self.__errorAlert.open()
 
 	def getAnimations(self):
-		l = []
-		for node in self._scrollLayout.children:
-			if (isinstance(node, AnimationNode) == True):
-				l.append(node.getAnimation())
-		return l
+		return self.__animations
 
 	def getDeletedAnimations(self):
 		return self.__deletedAnimations
@@ -859,11 +894,11 @@ class FrameEditor(AnimationBaseScroll):
 		assert identifier in self.__selectableFrameDict
 		return self.__selectableFrameDict[identifier]
 
-class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
+class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfirm):
 	"""Class that implements the popup of the animation editor."""
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
-			self.close()
+			self.alertExit()
 
 		elif (keycode[1] == 'n'):
 			self.__animationHandler.createNewAnimation()
@@ -927,7 +962,7 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		doubleLine['height'] = defaultLineSize['height'] * 2
 
 		leftMenu = BoxLayout(orientation = 'vertical', size_hint = (None, 1), width = 200)
-		self._cancelButton = CancelableButton(text = 'Cancel', on_release = self.close,
+		self._cancelButton = CancelableButton(text = 'Cancel', on_release = self.alertExit,
 			**defaultLineSize)
 		self._doneButton = CancelableButton(text = 'Done', on_release = self.save,
 			**defaultLineSize)
@@ -976,14 +1011,16 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		ModulesAccess.add('AnimationEditor', self)
 
 	def save(self, *args):
-		deletedAnimations = ModulesAccess.get('AnimationHandler').getDeletedAnimations()
+		deletedAnimations = set(ModulesAccess.get('AnimationHandler').getDeletedAnimations())
 		for animation in deletedAnimations:
 			identifier = animation.getId()
 			if (identifier is not None):
-				# Saved animation was removed!
+				# Saved animation was removed, links are removed by the method as well.
 				self.__resourceInfo.removeAnimationInfoById(identifier)
 
 		animations = ModulesAccess.get('AnimationHandler').getAnimations()
+
+		animationIdToName = {}
 		for animation in animations:
 			name = animation.getName()
 			duration = animation.getDuration()
@@ -999,7 +1036,48 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 				animationInfo.addFrameInfo(fi)
 			if (identifier is not None):
 				self.__resourceInfo.removeAnimationInfoById(identifier)
-			self.__resourceInfo.addAnimationInfo(animationInfo)
+				self.__resourceInfo.addAnimationInfo(animationInfo)
+			else:
+				newId = self.__resourceInfo.addAnimationInfo(animationInfo)
+				animation.setId(newId)
+			animationIdToName[animation.getId()] = animation.getName()
+
+		# removing links that are no longer used
+		linkInfoDict = self.__linkDisplay.getLinksDict()
+		for linkInfo in self.__resourceInfo.getLinksList():
+			sourceId = linkInfo.getSourceId()
+			if (sourceId not in animationIdToName):
+				self.__resourceInfo.removeLinkById(linkInfo.getId())
+				continue
+
+			destinationId = linkInfo.getDestinationId()
+			if (destinationId not in animationIdToName):
+				self.__resourceInfo.removeLinkById(linkInfo.getId())
+				continue
+
+			sourceName = animationIdToName[sourceId]
+			destinationName = animationIdToName[destinationId]
+			if sourceName not in linkInfoDict:
+				self.__resourceInfo.removeLinkById(linkInfo.getId())
+			elif destinationName not in linkInfoDict[sourceName]:
+				self.__resourceInfo.removeLinkById(linkInfo.getId())
+			elif linkInfoDict[sourceName][destinationName].getActive() == True:
+				self.__resourceInfo.removeLinkById(linkInfo.getId())
+
+		for linkList in linkInfoDict.itervalues():
+			for animationLink in linkList.itervalues():
+				if (animationLink.getActive() == True):
+					sourceAnimation = animationLink.getSource()
+					destinationAnimation = animationLink.getDestination()
+					if (sourceAnimation not in deletedAnimations and destinationAnimation not in deletedAnimations):
+						identifier = animationLink.getId()
+						li = LinkInfo(
+							sourceAnimation.getId(), destinationAnimation.getId(),
+							animationLink.getPriority(), animationLink.getProperty(), identifier
+						)
+						if (identifier is not None):
+							self.__resourceInfo.removeLinkById(identifier)
+						self.__resourceInfo.addLink(li)
 
 		SplittedImageExporter.save(self.__resourceInfo)
 
@@ -1012,6 +1090,8 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		self.__resourceInfo = SplittedImageImporter().load(path)
 		self.__frameEditor.load(self.__resourceInfo)
 		self.__animationHandler.load(self.__resourceInfo)
+		self.__linkDisplay.load(self.__resourceInfo)
+		self.resetChanges()
 
 		self.__popup.open()
 
@@ -1019,7 +1099,7 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__popup.dismiss()
 
-class AnimationLinkButton(BoxLayout, ToggleButton):
+class AnimationLinkButton(BoxLayout, ToggleButton, SingleIdentifiedObject):
 	def on_touch_up(self, touch):
 		if (touch.button == 'right'):
 			return False
@@ -1028,11 +1108,15 @@ class AnimationLinkButton(BoxLayout, ToggleButton):
 			if (touch.is_double_tap == False):
 				if (self.state == 'normal'):
 					self.state = 'down'
-				ModulesAccess.get('AnimationLinkEditor').setValues(self)
-			else:
-				if (self.state == 'down'):
-					ModulesAccess.get('AnimationLinkEditor').reset()
-					self.state = 'normal'
+					ModulesAccess.get('AnimationLinkDisplay').registerChanges()
+					self.getAnimationLink().setActive(True)
+
+				ModulesAccess.get('AnimationLinkEditor').setValues(self.getAnimationLink())
+			elif (self.state == 'down'):
+				ModulesAccess.get('AnimationLinkEditor').reset()
+				self.state = 'normal'
+				self.getAnimationLink().setActive(False)
+				ModulesAccess.get('AnimationLinkDisplay').registerChanges()
 
 	def on_touch_down(self, touch):
 		if (touch.button == 'right'):
@@ -1041,37 +1125,26 @@ class AnimationLinkButton(BoxLayout, ToggleButton):
 		if (self.collide_point(*touch.pos) == True):
 			self._touchUid = touch.uid
 
-	def __init__(self, source, destination, property, priority, **kwargs):
+	def __init__(self, al, **kwargs):
+		assert isinstance(al, AnimationLink)
 		self._touchUid = None
-		self._source = source
-		self._destination = destination
-		self._property = property
-		self._priority = priority
+		self._animationLink = al
 		super(AnimationLinkButton, self).__init__(orientation = 'vertical', **kwargs)
-		sourceLine = AlignedLabel(text = 'Source: ' + source.getName(), **defaultLineSize)
-		destinationLine = AlignedLabel(text = 'Destination: ' + destination.getName(), **defaultLineSize)
+		sourceLine = AlignedLabel(text = 'Source: ' + al.getSourceName(), **defaultLineSize)
+		destinationLine = AlignedLabel(text = 'Destination: ' + al.getDestinationName(), **defaultLineSize)
 		self.add_widget(sourceLine)
 		self.add_widget(destinationLine)
+		if (al.getActive() == True):
+			self.state = 'down'
 
-	def getSourceName(self):
-		return self._source.getName()
+	def getAnimationLink(self):
+		return self._animationLink
 
-	def getDestinationName(self):
-		return self._destination.getName()
+class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess, ChangesConfirm):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.alertExit()
 
-	def getProperty(self):
-		return self._property
-
-	def setProperty(self, property):
-		self._property = property
-
-	def getPriority(self):
-		return self._priority
-
-	def setPriority(self, priority):
-		self._priority = priority
-
-class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess):
 	def _processTouchUp(self, touch):
 		if (touch.button == "right"):
 			self._defaultTouchUp(touch)
@@ -1124,28 +1197,29 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess):
 		self.__removedLinks = []
 
 	def load(self, resourceInfo):
-		self.__linksList = {}
+		self.__linksDict = {}
 		animations = ModulesAccess.get('AnimationHandler').getAnimations()
 		numberOfAnimations = len(animations)
+		idToNameDict = {}
 		for animation in animations:
+			self.__linksDict[animation.getName()] = {}
+			idToNameDict[animation.getId()] = animation.getName()
 			for i in range(numberOfAnimations):
-				linkButton = AnimationLinkButton(
-					animation, animations[i], '', 0,
-					width = baseWidth,
-					height = baseHeight,
-					size_hint = (None, None)
-				)
-				self.__linksList[animation.getId()][animations[i].getId()] = linkButton
+				al = AnimationLink(animation, animations[i])
+				self.__linksDict[animation.getName()][animations[i].getName()] = al
 
 		for linkInfo in resourceInfo.getLinksList():
-			sourceId = linkInfo.getSourceId()
-			destinationId = linkInfo.getDestinationId()
-			self.__linksList[sourceId][destinationId].setPriority(linkInfo.getPriority())
-			self.__linksList[sourceId][destinationId].setProperty(linkInfo.getProperty())
-			self.__linksList[sourceId][destinationId].state = 'down'
+			sourceName = idToNameDict[linkInfo.getSourceId()]
+			destinationName = idToNameDict[linkInfo.getDestinationId()]
+			self.__linksDict[sourceName][destinationName].setPriority(linkInfo.getPriority())
+			self.__linksDict[sourceName][destinationName].setProperty(linkInfo.getProperty())
+			self.__linksDict[sourceName][destinationName].setId(linkInfo.getId())
+			self.__linksDict[sourceName][destinationName].setActive(True)
 
 	def save(self, *args):
-		self.__linksList = self.__copyLinks
+		self.__linksDict = self.__copyLinks
+		if (self._hasChanges == True):
+			ModulesAccess.get('AnimationEditor').registerChanges()
 		self.close()
 
 	def close(self, *args):
@@ -1155,6 +1229,7 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess):
 	def open(self, *args):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 		ModulesAccess.get('AnimationLinkEditor').reset()
+		self.resetChanges()
 		animations = ModulesAccess.get('AnimationHandler').getAnimations()
 		numberOfAnimations = len(animations)
 		self._scrollLayout.clear_widgets()
@@ -1171,7 +1246,7 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess):
 		}
 
 		from copy import deepcopy
-		self.__copyLinks = deepcopy(self.__linksList)
+		self.__copyLinks = deepcopy(self.__linksDict)
 		self._scrollLayout.add_widget(AlignedLabel(text = 'Destination ->\nSource \\/', **linksSize))
 		for animation in animations:
 			self._scrollLayout.add_widget(AlignedLabel(text = animation.getName(), **linksSize))
@@ -1179,25 +1254,27 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess):
 		for animation in animations:
 			for i in range(numberOfAnimations + 1):
 				if (i == 0):
-					if (animation.getId() in self.__copyLinks):
-						self.__copyLinks[animation.getId()] = {}
+					if (animation.getName() not in self.__copyLinks):
+						self.__copyLinks[animation.getName()] = {}
 
 					self._scrollLayout.add_widget(AlignedLabel(text = animation.getName(), **linksSize))
 				else:
-					if animation.getId() in self.__copyLinks and animations[i-1].getId() in
-							self.__copyLinks[animation.getId()]:
-						linkButton = self.__copyLinks[animation.getId()][animations[i-1].getId()]
+					if (animation.getName() in self.__copyLinks and animations[i-1].getName() in
+							self.__copyLinks[animation.getName()]):
+						al = self.__copyLinks[animation.getName()][animations[i-1].getName()]
 					else:
-						linkButton = AnimationLinkButton(
-							animation, animations[i-1], '', 0,
-							width = baseWidth,
-							height = baseHeight,
-							size_hint = (None, None)
-						)
-						self.__copyLinks[animation.getId()][animations[i-1].getId()] = linkButton
+						al = AnimationLink(animation, animations[i-1])
+						self.__copyLinks[animation.getName()][animations[i-1].getName()] = al
+
+					linkButton = AnimationLinkButton(
+						al,	width = baseWidth, height = baseHeight, size_hint = (None, None)
+					)
 					self._scrollLayout.add_widget(linkButton)
 
 		self.__popup.open()
+
+	def getLinksDict(self):
+		return self.__linksDict
 
 class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 	def __init__(self):
@@ -1217,9 +1294,12 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		self.__priorityLine.add_widget(self.__priorityInput)
 
 		propertyLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
-		self.__noPropertyButton = AlignedToggleButton(text = ' No property', group = 'property', **defaultLineSize)
-		self.__immediateButton = AlignedToggleButton(text = ' Immeditate', group = 'property', **defaultLineSize)
-		self.__clearTargetButton = AlignedToggleButton(text = ' Clear Target', group = 'property', **defaultLineSize)
+		self.__noPropertyButton = AlignedToggleButton(text = ' No property', group = 'property',
+			allow_no_selection = False, **defaultLineSize)
+		self.__immediateButton = AlignedToggleButton(text = ' Immeditate', group = 'property',
+			allow_no_selection = False, **defaultLineSize)
+		self.__clearTargetButton = AlignedToggleButton(text = ' Clear Target', group = 'property',
+			allow_no_selection = False, **defaultLineSize)
 		propertyLine.add_widget(self.__noPropertyButton)
 		propertyLine.add_widget(self.__immediateButton)
 		propertyLine.add_widget(self.__clearTargetButton)
@@ -1227,8 +1307,8 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		bottomLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
 		doneButton = CancelableButton(text = 'Done', on_release = ModulesAccess.get('AnimationLinkDisplay').save,
 			**defaultSmallButtonSize)
-		cancelButton = CancelableButton(text = 'Cancel', on_release = ModulesAccess.get('AnimationLinkDisplay').close,
-			**defaultSmallButtonSize)
+		cancelButton = CancelableButton(text = 'Cancel',
+			on_release = ModulesAccess.get('AnimationLinkDisplay').alertExit, **defaultSmallButtonSize)
 
 		bottomLine.add_widget(self.getSeparator())
 		bottomLine.add_widget(doneButton)
@@ -1241,9 +1321,12 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		self._layout.add_widget(self.getSeparator())
 		self._layout.add_widget(bottomLine)
 
-		self.__currentObj = None
+		self.__currentLink = None
 
 		ModulesAccess.add('AnimationLinkEditor', self)
+
+	def __registerChanges(self, *args):
+		ModulesAccess.get('AnimationLinkDisplay').registerChanges()
 
 	def __disableElements(self, value):
 		self.__sourceAnimationLabel.disabled = value
@@ -1255,6 +1338,7 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		self.__propertyLabel.disabled = value
 
 	def reset(self):
+		self.__unbindChanges()
 		self.__disableElements(True)
 		self.__sourceAnimationLabel.text = 'Source: '
 		self.__destinationAnimationLabel.text = 'Destination: '
@@ -1262,32 +1346,59 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		self.__immediateButton.state = 'normal'
 		self.__clearTargetButton.state = 'normal'
 		self.__priorityInput.text = ''
-		self.__currentObj = None
+		self.__currentLink = None
+		self.__bindChanges()
 
-	def setValues(self, obj):
-		assert isinstance(obj, AnimationLinkButton)
+	def __bindChanges(self):
+		self.__noPropertyButton.bind(state=self.__registerChanges)
+		self.__immediateButton.bind(state=self.__registerChanges)
+		self.__clearTargetButton.bind(state=self.__registerChanges)
+		self.__priorityInput.bind(text=self.__registerChanges)
 
+	def __unbindChanges(self):
+		self.__noPropertyButton.unbind(state=self.__registerChanges)
+		self.__immediateButton.unbind(state=self.__registerChanges)
+		self.__clearTargetButton.unbind(state=self.__registerChanges)
+		self.__priorityInput.unbind(text=self.__registerChanges)
+
+	def setValues(self, al):
+		assert isinstance(al, AnimationLink)
+
+		self.__unbindChanges()
 		self.__disableElements(False)
-		if (self.__currentObj is not None):
+		if (self.__currentLink is not None):
 			try:
 				priority = int(self.__priorityInput.text)
+				priority = min(priority, 15)
 			except:
-				priority = 0
-			self.__currentObj.setPriority(priority)
-			if (self.__noPropertyButton.state == 'down'):
-				self.__currentObj.setProperty('')
-			elif (self.__immediateButton.state == 'down'):
-				self.__currentObj.setProperty('immeditate')
-			elif (self.__clearTargetButton.state == 'down'):
-				self.__currentObj.setProperty('cleartarget')
+				priority = 8
 
-		self.__sourceAnimationLabel.text = 'Source: ' + obj.getSourceName()
-		self.__destinationAnimationLabel.text = 'Destination: ' + obj.getDestinationName()
-		if (obj.getProperty() == ''):
+			anyChanges = False
+			if (self.__currentLink.getPriority() != priority):
+				self.__currentLink.setPriority(priority)
+				anyChanges = True
+
+			property = self.__currentLink.getProperty()
+			if (self.__noPropertyButton.state == 'down' and property != ''):
+				self.__currentLink.setProperty('')
+				anyChanges = True
+			elif (self.__immediateButton.state == 'down' and property != 'immeditate'):
+				self.__currentLink.setProperty('immeditate')
+				anyChanges = True
+			elif (self.__clearTargetButton.state == 'down' and property != 'cleartarget'):
+				self.__currentLink.setProperty('cleartarget')
+				anyChanges = True
+
+			if (anyChanges == True):
+				self.__registerChanges()
+
+		self.__sourceAnimationLabel.text = 'Source: ' + al.getSourceName()
+		self.__destinationAnimationLabel.text = 'Destination: ' + al.getDestinationName()
+		if (al.getProperty() == ''):
 			self.__noPropertyButton.state = 'down'
 			self.__immediateButton.state = 'normal'
 			self.__clearTargetButton.state = 'normal'
-		elif (obj.getProperty() == 'immeditate'):
+		elif (al.getProperty() == 'immeditate'):
 			self.__noPropertyButton.state = 'normal'
 			self.__immediateButton.state = 'down'
 			self.__clearTargetButton.state = 'normal'
@@ -1296,6 +1407,8 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 			self.__immediateButton.state = 'normal'
 			self.__clearTargetButton.state = 'down'
 
-		self.__priorityInput.text = str(obj.getPriority())
+		self.__priorityInput.text = str(al.getPriority())
 
-		self.__currentObj = obj
+		self.__currentLink = al
+		self.__bindChanges()
+
