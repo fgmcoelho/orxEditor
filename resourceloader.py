@@ -89,7 +89,6 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		return (int(j), int(i))
 
 	def __handleTouchMove(self, touch):
-		# TODO: Bandaid fix. For some reason the scroll stops working on scroll
 		if (touch.is_mouse_scrolling == True):
 			return
 
@@ -104,8 +103,11 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		if (self._layout.collide_point(*touch.pos) == False):
 			return
 
-		# TODO: Bandaid fix. For some reason the scroll stops working on scroll
 		if (touch.is_mouse_scrolling == True):
+			if (touch.button == "scrollup"):
+				self.decreaseZoom()
+			elif (touch.button == "scrolldown"):
+				self.increaseZoom()
 			return
 
 		self.updateMouseDown(touch)
@@ -122,7 +124,6 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 		self.__defaultTouchDown(touch)
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		# TODO: Bandaid fix. For some reason the scroll stops working on scroll
 		if (touch.is_mouse_scrolling == True):
 			return
 
@@ -736,7 +737,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	def __createRightMenuUi(self):
 		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 1.0), showMethod = self.__showSelection)
 
-		self.__addAnimation = CancelableButton(text = 'Add animation', on_release = self.__doNothing,
+		self.__addAnimation = CancelableButton(text = 'Set places', on_release = self.__doNothing,
 			**defaultLabelSize)
 		self.__addFullSelection = CancelableButton(text = 'Add as one', on_release = self.__processAddSelection,
 			**defaultLabelSize)
