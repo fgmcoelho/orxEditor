@@ -269,6 +269,17 @@ class AnimationStatsEditor(SeparatorLabel, KeyboardAccess, ChangesConfirm):
 
 class AnimationLink(SingleIdentifiedObject):
 	"""Class that controls the animation links (which describes how ORX will go from one animation to the other)."""
+	@staticmethod
+	def copy(al):
+		return AnimationLink(
+			al.getSource(),
+			al.getDestination(),
+			al.getPriority(),
+			al.getProperty(),
+			al.getActive(),
+			al.getId()
+		)
+
 	def __init__(self, source, destination, priority = 8, property = '', active = False, identifier = None):
 		super(AnimationLink, self).__init__()
 		self._source = source
@@ -1218,6 +1229,7 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess, ChangesConfirm):
 
 	def save(self, *args):
 		self.__linksDict = self.__copyLinks
+		ModulesAccess.get('AnimationLinkEditor').saveCurrentLinkData()
 		if (self._hasChanges == True):
 			ModulesAccess.get('AnimationEditor').registerChanges()
 		self.close()
@@ -1245,8 +1257,12 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess, ChangesConfirm):
 			'size_hint': (None, None)
 		}
 
-		from copy import deepcopy
-		self.__copyLinks = deepcopy(self.__linksDict)
+		self.__copyLinks = {}
+		for key, value in self.__linksDict.iteritems():
+			self.__copyLinks[key] = {}
+			for otherKey, animationLink in value.iteritems():
+				self.__copyLinks[key][otherKey] = AnimationLink.copy(animationLink)
+
 		self._scrollLayout.add_widget(AlignedLabel(text = 'Destination ->\nSource \\/', **linksSize))
 		for animation in animations:
 			self._scrollLayout.add_widget(AlignedLabel(text = animation.getName(), **linksSize))
@@ -1361,11 +1377,7 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		self.__clearTargetButton.unbind(state=self.__registerChanges)
 		self.__priorityInput.unbind(text=self.__registerChanges)
 
-	def setValues(self, al):
-		assert isinstance(al, AnimationLink)
-
-		self.__unbindChanges()
-		self.__disableElements(False)
+	def saveCurrentLinkData(self):
 		if (self.__currentLink is not None):
 			try:
 				priority = int(self.__priorityInput.text)
@@ -1391,6 +1403,13 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 
 			if (anyChanges == True):
 				self.__registerChanges()
+
+	def setValues(self, al):
+		assert isinstance(al, AnimationLink)
+
+		self.__unbindChanges()
+		self.__disableElements(False)
+		self.saveCurrentLinkData()
 
 		self.__sourceAnimationLabel.text = 'Source: ' + al.getSourceName()
 		self.__destinationAnimationLabel.text = 'Destination: ' + al.getDestinationName()
