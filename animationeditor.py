@@ -163,13 +163,42 @@ class Animation(SingleIdentifiedObject):
 	def removeFrame(self, index):
 		self.__frames.pop(index)
 
-class AnimationStatsEditor(SeparatorLabel, KeyboardAccess, ChangesConfirm):
+class DurationControl(object):
+	def __init__(self, **kwargs):
+		super(DurationControl, self).__init__()
+
+	def controlDurationInput(self, key, textInput):
+		if (key == 'down' and textInput.focus == True):
+			try:
+				duration = float(textInput.text)
+				if (duration > 1.1):
+					duration -= 1.0
+				elif (duration > 0.1):
+					duration -= 0.1
+				textInput.text = str(duration)
+			except:
+				pass
+
+		elif (key == 'up' and textInput.focus == True):
+			try:
+				duration = float(textInput.text)
+				if (duration >= 1.0):
+					duration += 1.0
+				else:
+					duration += 0.1
+				textInput.text = str(duration)
+			except:
+				pass
+
+class AnimationStatsEditor(SeparatorLabel, KeyboardAccess, ChangesConfirm, DurationControl):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'enter'):
 			self.__processOk()
 
-		if (keycode[1] == 'escape'):
+		elif (keycode[1] == 'escape'):
 			self.alertExit()
+
+		self.controlDurationInput(keycode[1], self.__durationInput)
 
 	def __processOk(self, *args):
 		invalidChars = Animation.filterInvalidCharacters(self.__nameInput.text)
@@ -573,13 +602,16 @@ class FramePreview:
 		self.__operation = None
 		ModulesAccess.get("AnimationAndFrameEditor").unsetDuration()
 
-class FrameDurationPopup(SeparatorLabel, ChangesConfirm, KeyboardAccess):
+class FrameDurationPopup(SeparatorLabel, ChangesConfirm, KeyboardAccess, DurationControl):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'enter'):
 			self.__confirmDuration()
 
 		if (keycode[1] == 'escape'):
 			self.alertExit()
+
+		self.controlDurationInput(keycode[1], self.__durationInput)
+
 	def __init__(self, okMethod):
 		super(FrameDurationPopup, self).__init__()
 
