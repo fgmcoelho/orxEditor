@@ -11,7 +11,7 @@ from kivy.uix.gridlayout import GridLayout
 from math import ceil
 
 from editorutils import CancelableButton, vector2Multiply, distance, isConvexPolygon, Alert, AlignedLabel, \
-	EmptyScrollEffect
+	EmptyScrollEffect, ChangesConfirm
 from editorheritage import SpaceLimitedObject, LayoutGetter, MouseModifiers, KeyboardModifiers
 from collisioninfo import CollisionPartInformation
 from keyboard import KeyboardAccess, KeyboardGuardian
@@ -422,9 +422,10 @@ class CollisionFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers, Ke
 				self.__display.remove_widget(self.__lastPointPressed)
 				self.__pointsList.remove(self.__lastPointPressed)
 				self.__updatePoints(None)
+				ModulesAccess.get('CollisionFormEditor').registerChanges()
 
 		elif(keycode[1] == 'escape'):
-			ModulesAccess.get('CollisionFormEditor').close()
+			ModulesAccess.get('CollisionFormEditor').alertExit()
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
@@ -449,6 +450,7 @@ class CollisionFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers, Ke
 
 		self.__workingPart.setPoints(l)
 		self.__display.drawPart(self.__workingPart)
+		ModulesAccess.get('CollisionFormEditor').registerChanges()
 
 	def __getStartingPositions(self, form):
 		imgPos = tuple(self.__display.getOriginalPostision())
@@ -517,7 +519,12 @@ class CollisionFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers, Ke
 		self.__defaultTouchDown(touch)
 
 	def __handleScrollAndPassTouchUpToChildren(self, touch):
-		if (touch.button == "scrollup" or touch.button == "scrolldown"):
+		if (self._layout.collide_point(*touch.pos) == True and
+				(touch.button == "scrollup" or touch.button == "scrolldown")):
+			if (touch.button == "scrollup"):
+				self.decreaseZoom()
+			else:
+				self.increaseZoom()
 			return
 
 		self.updateMouseUp(touch)
@@ -636,7 +643,7 @@ class CollisionFormEditorLayout(KeyboardAccess, LayoutGetter, MouseModifiers, Ke
 	def decreaseZoom(self, *args):
 		self.applyZoom(-1)
 
-class CollisionFormEditorPopup:
+class CollisionFormEditorPopup(ChangesConfirm):
 	def __saveAndClose(self, *args):
 		if (self.__mainScreen.savePoints() == False):
 			self.__meshErrorAlert.open()
@@ -644,6 +651,7 @@ class CollisionFormEditorPopup:
 			self.close()
 
 	def __init__(self):
+		super(CollisionFormEditorPopup, self).__init__()
 		ModulesAccess.add('CollisionFormEditor', self)
 		self.__layout = BoxLayout(orientation = 'vertical')
 		self.__popup = Popup(title = 'Collision Form Editor', content = self.__layout, auto_dismiss = False)
@@ -657,7 +665,7 @@ class CollisionFormEditorPopup:
 			**defaultSmallButtonSize)
 		self.__zoomMinusButton = CancelableButton(text = "Zoom - (s)", on_release = self.__mainScreen.decreaseZoom,
 			**defaultSmallButtonSize)
-		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, **defaultSmallButtonSize)
+		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.alertExit, **defaultSmallButtonSize)
 		self.__doneButton = CancelableButton(text = 'Done', on_release = self.__saveAndClose, **defaultSmallButtonSize)
 		self.__tooltipLabel = AlignedLabel(text='', **defaultDoubleLineSize)
 		self.__meshErrorAlert = Alert(
@@ -682,6 +690,7 @@ class CollisionFormEditorPopup:
 		self.__popup.dismiss()
 
 	def open(self, part, obj):
+		self.resetChanges()
 		KeyboardGuardian.Instance().acquireKeyboard(self.__mainScreen)
 		if (part.getFormType() == 'mesh'):
 			self.__tooltipLabel.text = 'Hold Ctrl: Move all. Hold Shift: Keep ratio.\n' \

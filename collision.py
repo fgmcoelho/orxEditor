@@ -10,7 +10,8 @@ from kivy.clock import Clock
 from math import floor, ceil
 
 from editorheritage import SeparatorLabel, AutoFocusInputUser
-from editorutils import Alert, Dialog, EmptyScrollEffect, CancelableButton, distance, AlignedLabel, AlignedToggleButton
+from editorutils import Alert, Dialog, EmptyScrollEffect, CancelableButton, distance, AlignedLabel,\
+	AlignedToggleButton, ChangesConfirm
 from keyboard import KeyboardAccess, KeyboardGuardian
 from collisioninfo import CollisionPartInformation, CollisionInformation
 from collisionform import CollisionPartDisplay, CollisionFormScatterCache
@@ -208,7 +209,7 @@ class CollisionFlagEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAcces
 		self.__render()
 		self.__popup.open()
 
-class CollisionPartLayout(SeparatorLabel, CollisionConfig):
+class CollisionPartLayout(SeparatorLabel, CollisionConfig, ChangesConfirm):
 	def __togglePartFlag(self, buttonObject):
 		buttonInfo = buttonObject.id.split('#')
 		if (buttonObject.state == 'normal'):
@@ -230,9 +231,12 @@ class CollisionPartLayout(SeparatorLabel, CollisionConfig):
 					ModulesAccess.get('CollisionGuardian').getFlagByName(buttonInfo[2])
 				)
 
+		ModulesAccess.get('CollisionEditor').registerChangesFromTabs()
+
 	def __doUpdateFormType(self):
 		self.__part.setFormType(self.__formToSet)
 		ModulesAccess.get('CollisionEditor').preview()
+		ModulesAccess.get('CollisionEditor').registerChangesFromTabs()
 
 	def __restoreFormCheckbox(self):
 		form = self.__part.getFormType()
@@ -267,7 +271,8 @@ class CollisionPartLayout(SeparatorLabel, CollisionConfig):
 
 
 	def __updateSolidFlag(self, instance, newValue):
-			self.__part.setSolid(newValue)
+		self.__part.setSolid(newValue)
+		ModulesAccess.get('CollisionEditor').registerChangesFromTabs()
 
 	def __render(self, part, obj):
 		self.__obj = obj
@@ -350,7 +355,7 @@ class CollisionPartLayout(SeparatorLabel, CollisionConfig):
 		else:
 			self.__meshCheckBox.active = True
 
-		self.__boxCheckBox.bind (active = self.__updateFormType)
+		self.__boxCheckBox.bind(active = self.__updateFormType)
 		self.__sphereCheckBox.bind(active = self.__updateFormType)
 		self.__meshCheckBox.bind(active = self.__updateFormType)
 
@@ -420,10 +425,10 @@ class CollisionPartLayout(SeparatorLabel, CollisionConfig):
 	def getPart(self):
 		return self.__part
 
-class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
+class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig, ChangesConfirm):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
-			self.close()
+			self.alertExit()
 
 	def __createTemporatyCopies(self):
 		for obj in self.__objectsList:
@@ -446,6 +451,8 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 		self.__copiesDict[currentId].addPart(newPart)
 		self.__render()
 		self.preview()
+		self.registerChanges()
+		self.__changesOnEdit = False
 
 	def __doDeleteCurrentPart(self, *args):
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
@@ -456,6 +463,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 		part = None
 		self.__extraPartsDict[currentId].append(CollisionPartInformation())
 		self.__render()
+		self.registerChanges()
 
 	def __deleteCurrentPart(self, *args):
 		if (self.__partsPanel.current_tab.text == 'Edit'):
@@ -480,6 +488,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 					self.__extraPartsDict[obj.getIdentifier()].append(CollisionPartInformation())
 					numberOfExtraParts = len(self.__extraPartsDict[obj.getIdentifier()])
 
+		self.registerChanges()
 		self.__render()
 
 	def __applyChangesToAll(self, *args):
@@ -588,7 +597,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 		self.__renderTabbedPanel(currentObj, collisionInfo, extraParts)
 		self.__renderLowerPart()
 
-	def __createOrEditCollisionInfo(self, *args):
+	def __doCreateOrEditCollisionInfo(self):
 		for obj in self.__objectsList:
 			currentId = obj.getIdentifier()
 			if (obj.getCollisionInfo() is None):
@@ -599,6 +608,14 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 			else:
 				obj.setCollisionInfo(self.__copiesDict[currentId])
 		self.close()
+
+	def __createOrEditCollisionInfo(self, *args):
+		if (self.__changesOnEdit == False):
+			self.__doCreateOrEditCollisionInfo()
+		else:
+			Dialog(self.__doCreateOrEditCollisionInfo, 'Confirmation',
+				'You have unsaved changes on edit tabs, those\nchanges will be discarded.\nDo you wish to continue?',
+				'Yes', 'No').open()
 
 	def __needToOversizePreview(self, part):
 		overSizeNeeded = False
@@ -650,14 +667,17 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 		self.__bodyInfoBox.add_widget(self.getSeparator())
 
 	def __updateDynamicFlag(self, instance, value):
+		self.registerChanges()
 		idToUse = self.__objectsList[self.__objectsListIndex].getIdentifier()
 		self.__copiesDict[idToUse].setDynamic(value)
 
 	def __updateFixedRotationFlag(self, instance, value):
+		self.registerChanges()
 		idToUse = self.__objectsList[self.__objectsListIndex].getIdentifier()
 		self.__copiesDict[idToUse].setFixedRotation(value)
 
 	def __updateHighSpeedFlag(self, instance, value):
+		self.registerChanges()
 		idToUse = self.__objectsList[self.__objectsListIndex].getIdentifier()
 		self.__copiesDict[idToUse].setHighSpeed(value)
 
@@ -681,7 +701,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 		self.__lowerBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
 		self.__okButton = CancelableButton(text = 'Done', on_release=self.__createOrEditCollisionInfo,
 			**defaultSmallButtonSize)
-		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close,
+		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.alertExit,
 			**defaultSmallButtonSize)
 		self.__addButton = CancelableButton(text = 'Add', on_release = self.__addPart,
 			**defaultSmallButtonSize)
@@ -725,6 +745,11 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 		self.__errorPopUp = Alert('Error', 'No Object selected!\nYou need to select one object from the scene.',
 			'Ok')
 		CollisionFormScatterCache()
+
+	def registerChangesFromTabs(self):
+		if (self.__partsPanel.current_tab.text == 'Edit'):
+			self.__changesOnEdit = True
+		self.registerChanges()
 
 	def preview(self, *args):
 		if (len(args) > 0 and isinstance(args[0], TabbedPanelHeader)):
@@ -815,6 +840,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig):
 			self.__createTemporatyCopies()
 			self.__render()
 			self.preview()
+			self.resetChanges()
 			self.__collisionPopUp.open()
 
 	def close(self, *args):
