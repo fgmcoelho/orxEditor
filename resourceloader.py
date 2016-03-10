@@ -13,7 +13,7 @@ from os.path import basename
 from uisizes import resourceLoderSize, defaultLabelSize, defaultButtonSize, defaultInputSize, defaultFontSize,\
 	defaultDoubleLineSize
 from editorheritage import SeparatorLabel, LayoutGetter, MouseModifiers
-from editorutils import CancelableButton, AutoReloadTexture, Alert, Dialog, convertKivyCoordToOrxCoord
+from editorutils import CancelableButton, AutoReloadTexture, Alert, Dialog, convertKivyCoordToOrxCoord, ChangesConfirm
 from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import SplittedImageExporter, SplittedImageImporter
@@ -361,6 +361,7 @@ class ResourceLoaderList(LayoutGetter):
 	def __doAddItem(self, selection):
 		identifier = self.__resourceInfo.addSelection(selection)
 		self.__doAddItemRender(selection, identifier)
+		ModulesAccess.get('ResourceLoader').registerChanges()
 
 	def __clearUi(self):
 		for node in self.__tree.children:
@@ -385,7 +386,7 @@ class ResourceLoaderList(LayoutGetter):
 
 	def getNumberOfAnimations(self):
 		if (self.__resourceInfo is not None):
-			return self.__resourceInfo.getNumberOfAnimations()
+			return self.__resourceInfo.getNumberOfAnimationInfos()
 		return 0
 
 	def getNumberOfRelatedAnimations(self, selection):
@@ -396,6 +397,7 @@ class ResourceLoaderList(LayoutGetter):
 	def clearAllItems(self):
 		self.__clearUi()
 		self.__resourceInfo.clear()
+		ModulesAccess.get('ResourceLoader').registerChanges()
 
 	def removeItem(self):
 		if (self.__tree.selected_node is not None):
@@ -405,6 +407,7 @@ class ResourceLoaderList(LayoutGetter):
 				self.__resourceInfo.removeSelectionById(int(itemId))
 				self.__tree.select_node(self.__tree.root)
 				self._layout.height = self.__tree.minimum_height
+				ModulesAccess.get('ResourceLoader').registerChanges()
 
 	def addItemList(self, selectionList):
 		count = 0
@@ -459,13 +462,10 @@ class ResourceLoaderList(LayoutGetter):
 			SplittedImageExporter.save(self.__resourceInfo)
 			ModulesAccess.get('BaseObjectsMenu').updateResource(self.__resourceInfo)
 
-class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
+class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfirm):
 	# Overloaded method
 	def _processKeyUp(self, keyboard, keycode):
-		if (keycode[1] == 'shift'):
-			self.__isShiftPressed = False
-
-		elif (keycode[1] == 'tab'):
+		if (keycode[1] == 'tab'):
 			if (self.__state in ['divisions', 'size']):
 				if (self.__isShiftPressed == False):
 					NumberInput.selectInputByFocus(self.__state)
@@ -529,13 +529,24 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		elif (keycode[1] == 's'):
 			self.__display.decreaseZoom()
 
+		elif (keycode[1] == 'o'):
+			self.__processAddSelection()
+
+		elif (keycode[1] == 'p'):
+			self.__processAddPartsSelection()
+
+		elif (keycode[1] == 'delete'):
+			self.__processRemoveFromSelection()
+
 		elif (keycode[1] == 'escape'):
-			self.close()
+			self.alertExit()
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
-		if (keycode[1] == 'shift'):
+		if ('shift' in modifiers):
 			self.__isShiftPressed = True
+		else:
+			self.__isShiftPressed = False
 
 	def __checkAnyHasFocus(self, state):
 		if (state == 'divisions'):
@@ -588,7 +599,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 			self.__loadDivisionLeftMenu()
 
 	def __processCancel(self, *args):
-		self.close()
+		self.alertExit()
 
 	def __processDone(self, *args):
 		self.__selectionTree.save()
@@ -610,7 +621,8 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 		# buttons, mostly shared
 		self.__cancelButton = CancelableButton(on_release = self.__processCancel, text = 'Cancel', **defaultButtonSize)
 		self.__doneButton = CancelableButton(on_release = self.__processDone, text = 'Done', **defaultButtonSize)
-		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split', **defaultButtonSize)
+		self.__splitButton = CancelableButton(on_release = self.__splitImage, text = 'Split (enter)',
+			**defaultButtonSize)
 		self.__switchButton = CancelableButton(on_release = self.__changeMethod, text = 'Change method',
 			**defaultButtonSize)
 		self.__zoomPlusButton = CancelableButton(on_release = self.__display.increaseZoom, text = 'Zoom + (a)',
@@ -723,7 +735,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 					animationNumber,
 					"s" if animationNumber > 1 else "")
 			else:
-				message = 'This will remove %d selection%s and\n%d animation%s.\nThis operation can\'t be reverted.' %\
+				message = 'This will remove %d selection%s.\nThis operation can\'t be reverted.' %\
 					(numberOfSelections, "s" if numberOfSelections == 0 else "")
 
 			dialog = Dialog(self.__doClearAllItems,
@@ -739,13 +751,13 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 
 		self.__addAnimation = CancelableButton(text = 'Set places', on_release = self.__doNothing,
 			**defaultLabelSize)
-		self.__addFullSelection = CancelableButton(text = 'Add as one', on_release = self.__processAddSelection,
+		self.__addFullSelection = CancelableButton(text = 'Add as one (o)', on_release = self.__processAddSelection,
 			**defaultLabelSize)
-		self.__addPartSelection = CancelableButton(text = 'Add parts', on_release = self.__processAddPartsSelection,
-			**defaultLabelSize)
+		self.__addPartSelection = CancelableButton(text = 'Add parts (p)',
+			on_release = self.__processAddPartsSelection, **defaultLabelSize)
 		self.__showSelection = CancelableButton(text = 'Show', on_release = self.__showSelection,
 			**defaultLabelSize)
-		self.__removeCurrent = CancelableButton(text = 'Remove', on_release = self.__processRemoveFromSelection,
+		self.__removeCurrent = CancelableButton(text = 'Remove (del)', on_release = self.__processRemoveFromSelection,
 			**defaultLabelSize)
 		self.__clearSelection = CancelableButton(text = 'Clear', on_release = self.__processClearSelection,
 			**defaultLabelSize)
@@ -792,6 +804,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter):
 	def open(self, path):
 		KeyboardGuardian.Instance().acquireKeyboard(self)
 
+		self.resetChanges()
 		self.__setStartState()
 		self.__display.loadImage(path)
 		sizeToUse = self.__display.getSize()

@@ -2,7 +2,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.clock import Clock
 
-from editorutils import CancelableButton, Alert, Dialog, AlignedLabel, AlignedToggleButton
+from editorutils import CancelableButton, Alert, Dialog, AlignedLabel, AlignedToggleButton, ChangesConfirm
 from editorheritage import SeparatorLabel, AutoFocusInputUser
 from keyboard import KeyboardAccess, KeyboardGuardian
 from uisizes import defaultLabelSize, defaultLineSize, defaultSmallButtonSize, defaultInputSize, defaultDoubleLineSize
@@ -160,10 +160,10 @@ class LayerEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAccess):
 		self.__popup.dismiss()
 
 
-class LayerInformationPopup(KeyboardAccess, SeparatorLabel):
+class LayerInformationPopup(KeyboardAccess, SeparatorLabel, ChangesConfirm):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
-			self.close()
+			self.alertExit()
 
 		elif (len(self.__buttonList) != 1 and keycode[1] in ['up', 'down']):
 			index = self.__getSelectedButtonIndex()
@@ -236,7 +236,8 @@ class LayerInformationPopup(KeyboardAccess, SeparatorLabel):
 			else:
 				state = 'normal'
 			layerButton = AlignedToggleButton(text = layer.getName(), group = 'layers', state = state,
-					**defaultLabelSize)
+					allow_no_selection = False, **defaultLabelSize)
+			layerButton.bind(state=self.registerChanges)
 			self.__layout.add_widget(layerButton)
 			self.__buttonList.append(layerButton)
 
@@ -251,7 +252,7 @@ class LayerInformationPopup(KeyboardAccess, SeparatorLabel):
 		self.__objectsList = None
 
 		self.__bottomLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
-		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.close, **defaultSmallButtonSize)
+		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.alertExit, **defaultSmallButtonSize)
 		self.__doneButton = CancelableButton(text = 'Done', on_release = self.__save, **defaultSmallButtonSize)
 		self.__editLayersButton = CancelableButton(text = 'Edit groups', on_release = self.__editFlagsPopup.open,
 			**defaultSmallButtonSize)
@@ -266,6 +267,7 @@ class LayerInformationPopup(KeyboardAccess, SeparatorLabel):
 		self.__render()
 
 	def open(self, *args):
+		self.resetChanges()
 		objList = ModulesAccess.get('SceneHandler').getCurrentSelection()
 		if (objList == []):
 			errorAlert = Alert(
