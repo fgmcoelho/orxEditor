@@ -452,7 +452,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig, Chan
 		self.__render()
 		self.preview()
 		self.registerChanges()
-		self.__changesOnEdit = False
+		self.__changesOnEdit[currentId] = False
 
 	def __doDeleteCurrentPart(self, *args):
 		currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
@@ -610,11 +610,13 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig, Chan
 		self.close()
 
 	def __createOrEditCollisionInfo(self, *args):
-		if (self.__changesOnEdit == False):
+		editCount = self.__changesOnEdit.values().count(True)
+		if (editCount == 0):
 			self.__doCreateOrEditCollisionInfo()
 		else:
 			Dialog(self.__doCreateOrEditCollisionInfo, 'Confirmation',
-				'You have unsaved changes on edit tabs, those\nchanges will be discarded.\nDo you wish to continue?',
+				'You have unsaved changes on %d edit tabs, those\nchanges will be discarded.\n'\
+				'Do you wish to continue?' % editCount,
 				'Yes', 'No').open()
 
 	def __needToOversizePreview(self, part):
@@ -748,7 +750,8 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig, Chan
 
 	def registerChangesFromTabs(self):
 		if (self.__partsPanel.current_tab.text == 'Edit'):
-			self.__changesOnEdit = True
+			currentId = self.__objectsList[self.__objectsListIndex].getIdentifier()
+			self.__changesOnEdit[currentId] = True
 		self.registerChanges()
 
 	def preview(self, *args):
@@ -841,6 +844,7 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig, Chan
 			self.__render()
 			self.preview()
 			self.resetChanges()
+			self.__changesOnEdit = {}
 			self.__collisionPopUp.open()
 
 	def close(self, *args):
