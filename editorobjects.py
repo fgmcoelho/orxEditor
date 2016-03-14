@@ -915,7 +915,6 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 		#TODO: Find why this is not working on Windows.
 		self.__name = basename(path)[0:-4] + '_' + str(self.__id)
-
 		if (isinstance(obj, BaseObject)):
 			self.__baseSize = obj.getSize()
 			self.__texture = obj.getCachedSprite()
@@ -924,14 +923,15 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 			self.__sy = self.__baseSize[1]
 			self.__scale = 1.0
 			self.__layer = 'default'
+			self.__animation = None
 			self.__collisionInfo = None
-
 		else:
 			self.__baseSize = obj.getBaseSize()
 			self.__sx, self.__sy = obj.getSize()
 			self.__texture = obj.getTexture()
 			self.image = Image(size = self.__baseSize, texture = self.__texture)
 			self.__layer = obj.getLayer()
+			self.__animation = obj.getAnimation()
 			if (obj.getCollisionInfo() is None):
 				self.__collisionInfo = None
 			else:
@@ -1026,6 +1026,9 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 	def setParent(self, value):
 		self.__parent = value
 
+	def setAnimation(self, value):
+		self.__animation = value
+
 	def getParent(self):
 		return self.__parent
 
@@ -1088,3 +1091,6 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 
 	def getTexture(self):
 		return self.__texture
+
+	def getAnimation(self):
+		return self.__animation

@@ -27,6 +27,7 @@ from objectdescriptor import ObjectDescriptor
 from modulesaccess import ModulesAccess
 from editorutils import AlignedLabel
 from filesoptionsmenu import FilesOptionsMenu
+from animationeditor import AnimationSelector
 
 from cProfile import Profile
 from time import time
@@ -67,6 +68,9 @@ class TileEditor(App, KeyboardAccess):
 			else:
 				print "Total time: ", time() - self._timer
 				self._timer = None
+
+		elif(keycode[1] == 'l'):
+			ModulesAccess.get('AnimationSelector').open()
 
 	def confirm_exit(self, *args):
 		print 'We got exit confirmation: ', args
@@ -135,6 +139,8 @@ class TileEditor(App, KeyboardAccess):
 		SceneMiniMap()
 
 		FilesOptionsMenu()
+
+		AnimationSelector()
 
 		self.__sceneHandler = SceneHandler()
 		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
