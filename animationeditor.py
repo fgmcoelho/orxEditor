@@ -1463,3 +1463,67 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		self.__currentLink = al
 		self.__bindChanges()
 
+
+class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm):
+	def __init__(self):
+		super(AnimationSelector, self).__init__()
+		self._scrollLayout = GridLayout(cols = 1, rows = 1, size_hint = (None, None))
+
+		super(AnimationSelector, self).__init__(size_hint = (1, 1), do_scroll = (0, 1),
+			effect_cls = EmptyScrollEffect)
+
+		self._layout.add_widget(self._scrollLayout)
+
+		self.__popupLayout = BoxLayout(orientation = 'vertical')
+		self.__popup = Popup(
+			title='Animation Selector',
+			content = self.__popupLayout,
+			height = 300,
+			width = 400,
+			size_hint = (None, None),
+			auto_dismiss = False
+		)
+
+		self.__popupLayout.add_widget(AlignedLabel(text = 'Select an animation:', **defaultLineSize))
+		self.__popupLayout.add_widget(self._layout)
+		self.__popupLayout.add_widget(AlignedLabel(text = '', **defaultLineSize))
+		self.__cancelButton = CancelableButton(text = 'Cancel', on_release = self.alertExit, **defaultSmallButtonSize)
+		self.__doneButton = CancelableButton(text = 'Done', on_release = self.save, **defaultSmallButtonSize)
+		bottomLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		bottomLine.add_widget(self.getSeparator())
+		bottomLine.add_widget(self.__cancelButton)
+		bottomLine.add_widget(self.__doneButton)
+		self.__popupLayout.add_widget(bottomLine)
+
+		ModulesAccess.add('AnimationSelector', self)
+
+	def open(self, *args):
+		self._scrollLayout.clear_widgets()
+		self._scrollLayout.rows = 51
+		self._scrollLayout.height = 51 * defaultLineSize['height']
+		self._scrollLayout.width = 390
+		self._scrollLayout.add_widget(
+			AlignedToggleButton(
+				text='No animation',
+				state = 'down',
+				group = 'AnimationSelector',
+				allow_no_selection = False,
+				**defaultLineSize
+			)
+		)
+
+		for i in range(50):
+			newButton = AlignedToggleButton(
+				text='lala' + str(i),
+				group = 'AnimationSelector',
+				allow_no_selection = False,
+				**defaultLineSize
+			)
+			self._scrollLayout.add_widget(newButton)
+		self.__popup.open()
+
+	def save(self, *args):
+		self.__popup.dismiss()
+
+	def close(self, *args):
+		self.__popup.dismiss()
