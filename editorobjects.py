@@ -767,7 +767,10 @@ class RenderedObject (Scatter, SpaceLimitedObject):
 	def setMarked(self):
 		if (self.__borderLine is None):
 			with self.image.canvas:
-				Color(1., 0., 0.)
+				if (self.__animation is None):
+					Color(1., 0., 0.)
+				else:
+					Color(0., 0., 1.)
 				sx, sy = self.size
 				self.__borderLine = Line(points = [0, 0, sx, 0, sx, sy, 0, sy, 0, 0])
 

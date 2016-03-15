@@ -164,6 +164,39 @@ class EmptyScrollEffect(ScrollEffect):
 	def stop(*args):
 		pass
 
+class LeftButtonOnly(object):
+	def on_touch_up(self, touch):
+		if (touch.button == 'left' and self.__beenPressed == True):
+			super(LeftButtonOnly, self).on_touch_up(touch)
+			self.__beenPressed = False
+		return
+
+	def on_touch_move(self, touch):
+		if (self.__testTouch == True and self.collide_point(*touch.pos) == False):
+			return
+
+		if (touch.button == 'left' and self.__beenPressed == True):
+			super(LeftButtonOnly, self).on_touch_move(touch)
+		return
+
+	def on_touch_down(self, touch):
+		if (self.__testTouch == True and self.collide_point(*touch.pos) == False):
+			return
+
+		if (touch.button == 'left' and self.__beenPressed == False):
+			self.__beenPressed = True
+			super(LeftButtonOnly, self).on_touch_down(touch)
+		return
+
+	def __init__(self, **kwargs):
+		super(LeftButtonOnly, self).__init__(**kwargs)
+		if ('testTouch' in kwargs):
+			self.__testTouch = bool(kwargs['testTouch'])
+		else:
+			self.__testTouch = False
+
+		self.__beenPressed = False
+
 class AlignedLabel(Label, AutoAlign):
 	def __init__(self, **kwargs):
 		super(AlignedLabel, self).__init__(**kwargs)
@@ -173,6 +206,10 @@ class AlignedToggleButton(ToggleButton, AutoAlign):
 	def __init__(self, **kwargs):
 		super(AlignedToggleButton, self).__init__(**kwargs)
 		self.bind(size = self._set_on_size)
+
+class AlignedToggleButtonLeftOnly(LeftButtonOnly, AlignedToggleButton):
+	def __init__(self, **kwargs):
+		super(AlignedToggleButtonLeftOnly, self).__init__(**kwargs)
 
 class BaseWarnMethods(KeyboardAccess, SeparatorLabel):
 	def __createTextWithSize(self, text):
