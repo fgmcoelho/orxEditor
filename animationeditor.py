@@ -10,9 +10,11 @@ from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 from kivy.uix.togglebutton import ToggleButton
 
+from os.path import basename
+
 from keyboard import KeyboardAccess, KeyboardGuardian
 from editorutils import EmptyScrollEffect, SeparatorLabel, AlignedLabel, CancelableButton, Alert, FloatInput,\
-	Dialog, NumberInput, AlignedToggleButton, ChangesConfirm
+	Dialog, NumberInput, AlignedToggleButton, ChangesConfirm, AlignedToggleButtonLeftOnly
 from editorheritage import LayoutGetter
 from modulesaccess import ModulesAccess
 from splittedimagemap import SplittedImageImporter, SplittedImageExporter
@@ -1464,9 +1466,49 @@ class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 		self.__bindChanges()
 
 
-class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm):
+class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm, KeyboardAccess):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.alertExit()
+
+	def _processTouchUp(self, touch):
+		if (touch.button == "right"):
+			self._defaultTouchUp(touch)
+			return True
+
+		elif (touch.button == "left"):
+			touch.pos = self._layout.to_local(*touch.pos)
+			touch.x, touch.y = touch.pos
+			for button in self._scrollLayout.children:
+				if (button.collide_point(*touch.pos) == True):
+					button.on_touch_up(touch)
+					break
+		return False
+
+	def _processTouchMove(self, touch):
+		if (touch.button == "right"):
+			self._defaultTouchMove(touch)
+			return True
+		return False
+
+	def _processTouchDown(self, touch):
+		if (self._touchInside(touch) == False):
+			return
+
+		if (touch.button == "right"):
+			self._defaultTouchDown(touch)
+			return True
+
+		elif (touch.button == "left"):
+			touch.pos = self._layout.to_local(*touch.pos)
+			touch.x, touch.y = touch.pos
+			for button in self._scrollLayout.children:
+				if (button.collide_point(*touch.pos) == True):
+					button.on_touch_down(touch)
+					break
+		return False
+
 	def __init__(self):
-		super(AnimationSelector, self).__init__()
 		self._scrollLayout = GridLayout(cols = 1, rows = 1, size_hint = (None, None))
 
 		super(AnimationSelector, self).__init__(size_hint = (1, 1), do_scroll = (0, 1),
@@ -1494,36 +1536,90 @@ class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm):
 		bottomLine.add_widget(self.__cancelButton)
 		bottomLine.add_widget(self.__doneButton)
 		self.__popupLayout.add_widget(bottomLine)
+		self.__noAnimationButton = AlignedToggleButtonLeftOnly(
+			text='No animation',
+			state = 'down',
+			group = 'AnimationSelector',
+			allow_no_selection = False,
+			**defaultLineSize
+		)
+		self.__noAnimationButton.bind(state=self.registerChanges)
+		self.__editingObjects = []
 
 		ModulesAccess.add('AnimationSelector', self)
 
 	def open(self, *args):
 		self._scrollLayout.clear_widgets()
-		self._scrollLayout.rows = 51
-		self._scrollLayout.height = 51 * defaultLineSize['height']
-		self._scrollLayout.width = 390
-		self._scrollLayout.add_widget(
-			AlignedToggleButton(
-				text='No animation',
-				state = 'down',
-				group = 'AnimationSelector',
-				allow_no_selection = False,
-				**defaultLineSize
-			)
-		)
+		objList = ModulesAccess.get('SceneHandler').getCurrentSelection()
+		if not objList:
+			Alert(
+				title = 'Error',
+				text = 'No object selected.',
+				closeButtonText = 'Ok'
+			).open()
+			return
 
-		for i in range(50):
-			newButton = AlignedToggleButton(
-				text='lala' + str(i),
+		different = False
+		filepath = objList[0].getPath()
+		for obj in objList:
+			if (filepath != obj.getPath()):
+				different = True
+				break
+		if (different == True):
+			Alert(
+				title = 'Error',
+				text = 'You can only set the animation of multiple objects\n'\
+					'if they are created from the same resource.',
+				closeButtonText = 'Ok'
+			).open()
+			return
+
+		resourceInfo = ModulesAccess.get('BaseObjectsMenu').getResourceInfoByFilename(basename(filepath))
+		animationsInfo = resourceInfo.getAnimationInfoList() if resourceInfo is not None else None
+		if (resourceInfo is None or not animationsInfo):
+			Alert(
+				title = 'Error',
+				text = 'Object doesn\'t have animations.',
+				closeButtonText = 'Ok'
+			).open()
+			return
+
+		numberOfAnimations = len(animationsInfo)
+		self._scrollLayout.rows = numberOfAnimations + 1
+		self._scrollLayout.height = (numberOfAnimations + 1) * defaultLineSize['height']
+		self._scrollLayout.width = 390
+
+		self._scrollLayout.add_widget(self.__noAnimationButton)
+		for info in animationsInfo:
+			newButton = AlignedToggleButtonLeftOnly(
+				text=info.getName(),
 				group = 'AnimationSelector',
 				allow_no_selection = False,
 				**defaultLineSize
 			)
+			newButton.bind(state=self.registerChanges)
 			self._scrollLayout.add_widget(newButton)
+
+		self.__editingObjects = objList
+		self.resetChanges()
+		KeyboardGuardian.Instance().acquireKeyboard(self)
 		self.__popup.open()
 
 	def save(self, *args):
-		self.__popup.dismiss()
+		valueToSet = None
+		for button in self._scrollLayout.children:
+			if (button.state == 'down'):
+				if (button != self.__noAnimationButton):
+					valueToSet = button.text
+				break
+
+		for obj in self.__editingObjects:
+			obj.setAnimation(valueToSet)
+			obj.unsetMarked()
+			obj.setMarked()
+
+		self.close()
 
 	def close(self, *args):
+		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__popup.dismiss()
