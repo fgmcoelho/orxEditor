@@ -2,7 +2,7 @@ from kivy.uix.boxlayout import BoxLayout
 from editorutils import Dialog, Alert
 from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
-from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.filechooser import FileChooserIconView, FileChooserController
 from kivy.uix.checkbox import CheckBox
 
 from editorutils import CancelableButton, NumberInput, AlignedLabel
@@ -20,7 +20,7 @@ class FileOptionsConfig(object):
 	def __init__(self):
 		super(FileOptionsConfig, self).__init__()
 		self._fileOrDirectorySize = defaultInputSize.copy()
-		self._fileOrDirectorySize['width'] = 40
+		self._fileOrDirectorySize['width'] = 70
 		self._fileOrDirectorySize['size_hint'] = (None, None)
 
 class NewScenePopup(KeyboardAccess, SeparatorLabel, FileOptionsConfig):
@@ -142,6 +142,21 @@ class NewScenePopup(KeyboardAccess, SeparatorLabel, FileOptionsConfig):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__popup.dismiss()
 
+class CustomFileChooser(FileChooserIconView, FileChooserController):
+	def entry_touched(self, entry, touch):
+		if (touch.is_double_tap == True):
+			self.__lastTouchUid = touch.uid
+		super(CustomFileChooser, self).entry_touched(entry, touch)
+
+	def entry_released(self, entry, touch):
+		if (touch.is_double_tap == True and touch.uid == self.__lastTouchUid):
+			return
+		super(CustomFileChooser, self).entry_released(entry, touch)
+
+	def __init__(self, **kwargs):
+		super(CustomFileChooser, self).__init__(**kwargs)
+		self.__lastTouchUid = None
+
 class FileSelectorPopup(KeyboardAccess, FileOptionsConfig, SeparatorLabel):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] == 'escape'):
@@ -193,7 +208,7 @@ class FileSelectorPopup(KeyboardAccess, FileOptionsConfig, SeparatorLabel):
 		self.__fileChooserLayout = BoxLayout(orientation = 'vertical')
 		self.__fileChooserPopUp = Popup(auto_dismiss = False, title = 'Select the file:')
 		self.__fileChooserInputLayout = BoxLayout(orientation = 'horizontal', **defaultInputSize)
-		self.__fileChooser = FileChooserIconView(size_hint = (1, 1))
+		self.__fileChooser = CustomFileChooser(size_hint = (1, 1))
 		if (directoriesOnly == True):
 			self.__fileChooserInput = TextInput(multiline = False, readonly = True, **defaultInputSize)
 			self.__fileChooserInputLayout.add_widget(AlignedLabel(text = 'Directory:', **self._fileOrDirectorySize))
@@ -284,7 +299,7 @@ class FileChooserUser(FileOptionsConfig, SeparatorLabel):
 		self._fileChooserInput = TextInput(multiline = False, **defaultInputSize)
 		self._fileChooserInputLayout.add_widget(AlignedLabel(text = 'File:', **self._fileOrDirectorySize))
 		self._fileChooserInputLayout.add_widget(self._fileChooserInput)
-		self._fileChooser = FileChooserIconView(size_hint = (1.0, 1.0))
+		self._fileChooser = CustomFileChooser(size_hint = (1.0, 1.0))
 		self._fileChooser.on_submit = self._submitMethod
 
 		self._fileChooserYesNoLayout = BoxLayout(orientation = 'horizontal', **defaultLineSize)
