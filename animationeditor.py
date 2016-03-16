@@ -1538,7 +1538,6 @@ class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm, Key
 		self.__popupLayout.add_widget(bottomLine)
 		self.__noAnimationButton = AlignedToggleButtonLeftOnly(
 			text='No animation',
-			state = 'down',
 			group = 'AnimationSelector',
 			allow_no_selection = False,
 			**defaultLineSize
@@ -1589,6 +1588,12 @@ class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm, Key
 		self._scrollLayout.height = (numberOfAnimations + 1) * defaultLineSize['height']
 		self._scrollLayout.width = 390
 
+		animToSet = objList[0].getAnimation()
+		for obj in objList:
+			if (animToSet != obj.getAnimation()):
+				animToSet = None
+				break
+
 		self._scrollLayout.add_widget(self.__noAnimationButton)
 		for info in animationsInfo:
 			newButton = AlignedToggleButtonLeftOnly(
@@ -1597,6 +1602,8 @@ class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm, Key
 				allow_no_selection = False,
 				**defaultLineSize
 			)
+			if (animToSet is not None and animToSet == info.getName()):
+				newButton.state = 'down'
 			newButton.bind(state=self.registerChanges)
 			self._scrollLayout.add_widget(newButton)
 
@@ -1613,11 +1620,20 @@ class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm, Key
 					valueToSet = button.text
 				break
 
+		if (valueToSet is None and self.__noAnimationButton.state != 'down'):
+			Alert(
+				title = 'Error',
+				text = 'No value selected.',
+				closeButtonText = 'Ok'
+			).open()
+			return
+
 		for obj in self.__editingObjects:
 			obj.setAnimation(valueToSet)
 			obj.unsetMarked()
 			obj.setMarked()
 
+		ModulesAccess.get('ObjectDescriptor').update()
 		self.close()
 
 	def close(self, *args):
