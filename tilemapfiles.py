@@ -141,6 +141,10 @@ class FilesManager:
 						parser.set(partSectionName, 'Points', '#'.join(strPoints))
 					i += 1
 
+			animation = obj.getAnimation()
+			if (animation is not None):
+				parser.set(newSectionName, 'Animation', str(animation))
+
 		parser.set(self.__objectListName, 'LastId', str(ModulesAccess.get('SceneHandler').getSceneObjectId()))
 
 		f = open(filename, 'w')
