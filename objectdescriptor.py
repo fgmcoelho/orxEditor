@@ -4,7 +4,7 @@ from editorobjects import BaseObject, RenderedObject
 from editorutils import CancelableButton, Alert, AlignedLabel
 from modulesaccess import ModulesAccess
 from editorheritage import LayoutGetter, SeparatorLabel
-from uisizes import descriptorSize, defaultLabelSize, defaultSmallButtonSize, defaultLargeButtonSize
+from uisizes import descriptorSize, defaultLabelSize, defaultSmallButtonSize, defaultLargeButtonSize, defaultLineSize
 
 class DescriptorLinesConfigs(object):
 	def __init__(self):
@@ -164,32 +164,50 @@ class MultipleSelectionDescriptor(CleanDescriptorLayoutGetter, SeparatorLabel, D
 class RenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter, SeparatorLabel,
 		DescriptorButtons, GroupAndCollisionLabel):
 	def _setValues(self, path = '', size = '', scale = '', layer = '', name = '', flipX = '', flipY = '',
-			collisionInfo = None):
+			collisionInfo = None, animation = None):
 		super(RenderedObjectDescriptor, self)._setValues(path, size)
 		self._scaleLabel.text = 'Scale: ' + str(scale)
 		self._layerLabel.text = 'Group: ' + str(layer)
 		self._nameLabel.text = 'Name: ' + str(name)
-		self._flipxLabel.text = 'Flipped on X: ' + str(flipX)
-		self._flipyLabel.text = 'Flipped on Y: ' + str(flipY)
+		if (flipX == '' or flipY == ''):
+			self._flipLabel.text = 'Flip: '
+		else:
+			self._flipLabel.text = 'Flip: '
+			if flipX == True:
+				self._flipLabel.text += '(1, '
+			else:
+				self._flipLabel.text += '(0, '
+			if flipY == True:
+				self._flipLabel.text += '1)'
+			else:
+				self._flipLabel.text += '0)'
+
 		if (collisionInfo is None):
 			self._collisionInfoLabel.text = 'Has collision info: No'
 		else:
 			self._collisionInfoLabel.text = 'Has collision info: Yes'
 
+		if (animation is None):
+			self._animationLabel.text = 'Animation: None set'
+		else:
+			self._animationLabel.text = 'Animation: ' + str(animation)
+
 	def __init__(self):
 		super(RenderedObjectDescriptor, self).__init__()
 
-		self._nameLabel = AlignedLabel(text = 'Name: ', **defaultLabelSize)
+		self._nameLabel = AlignedLabel(text = 'Name: ', **defaultLineSize)
 
-		self._flipBox = BoxLayout(**self._halfLineLayout)
-		self._flipxLabel = AlignedLabel(text = 'Flipped on X: ', **self._halfLineLabel)
-		self._flipyLabel = AlignedLabel(text = 'Flipped on Y: ', **self._halfLineLabel)
-		self._flipBox.add_widget(self._flipxLabel)
-		self._flipBox.add_widget(self._flipyLabel)
+		labelSizeToUse = defaultLabelSize.copy()
+		labelSizeToUse['size_hint'] = (0.5, None)
+		self._flipAnimationBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		self._flipLabel = AlignedLabel(text = 'Flip: ')
+		self._animationLabel = AlignedLabel(text = 'Animation: ')
+		self._flipAnimationBox.add_widget(self._flipLabel)
+		self._flipAnimationBox.add_widget(self._animationLabel)
 
-		self._sizeScaleBox = BoxLayout(**self._halfLineLayout)
-		self._sizeLabel = AlignedLabel(text = 'Size: ', **self._halfLineLabel)
-		self._scaleLabel = AlignedLabel(text = 'Scale: ', **self._halfLineLabel)
+		self._sizeScaleBox = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		self._sizeLabel = AlignedLabel(text = 'Size: ', **labelSizeToUse)
+		self._scaleLabel = AlignedLabel(text = 'Scale: ', **labelSizeToUse)
 
 		self._sizeScaleBox.add_widget(self._sizeLabel)
 		self._sizeScaleBox.add_widget(self._scaleLabel)
@@ -205,9 +223,8 @@ class RenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGette
 	def set(self, obj = None):
 		layout = self._getParentLayout()
 		layout.add_widget(self._nameLabel)
-		#layout.add_widget(self._pathLabel)
-		layout.add_widget(self._flipBox)
 		layout.add_widget(self._sizeScaleBox)
+		layout.add_widget(self._flipAnimationBox)
 		layout.add_widget(self._layerCollisionBox)
 		layout.add_widget(self.getSeparator())
 		self._add_buttons(layout)
@@ -215,7 +232,7 @@ class RenderedObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGette
 		self._describedObject = obj
 		if (self._describedObject is not None):
 			self._setValues(obj.getPath(), obj.getSize(), obj.getScale(), obj.getLayer(), obj.getName(),
-				obj.getFlipX(), obj.getFlipY(),	obj.getCollisionInfo())
+				obj.getFlipX(), obj.getFlipY(),	obj.getCollisionInfo(), obj.getAnimation())
 		else:
 			self._setValues()
 
@@ -261,7 +278,7 @@ class NewBaseObjectDescriptor(ObjectDescriptGeneric, CleanDescriptorLayoutGetter
 class ObjectDescriptor(LayoutGetter):
 	def __init__(self):
 		ModulesAccess.add('ObjectDescriptor', self)
-		self._layout = BoxLayout(orientation = 'vertical', height = descriptorSize['height'])
+		self._layout = BoxLayout(orientation = 'vertical', **descriptorSize)
 		self._baseObjectDescriptor = NewBaseObjectDescriptor()
 		self._renderedObjectDescriptor = RenderedObjectDescriptor()
 		self._multipleObjectsDescritor = MultipleSelectionDescriptor()

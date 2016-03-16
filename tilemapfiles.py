@@ -386,7 +386,7 @@ class FilesManager:
 				fullSize = spriteInfo.getSpriteSize()
 				corner = convertKivyCoordToOrxCoord((coords[0], coords[1] + size[1]), fullSize[1])
 				parser.set(graphicSectionName, 'TextureSize', vector2ToVector3String(size))
-				parser.set(graphicSectionName, 'TextureCorner',  vector2ToVector3String(corner))
+				parser.set(graphicSectionName, 'TextureOrigin',  vector2ToVector3String(corner))
 
 			# Body Part
 			if (collisionInfo is not None):
