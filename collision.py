@@ -607,6 +607,8 @@ class CollisionEditorPopup(KeyboardAccess, SeparatorLabel, CollisionConfig, Chan
 					obj.setCollisionInfo(self.__copiesDict[currentId])
 			else:
 				obj.setCollisionInfo(self.__copiesDict[currentId])
+
+		ModulesAccess.get('ObjectDescriptor').update()
 		self.close()
 
 	def __createOrEditCollisionInfo(self, *args):

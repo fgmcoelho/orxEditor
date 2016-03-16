@@ -51,7 +51,11 @@ mainLayoutSize = {
 	'bottomMenuHeight' : 220
 }
 
-descriptorSize = {'height' : 200 }
+descriptorSize = {
+	'height' : 200,
+	'width': 400,
+	'size_hint': (None, None)
+}
 
 sceneMiniMapSize = {
 	'size' : (200, 200),
