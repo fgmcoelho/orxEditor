@@ -135,6 +135,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		self._renderGuardian = RenderObjectGuardian()
 		self.loadValues(attributes)
 		self._fbo = Fbo(size=self._layout.size, with_stencilbuffer=True)
+		self.__lastSaveTransaction = 0
 
 	def _startGridInstuctions(self):
 		self._gridGroup = InstructionGroup()
@@ -424,6 +425,9 @@ class Scene(OrderSceneObjects, LayoutGetter):
 	def getTransaction(self):
 		return self._renderGuardian.getTransaction()
 
+	def getLastSaveTransaction(self):
+		return self.__lastSaveTransaction
+
 class SceneHandler(LayoutGetter, KeyboardModifiers):
 	def processKeyUp(self, keycode):
 		if (keycode[1] == 'shift'):
@@ -670,6 +674,7 @@ class SceneHandler(LayoutGetter, KeyboardModifiers):
 		minimap = ModulesAccess.get('MiniMap')
 		minimap.updateMinimap(self.__sceneList[self.__currentIndex].getMiniMapTexture())
 		self._layout.bind(size = minimap.updateQuad)
+		Clock.schedule_interval(self.clearScenes, 30)
 
 	def scrollFromMiniMap(self, x, y):
 		self._layout.scroll_x = x
@@ -747,6 +752,16 @@ class SceneHandler(LayoutGetter, KeyboardModifiers):
 
 	def getSceneObjectId(self):
 		return self.__sceneList[self.__currentIndex].getCurrentId()
+
+	def registerSave(self):
+		for scene in self.__sceneList:
+			scene.registerSave()
+
+	def hasChanges(self):
+		for scene in self.__sceneList:
+			if (scene.getLastSaveTransaction() != scene.getTransaction()):
+				return True
+		return False
 
 class SceneSelection:
 	def __init__(self, layout):

@@ -269,7 +269,6 @@ class CollisionPartLayout(SeparatorLabel, CollisionConfig, ChangesConfirm):
 			else:
 				self.__doUpdateFormType()
 
-
 	def __updateSolidFlag(self, instance, newValue):
 		self.__part.setSolid(newValue)
 		ModulesAccess.get('CollisionEditor').registerChangesFromTabs()
