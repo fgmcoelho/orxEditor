@@ -151,6 +151,8 @@ class FilesManager:
 		parser.write(f)
 		f.close()
 
+		ModulesAccess.get('SceneHandler').registerSave()
+
 	def loadScene(self, filename):
 		try:
 			parser = ConfigParser()

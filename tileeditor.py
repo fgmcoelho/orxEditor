@@ -3,7 +3,6 @@ from kivy import require
 require('1.8.0')
 
 from kivy.app import App
-from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 from kivy.core.window import Window
@@ -17,6 +16,7 @@ from collisionform import CollisionFormEditorPopup
 from collisioninfo import CollisionGuardian
 from resourceloader import ResourceLoaderPopup
 from animationeditor import AnimationEditor
+from editorutils import Dialog
 
 from layer import LayerInformationPopup
 from layerinfo import LayerGuardian
@@ -32,7 +32,7 @@ from animationeditor import AnimationSelector
 from cProfile import Profile
 from time import time
 
-class TileEditor(App, KeyboardAccess):
+class OrxEditor(App, KeyboardAccess):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl']):
 			self.__sceneHandler.processKeyUp(keycode)
@@ -72,8 +72,13 @@ class TileEditor(App, KeyboardAccess):
 		elif(keycode[1] == 'l'):
 			ModulesAccess.get('AnimationSelector').open()
 
-	def confirm_exit(self, *args):
-		print 'We got exit confirmation: ', args
+	def confirm_exit(self, source=''):
+		if (self.__sceneHandler.hasChanges() == True):
+			Dialog(self.stop, 'Confirmation',
+				'You have unsaved changes, are you sure\n'\
+				'you want to leave the program?',
+				'Yes', 'No', None, None).open()
+			return True
 		return False
 
 	def build_config(self, c):
@@ -163,13 +168,10 @@ class TileEditor(App, KeyboardAccess):
 		rightBottomMenu.add_widget(ModulesAccess.get('MiniMap').getLayout())
 		bottomMenu.add_widget(rightBottomMenu)
 
-		# Periodic functions:
-		Clock.schedule_interval(self.__sceneHandler.clearScenes, 30)
-
 		return self.root
 
 if __name__ == '__main__':
-	te = TileEditor()
+	te = OrxEditor()
 	try:
 		Window.maximize()
 	except:
