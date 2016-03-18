@@ -7,6 +7,7 @@ from ConfigParser import ConfigParser
 from collisioninfo import CollisionInformation, CollisionPartInformation
 from modulesaccess import ModulesAccess
 from scene import SceneAttributes
+from splittedimagemap import SplittedImageImporter
 
 from os.path import sep, isfile, join
 from shutil import copyfile
@@ -181,10 +182,14 @@ class FilesManager:
 			raise Exception('Error loading files needed to load the scene: ' + str(e))
 
 		try:
+			resourceInfoDict = {}
 			tempBaseObjects = {}
 			identifier = 0
 			for name in objectNames:
 				fullPath = parser.get(name, 'AbsolutePath')
+				if (fullPath not in resourceInfoDict):
+					resourceInfoDict[fullPath] = None
+
 				if (fullPath not in tempBaseObjects):
 					coords = self.__getSpriteCoords(parser, name)
 					if (coords == (None, None)):
@@ -200,6 +205,14 @@ class FilesManager:
 
 		except Exception, e:
 			raise Exception('Error creating the base objects: ' + str(e))
+
+		try:
+			animationNamesDict = {}
+			for fullPath in resourceInfoDict.iterkeys():
+				resourceInfoDict[fullPath] = SplittedImageImporter.load(fullPath)
+				animationNamesDict[fullPath] = set(resourceInfoDict[fullPath].getAnimationNames())
+		except Exception, e:
+			raise Exception('Error creating the resources information: ' + str(e))
 
 		try:
 			ModulesAccess.get('LayerGuardian').reset()
@@ -253,6 +266,7 @@ class FilesManager:
 				flipX = strToBool(parser.get(name, 'FlipX'))
 				flipY = strToBool(parser.get(name, 'FlipY'))
 				layer = parser.get(name, 'Layer')
+
 				if ('ChildrenId' in parser.options(name)):
 					childLinks[identifier] = map(int, parser.get(name, 'ChildrenId').split(','))
 
@@ -282,8 +296,14 @@ class FilesManager:
 						newPart = CollisionPartInformation(checkMask, selfFlags, solid, formType, points)
 						collisionInfo.addPart(newPart)
 
+				if (parser.has_option(name, 'Animation') == True):
+					animation = parser.get(name, 'Animation')
+					assert animation in animationNamesDict[fullPath], 'Object animation not found.'
+				else:
+					animation = None
+
 				ModulesAccess.get('SceneHandler').addObjectByInfo(tempBaseObjects[(fullPath, coords)], identifier,
-					position, scale, flipX, flipY, layer, collisionInfo)
+					position, scale, flipX, flipY, layer, collisionInfo, animation)
 
 			if (childLinks != {}):
 				sceneObjectsList = ModulesAccess.get('SceneHandler').getCurrentSceneObjects()

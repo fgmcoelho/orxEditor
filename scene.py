@@ -372,7 +372,8 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 		ModulesAccess.get('ObjectDescriptor').set(newRenderedObject)
 
-	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo):
+	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo, animation):
+
 		newRenderedObject = self._renderGuardian.createNewObject(identifier, baseObject, pos, self._tileSize,
 			self._maxX, self._maxY, autoSelect = False)
 
@@ -387,6 +388,9 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 		if (collisionInfo is not None):
 			newRenderedObject.setCollisionInfo(collisionInfo)
+
+		if (animation is not None):
+			newRenderedObject.setAnimation(animation)
 
 		newRenderedObject.setLayer(layer)
 		self._layout.add_widget(newRenderedObject)
@@ -743,9 +747,9 @@ class SceneHandler(LayoutGetter, KeyboardModifiers):
 	def getCurrentSceneAttributes(self):
 		return self.__sceneList[self.__currentIndex].getSceneAttributes()
 
-	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo):
+	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo, animation):
 		self.__sceneList[self.__currentIndex].addObjectByInfo(baseObject, identifier, pos, scale, flipOnX, flipOnY,
-			layer, collisionInfo)
+			layer, collisionInfo, animation)
 
 	def setSceneObjectId(self, newId):
 		self.__sceneList[self.__currentIndex].setCurrentId(newId)
