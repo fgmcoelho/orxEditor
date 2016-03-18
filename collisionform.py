@@ -648,6 +648,7 @@ class CollisionFormEditorPopup(ChangesConfirm):
 		if (self.__mainScreen.savePoints() == False):
 			self.__meshErrorAlert.open()
 		else:
+			ModulesAccess.get('CollisionEditor').registerChangesFromTabs()
 			self.close()
 
 	def __init__(self):

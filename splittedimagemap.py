@@ -1,5 +1,6 @@
 from editorutils import strToDoubleIntTuple
 from spriteinfo import FrameInfo, AnimationInfo, SpriteSelection, LinkInfo
+from modulesaccess import ModulesAccess
 
 from ConfigParser import ConfigParser
 from os.path import isfile
@@ -29,6 +30,7 @@ class ResourceInformation:
 		self.__selectionId = selectionId
 		self.__animationInfoId = animationId
 		self.__linkId = linkId
+		self.__removedAnimations = []
 
 	def addSelection(self, selection):
 		identifier = selection.getId()
@@ -72,6 +74,7 @@ class ResourceInformation:
 			self.removeAnimationInfoById(key)
 
 	def removeAnimationInfoById(self, identifier):
+		self.__removedAnimations.append(self.__animationInfoDict[identifier])
 		self.__removeById(self.__animationInfoDict, identifier)
 		toRemove = []
 		for linkId, linkInfo in self.__linkDict.iteritems():
@@ -140,12 +143,25 @@ class ResourceInformation:
 				return True
 		return False
 
-	def countAnimationInfoWithSelectionId(self, selectionId):
-		count = 0
-		for animationInfo in self.__animationInfoDict.values():
+	def countAnimationInfoAndLinksWithSelectionId(self, selectionId):
+		relatedAnims = set()
+		for animationInfo in self.__animationInfoDict.itervalues():
 			if (selectionId in animationInfo.getUsedSelections()):
-				count += 1
-		return count
+				relatedAnims.add(animationInfo.getId())
+
+		relatedLinks = set()
+		for link in self.__linkDict.itervalues():
+			if (link.getSourceId() in relatedAnims or link.getDestinationId() in relatedAnims):
+				relatedLinks.add(link.getId())
+
+		return len(relatedAnims), len(relatedLinks)
+
+	def getAnimationNamesWithSelectionId(self, selectionId):
+		relatedAnims = []
+		for animationInfo in self.__animationInfoDict.itervalues():
+			if (selectionId in animationInfo.getUsedSelections()):
+				relatedAnims.append(animationInfo.getName())
+		return relatedAnims
 
 	def countLinkWithAnimationId(self, animationId):
 		count = 0
@@ -156,6 +172,12 @@ class ResourceInformation:
 
 	def getPath(self):
 		return self.__path
+
+	def getRemovedAnimationNames(self):
+		l = []
+		for animationInfo in  self.__removedAnimations:
+			l.append(animationInfo.getName())
+		return l
 
 class SplittedImageExporter:
 	@staticmethod
