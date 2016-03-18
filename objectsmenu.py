@@ -264,9 +264,15 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		self.__doUpdateResource(node, newResourceInfo)
 
 	def getResourceInfoByFilename(self, filename):
-		if filename in self._filenameToNode:
+		if filename in self._filenameToNode.iterkeys():
 			return self._filenameToNode[filename].getResourceInfo()
 		return None
+
+	def getFilenameToResourceInfoDict(self):
+		d = {}
+		for filename in self._filenameToNode.iterkeys():
+			d[filename] = self._filenameToNode[filename].getResourceInfo()
+		return d
 
 	def updateSelectedNode(self, command):
 		assert command in ('up', 'down', 'left', 'right', 'leftright')

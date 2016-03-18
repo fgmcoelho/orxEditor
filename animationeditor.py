@@ -503,7 +503,7 @@ class AnimationHandler(LayoutGetter):
 				objAnimation = obj.getAnimation()
 				if (objAnimation is not None and objAnimation == name):
 					objCount += 1
-			
+
 			if (objCount > 0):
 				message += 'It will also reset the animation on %d object%s.\n' % \
 					(objCount, 's' if objCount > 1 else '')
@@ -1611,7 +1611,7 @@ class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm, Key
 		for obj in objList:
 			if (obj.getAnimation() is not None):
 				allNone = False
-	
+
 			if (animToSet != obj.getAnimation()):
 				animToSet = None
 				break

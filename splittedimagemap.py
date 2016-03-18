@@ -1,6 +1,5 @@
 from editorutils import strToDoubleIntTuple
 from spriteinfo import FrameInfo, AnimationInfo, SpriteSelection, LinkInfo
-from modulesaccess import ModulesAccess
 
 from ConfigParser import ConfigParser
 from os.path import isfile
@@ -179,6 +178,12 @@ class ResourceInformation:
 			l.append(animationInfo.getName())
 		return l
 
+	def getAnimationNames(self):
+		l = []
+		for animationInfo in self.__animationInfoDict.itervalues():
+			l.append(animationInfo.getName())
+		return l
+
 class SplittedImageExporter:
 	@staticmethod
 	def save(resourceInfo):
@@ -240,7 +245,7 @@ class SplittedImageImporter:
 				return ResourceInformation(path)
 		else:
 			filename = path
-			assert(isfile(filename))
+			assert isfile(filename), 'File not found.'
 
 		parser = ConfigParser()
 		parser.read(filename)
