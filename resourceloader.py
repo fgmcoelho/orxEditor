@@ -15,6 +15,7 @@ from uisizes import resourceLoderSize, defaultLabelSize, defaultButtonSize, defa
 from editorheritage import SeparatorLabel, LayoutGetter, MouseModifiers
 from editorutils import CancelableButton, AutoReloadTexture, Alert, Dialog, convertKivyCoordToOrxCoord, ChangesConfirm
 from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
+from editorobjects import resetAnitionOnObjectList
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import SplittedImageExporter, SplittedImageImporter
 from spriteinfo import SpriteSelection
@@ -389,10 +390,15 @@ class ResourceLoaderList(LayoutGetter):
 			return self.__resourceInfo.getNumberOfAnimationInfos()
 		return 0
 
-	def getNumberOfRelatedAnimations(self, selection):
+	def getNumberOfRelatedAnimationsAndLinks(self, selection):
 		if (selection is not None and self.__resourceInfo is not None and selection.getId() is not None):
-			return self.__resourceInfo.countAnimationInfoWithSelectionId(selection.getId())
-		return 0
+			return self.__resourceInfo.countAnimationInfoAndLinksWithSelectionId(selection.getId())
+		return 0, 0
+
+	def getNamesOfRelatedAnimations(self, selection):
+		if (selection is not None and self.__resourceInfo is not None and selection.getId() is not None):
+			return self.__resourceInfo.getAnimationNamesWithSelectionId(selection.getId())
+		return []
 
 	def clearAllItems(self):
 		self.__clearUi()
@@ -460,6 +466,11 @@ class ResourceLoaderList(LayoutGetter):
 			futureName = basename(self.__resourceInfo.getPath())
 			ModulesAccess.get('BaseObjectsMenu').ignoreUpdate(futureName)
 			SplittedImageExporter.save(self.__resourceInfo)
+
+			removedAnimations = self.__resourceInfo.getRemovedAnimationNames()
+			objList = ModulesAccess.get('SceneHandler').getCurrentSceneObjects()
+			resetAnitionOnObjectList(objList, removedAnimations)
+			
 			ModulesAccess.get('BaseObjectsMenu').updateResource(self.__resourceInfo)
 
 class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfirm):
@@ -706,12 +717,33 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 	def __processRemoveFromSelection(self, *args):
 		selection = self.__selectionTree.getSelection()
 		if (selection is not None):
-			animationNumber = self.__selectionTree.getNumberOfRelatedAnimations(selection)
+			animationNumber, linksNumber = self.__selectionTree.getNumberOfRelatedAnimationsAndLinks(selection)
 			if animationNumber == 0:
 				message = 'This will remove the selecton.\nThis operation can\'t be reverted!'
 			else:
-				message = 'This will remove the selection and\n%d animation%s.\nThis operation can\'t be reverted!' %\
-					(animationNumber, 's' if animationNumber > 1 else '')
+				objList = ModulesAccess.get('SceneHandler').getCurrentSceneObjects()
+				relatedAnimsNames = set(self.__selectionTree.getNamesOfRelatedAnimations(selection))
+				objCount = 0
+				for obj in objList:
+					objAnimation = obj.getAnimation()
+					if (objAnimation is not None and objAnimation in relatedAnimsNames):
+						objCount += 1
+					
+				if (linksNumber == 0):
+					message = 'This will remove the selection and\n%d animation%s.\n' % \
+						(animationNumber, 's' if animationNumber > 1 else '')
+				else:
+					message = 'This will remove the selection,\n%d animation%s and\n'\
+						'%d animation link%s.\n' % \
+						(
+							animationNumber, 's' if animationNumber > 1 else '',
+							linksNumber, 's' if linksNumber > 1 else ''
+						)
+				if (objCount > 0):
+					message += 'It will also reset the animation on %d object%s.\n' % \
+						(objCount, 's' if objCount > 1 else '')
+
+				message += 'This operation can\'t be reverted!'
 
 			dialog = Dialog(self.__doClearSelection,
 				'Confirmation', message,

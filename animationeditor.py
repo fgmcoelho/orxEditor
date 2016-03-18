@@ -22,6 +22,7 @@ from uisizes import defaultLabelSize, defaultSmallButtonSize, defaultLineSize, d
 	defaultLargeButtonSize, animationFrameDurationSize
 from string import letters, digits
 from spriteinfo import SingleIdentifiedObject, AnimationInfo, FrameInfo, LinkInfo
+from editorobjects import resetAnitionOnObjectList
 
 class AnimationBaseScroll(LayoutGetter):
 	"""Class that implements the default behavior we want for a ScrollView, which is scrolling with the left button
@@ -395,14 +396,6 @@ class AnimationHandler(LayoutGetter):
 		self._scrollLayout.select_node = self.selectNode
 		self.__errorAlert = Alert("Error", "No animation selected.\nSelect one on the right menu.", "Ok")
 		self.__animationStats = AnimationStatsEditor()
-		self.__deleteDialog = Dialog(
-			title = 'Confirmation',
-			text = 'Are you sure that you want to remove\nthe selected '\
-				'animation?\nThis operation may not be reverted!',
-			okMethod = self.removeAnimation,
-			dialogOkButtonText = 'Ok',
-			dialogCancelButtonText = 'Cancel',
-		)
 		self.__animations = []
 		self.__deletedAnimations = []
 		ModulesAccess.add('AnimationHandler', self)
@@ -502,7 +495,27 @@ class AnimationHandler(LayoutGetter):
 	def deleteCurrentAnimation(self, *args):
 		node = self._scrollLayout.selected_node
 		if (node is not None and node != self._scrollLayout.root):
-			self.__deleteDialog.open()
+			message = 'Are you sure that you want to remove\nthe selected animation?\n'
+			objList = ModulesAccess.get('SceneHandler').getCurrentSceneObjects()
+			name = node.getAnimation().getName()
+			objCount = 0
+			for obj in objList:
+				objAnimation = obj.getAnimation()
+				if (objAnimation is not None and objAnimation == name):
+					objCount += 1
+			
+			if (objCount > 0):
+				message += 'It will also reset the animation on %d object%s.\n' % \
+					(objCount, 's' if objCount > 1 else '')
+
+			message += 'This operation may not be reverted!'
+			Dialog(
+				title = 'Confirmation',
+				text = message,
+				okMethod = self.removeAnimation,
+				dialogOkButtonText = 'Ok',
+				dialogCancelButtonText = 'Cancel',
+			).open()
 		else:
 			self.__errorAlert.open()
 
@@ -1126,6 +1139,10 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfi
 
 		SplittedImageExporter.save(self.__resourceInfo)
 
+		removedAnimations = set(self.__resourceInfo.getRemovedAnimationNames())
+		objList = ModulesAccess.get('SceneHandler').getCurrentSceneObjects()
+		resetAnitionOnObjectList(objList, removedAnimations)
+
 		self.close()
 
 	def open(self, path):
@@ -1588,8 +1605,13 @@ class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm, Key
 		self._scrollLayout.height = (numberOfAnimations + 1) * defaultLineSize['height']
 		self._scrollLayout.width = 390
 
+		self.__noAnimationButton.state = 'normal'
+		allNone = True
 		animToSet = objList[0].getAnimation()
 		for obj in objList:
+			if (obj.getAnimation() is not None):
+				allNone = False
+	
 			if (animToSet != obj.getAnimation()):
 				animToSet = None
 				break
@@ -1602,10 +1624,13 @@ class AnimationSelector(AnimationBaseScroll, SeparatorLabel, ChangesConfirm, Key
 				allow_no_selection = False,
 				**defaultLineSize
 			)
-			if (animToSet is not None and animToSet == info.getName()):
+			if (allNone == False and animToSet is not None and animToSet == info.getName()):
 				newButton.state = 'down'
 			newButton.bind(state=self.registerChanges)
 			self._scrollLayout.add_widget(newButton)
+
+		if (allNone == True):
+			self.__noAnimationButton.state = 'down'
 
 		self.__editingObjects = objList
 		self.resetChanges()

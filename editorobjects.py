@@ -9,6 +9,15 @@ from collision import CollisionInformation
 from editorutils import AutoReloadTexture, Dialog
 from editorheritage import SpaceLimitedObject
 
+def resetAnitionOnObjectList(objectsList, animationNames):
+	removedAnimations = set(animationNames)
+	for obj in objectsList:
+		objAnimation = obj.getAnimation()
+		if (objAnimation is not None and objAnimation in removedAnimations):
+			obj.setAnimation(None)
+			obj.unsetMarked()
+			obj.setMarked()
+
 class SceneActionList:
 	def __init__(self):
 		self.__actionList = []

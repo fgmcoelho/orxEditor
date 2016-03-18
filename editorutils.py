@@ -438,7 +438,6 @@ def isClockWise(points):
 	else:
 		return False
 
-
 def copyTexture(sizeToUse, imageToUse):
 	newTexture = Texture.create(size = sizeToUse)
 	pixels = imageToUse.texture.pixels[:]
