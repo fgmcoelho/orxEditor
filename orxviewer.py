@@ -155,7 +155,7 @@ class OrxViewer(ViewerConfigs, SeparatorLabel, KeyboardAccess):
 		self._defaults["Physics"]["ShowDebug"] = boolToStr(self.__debugPhysicsCheckbox.active)
 		self._defaults["Camera"]["Position"] = "(" + str(int(self.__widthInput.text) / 2) + ", " + \
 				str(int(self.__heightInput.text) / 2) + ", 0)"
-		
+
 		tmpDir = join(self.__currentPath, "tmp")
 		zipFilePath = join(tmpDir, "tmp_viewer.zip")
 		self._removeDownloadedFile(zipFilePath)

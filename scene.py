@@ -396,6 +396,9 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		self._layout.add_widget(newRenderedObject)
 		self._objectDict[identifier] = newRenderedObject
 
+	def registerSave(self):
+		self.__lastSaveTransaction = self.getTransaction()
+
 	def getObjectsDict(self):
 		return self._objectDict
 
@@ -431,6 +434,10 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 	def getLastSaveTransaction(self):
 		return self.__lastSaveTransaction
+
+	def resetTransactionStack(self):
+		self.__lastSaveTransaction = 0
+		self._renderGuardian.reset()
 
 class SceneHandler(LayoutGetter, KeyboardModifiers):
 	def processKeyUp(self, keycode):
@@ -760,6 +767,10 @@ class SceneHandler(LayoutGetter, KeyboardModifiers):
 	def registerSave(self):
 		for scene in self.__sceneList:
 			scene.registerSave()
+
+	def registerLoad(self):
+		for scene in self.__sceneList:
+			scene.resetTransactionStack()
 
 	def hasChanges(self):
 		for scene in self.__sceneList:

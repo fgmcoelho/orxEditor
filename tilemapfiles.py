@@ -9,7 +9,7 @@ from modulesaccess import ModulesAccess
 from scene import SceneAttributes
 from splittedimagemap import SplittedImageImporter
 
-from os.path import sep, isfile, join
+from os.path import isfile, join, basename
 from shutil import copyfile
 
 class FilesManager:
@@ -319,6 +319,7 @@ class FilesManager:
 			raise Exception('Error loading the objecs to the list:' + str(e))
 
 		ModulesAccess.get('SceneHandler').setSceneObjectId(int(parser.get(self.__objectListName, 'LastId')))
+		ModulesAccess.get('SceneHandler').registerLoad()
 
 	def exportScene(self, filename, assetsPath, shouldSmooth, defaults = None):
 		parser = ConfigParser()
@@ -360,23 +361,74 @@ class FilesManager:
 
 		resourceInfoDict = ModulesAccess.get('BaseObjectsMenu').getFilenameToResourceInfoDict()
 		animationSetsDict = {}
-		for filename, resource in resourceInfoDict.iteritems():
-			infoList = resource.getAnimationInfoList()
+		for resourcePath, resourceInfo in resourceInfoDict.iteritems():
+			if resourceInfo is None:
+				continue
+			infoList = resourceInfo.getAnimationInfoList()
 			if (not infoList):
 				continue
-			newAnimationSetName = filename + '_AnimSet'
+			resourceName = resourcePath.split('.')[0]
+			newAnimationSetName = resourceName + '_AnimSet'
+			parser.add_section(newAnimationSetName)
 			animationNameList = []
-			for info in  infoList:
-				newAnimationSession = filename + '_' + info.getName()
-				animationNameList.append(newAnimationSession)
-				parser.add_section(newAnimationSession)
-				parser.set(newAnimationSession, 'Duration', str(info.getDuration())
-				i = 0
-				for frameInfo in info.getFrames():
-					frameSession = newAnimationSession + '_Frame' + str(i)
-					parser.add_section(frameSession)
+			i = 0
+			img = Image(source = resourceInfo.getPath())
+			fullSize = tuple(img.texture.size)
+			for info in infoList:
+				newAnimationSection = resourceName + '_' + info.getName()
+				animationNameList.append(newAnimationSection)
+				parser.add_section(newAnimationSection)
+				parser.set(newAnimationSection, 'DefaultKeyDuration', str(info.getDuration()))
+				j = 1
+				framesToSelection = {}
+				for frameInfo in info.getFramesInfo():
+					if (frameInfo.getId() not in framesToSelection):
+						frameSection = resourceName + '_Frame' + str(i)
+						selection = resourceInfo.getSelectionById(frameInfo.getId())
+						parser.add_section(frameSection)
+						parser.set(frameSection, 'Texture', resourcePath)
+						pos = (selection.getX(), selection.getY())
+						size = (selection.getSizeX(), selection.getSizeY())
 
-					i += 1
+						corner = convertKivyCoordToOrxCoord((pos[0], pos[1] + size[1]), fullSize[1])
+						parser.set(
+							frameSection, 'TextureOrigin',
+							vector2ToVector3String(corner)
+						)
+						parser.set(
+							frameSection, 'TextureSize',
+							vector2ToVector3String(size)
+						)
+						framesToSelection[selection.getId()] = frameSection
+						i += 1
+					else:
+						frameSection = framesToSelection[selection.getId()]
+
+					parser.set(newAnimationSection, 'KeyData' + str(j), frameSection)
+					if (frameInfo.getDuration() is not None):
+						parser.set(newAnimationSection, 'KeyDuration' + str(j), str(frameInfo.getDuration()))
+					j += 1
+			parser.set(newAnimationSetName, 'AnimationList', '#'.join(animationNameList))
+			animationSetsDict[resourceName] = newAnimationSetName
+
+			linksList = resourceInfo.getLinksList()
+			if (not linksList):
+				continue
+
+			linksNameList = []
+			for link in linksList:
+				sourceName = resourceInfo.getAnimationInfoById(link.getSourceId()).getName()
+				destinationName = resourceInfo.getAnimationInfoById(link.getDestinationId()).getName()
+				linkSectionName = resourceName + '_' + sourceName + 'To' + destinationName
+				parser.add_section(linkSectionName)
+				parser.set(linkSectionName, 'Source', resourceName + '_' + sourceName)
+				parser.set(linkSectionName, 'Destination', resourceName + '_' + destinationName)
+				if (link.getPriority() != 8):
+					parser.set(linkSectionName, 'Priority', link.getPriority())
+				if (link.getProperty() != ''):
+					parser.set(linkSectionName, 'Property', link.getProperty())
+				linksNameList.append(linkSectionName)
+			parser.set(newAnimationSetName, 'LinkList', '#'.join(linksNameList))
 
 		assetsDict = {}
 		sceneAttributes = ModulesAccess.get('SceneHandler').getCurrentSceneAttributes()
@@ -385,8 +437,10 @@ class FilesManager:
 			# Needed data
 			newSectionName = obj.getName()
 			collisionInfo = obj.getCollisionInfo()
+			animation = obj.getAnimation()
 			graphicSectionName = newSectionName + "_Graphic"
 			bodySectionName = newSectionName + "_Body"
+			animationTimeTrackSessionName = newSectionName + 'AnimTrack'
 
 			# Object
 			parser.add_section(newSectionName)
@@ -415,9 +469,13 @@ class FilesManager:
 			if (collisionInfo is not None):
 				parser.set(newSectionName, 'Body', bodySectionName)
 
+			textureName = basename(obj.getPath())
+			if (animation is not None):
+				parser.set(newSectionName, 'AnimationSet', animationSetsDict[textureName.split('.')[0]])
+				parser.set(newSectionName, 'TrackList', animationTimeTrackSessionName)
+
 			# Graphic Part
 			parser.add_section(graphicSectionName);
-			textureName = obj.getPath().split(sep)[-1]
 			if (textureName not in assetsDict):
 				assetsDict[textureName] = obj.getPath()
 
@@ -502,6 +560,10 @@ class FilesManager:
 
 						parser.set(partSectionName, 'VertexList', '#'.join(strConvertedPointsList))
 
+			if (animation is not None):
+				parser.add_section(animationTimeTrackSessionName)
+				animationName = textureName.split('.')[0] + '_' + str(animation)
+				parser.set(animationTimeTrackSessionName, '0', 'Object.setAnim ^ ' + animationName)
 
 		f = open(filename, 'w')
 		parser.write(f)
@@ -511,5 +573,4 @@ class FilesManager:
 			newFilePath = join(assetsPath, key)
 			if (isfile(newFilePath) == False):
 				copyfile(assetsDict[key], newFilePath)
-
 

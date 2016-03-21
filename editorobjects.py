@@ -138,9 +138,7 @@ class SceneAction:
 
 class SceneActionHistory:
 	def __init__(self):
-		self.__transaction = 0
-		self.__historyList = []
-		self.__redoList = []
+		self.reset()
 
 	def __clearRedoList(self):
 		for action in self.__redoList:
@@ -171,6 +169,11 @@ class SceneActionHistory:
 
 	def getTransaction(self):
 		return self.__transaction
+
+	def reset(self):
+		self.__redoList = []
+		self.__historyList = []
+		self.__transaction = 0
 
 class RenderObjectGuardian:
 	def __addObjectToLimits(self, obj):
@@ -692,6 +695,9 @@ class RenderObjectGuardian:
 	def unmergeObjects(self):
 		if (len(self.__multiSelectionObjects) >= 2):
 			self.__checkMergingColliders('unmerging', self.__doUnmergeObjects)
+
+	def reset(self):
+		self.__history.reset()
 
 class SpritedObjectInfo:
 	def __init__(self, virtualPath, coords, spriteSize):
