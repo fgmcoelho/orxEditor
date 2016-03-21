@@ -358,6 +358,26 @@ class FilesManager:
 		if (i != 0):
 				parser.set('General', 'ObjectList_' + str(j), '#'.join(objectsInScene))
 
+		resourceInfoDict = ModulesAccess.get('BaseObjectsMenu').getFilenameToResourceInfoDict()
+		animationSetsDict = {}
+		for filename, resource in resourceInfoDict.iteritems():
+			infoList = resource.getAnimationInfoList()
+			if (not infoList):
+				continue
+			newAnimationSetName = filename + '_AnimSet'
+			animationNameList = []
+			for info in  infoList:
+				newAnimationSession = filename + '_' + info.getName()
+				animationNameList.append(newAnimationSession)
+				parser.add_section(newAnimationSession)
+				parser.set(newAnimationSession, 'Duration', str(info.getDuration())
+				i = 0
+				for frameInfo in info.getFrames():
+					frameSession = newAnimationSession + '_Frame' + str(i)
+					parser.add_section(frameSession)
+
+					i += 1
+
 		assetsDict = {}
 		sceneAttributes = ModulesAccess.get('SceneHandler').getCurrentSceneAttributes()
 		sceneMaxY = sceneAttributes.getValue('TilesMaxY') * sceneAttributes.getValue('TilesSize')
