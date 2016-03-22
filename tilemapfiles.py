@@ -563,7 +563,7 @@ class FilesManager:
 			if (animation is not None):
 				parser.add_section(animationTimeTrackSessionName)
 				animationName = textureName.split('.')[0] + '_' + str(animation)
-				parser.set(animationTimeTrackSessionName, '0', 'Object.setAnim ^ ' + animationName)
+				parser.set(animationTimeTrackSessionName, '0', 'Object.setAnim ^ ' + animationName + ' True')
 
 		f = open(filename, 'w')
 		parser.write(f)
