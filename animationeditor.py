@@ -140,6 +140,7 @@ class Animation(SingleIdentifiedObject):
 		return self.__name
 
 	def setName(self, value):
+		ModulesAccess.get('AnimationLinkDisplay').updateName(self.__name, value)
 		self.__name = value
 
 	def setDuration(self, value):
@@ -374,6 +375,7 @@ class AnimationNode(TreeViewLabel):
 	"""Class that implements the node for the TreeView of the right menu and holds the animation it refers to."""
 	def __init__(self, animation):
 		assert isinstance(animation, Animation), "Invalid parameter received!"
+		self.__originalName = animation.getName()
 		self.__animation = animation
 		super(AnimationNode, self).__init__(text = animation.getName())
 
@@ -382,6 +384,9 @@ class AnimationNode(TreeViewLabel):
 
 	def update(self):
 		self.text = self.__animation.getName()
+
+	def getOriginalName(self):
+		return self.__originalName
 
 class AnimationHandler(LayoutGetter):
 	"""Class that implements the TreeView of the right menu, inside a scrollview. It is also reponsible to control the
@@ -524,6 +529,15 @@ class AnimationHandler(LayoutGetter):
 
 	def getDeletedAnimations(self):
 		return self.__deletedAnimations
+
+	def getChangedNames(self):
+		d = {}
+		for node in self._scrollLayout.children:
+			if (node != self._scrollLayout.root):
+				animation = node.getAnimation()
+				if (animation.getId() is not None and animation.getName() != node.getOriginalName()):
+					d[node.getOriginalName()] = animation.getName()
+		return d
 
 class AnimationDisplay(LayoutGetter):
 	"""Class that creates a visual display for an animation."""
@@ -1069,6 +1083,7 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfi
 		ModulesAccess.add('AnimationEditor', self)
 
 	def save(self, *args):
+		animationChanges = ModulesAccess.get('AnimationHandler').getChangedNames()
 		deletedAnimations = set(ModulesAccess.get('AnimationHandler').getDeletedAnimations())
 		for animation in deletedAnimations:
 			identifier = animation.getId()
@@ -1137,11 +1152,20 @@ class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfi
 							self.__resourceInfo.removeLinkById(identifier)
 						self.__resourceInfo.addLink(li)
 
+		futureName = basename(self.__resourceInfo.getPath())
+		ModulesAccess.get('BaseObjectsMenu').ignoreUpdate(futureName)
 		SplittedImageExporter.save(self.__resourceInfo)
 
-		removedAnimations = set(self.__resourceInfo.getRemovedAnimationNames())
 		objList = ModulesAccess.get('SceneHandler').getCurrentSceneObjects()
+		for obj in objList:
+			animationName = obj.getAnimation()
+			if (animationName is not None and animationName in animationChanges):
+				obj.setAnimation(animationChanges[animationName])
+
+		removedAnimations = set(deletedAnimations)
 		resetAnitionOnObjectList(objList, removedAnimations)
+
+		ModulesAccess.get('BaseObjectsMenu').updateResource(self.__resourceInfo)
 
 		self.close()
 
@@ -1342,6 +1366,18 @@ class AnimationLinkDisplay(AnimationBaseScroll, KeyboardAccess, ChangesConfirm):
 
 	def getLinksDict(self):
 		return self.__linksDict
+
+	def updateName(self, oldName, newName):
+		if (oldName in self.__linksDict):
+			swap = self.__linksDict[oldName]
+			self.__linksDict[newName] = swap
+			del self.__linksDict[oldName]
+
+		for key, value in self.__linksDict.iteritems():
+			if (oldName in value):
+				swap = value[oldName]
+				value[newName] = swap
+				del value[oldName]
 
 class AnimationLinkEditor(LayoutGetter, SeparatorLabel):
 	def __init__(self):

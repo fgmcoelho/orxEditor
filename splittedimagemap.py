@@ -174,7 +174,7 @@ class ResourceInformation:
 
 	def getRemovedAnimationNames(self):
 		l = []
-		for animationInfo in  self.__removedAnimations:
+		for animationInfo in self.__removedAnimations:
 			l.append(animationInfo.getName())
 		return l
 

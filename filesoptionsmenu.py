@@ -149,7 +149,7 @@ class CustomFileChooser(FileChooserIconView, FileChooserController):
 		super(CustomFileChooser, self).entry_touched(entry, touch)
 
 	def entry_released(self, entry, touch):
-		if (touch.is_double_tap == True and touch.uid == self.__lastTouchUid):
+		if (isfile(entry.path) == False and touch.is_double_tap == True and touch.uid == self.__lastTouchUid):
 			return
 		super(CustomFileChooser, self).entry_released(entry, touch)
 

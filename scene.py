@@ -750,6 +750,7 @@ class SceneHandler(LayoutGetter, KeyboardModifiers):
 
 		Clock.unschedule(self.__scheduleTextureUpdate)
 		Clock.schedule_once(self.__scheduleTextureUpdate, 0.1)
+		self.__sceneSelection = SceneSelection(self.__sceneList[self.__currentIndex].getLayout())
 
 	def getCurrentSceneAttributes(self):
 		return self.__sceneList[self.__currentIndex].getSceneAttributes()
