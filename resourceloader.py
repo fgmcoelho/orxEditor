@@ -18,7 +18,7 @@ from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
 from editorobjects import resetAnitionOnObjectList
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import SplittedImageExporter, SplittedImageImporter
-from spriteinfo import SpriteSelection
+from spriteinfo import SpriteSelection, AnimationInfo, LinkInfo
 from modulesaccess import ModulesAccess
 
 class GridCell:
@@ -470,8 +470,64 @@ class ResourceLoaderList(LayoutGetter):
 			removedAnimations = self.__resourceInfo.getRemovedAnimationNames()
 			objList = ModulesAccess.get('SceneHandler').getCurrentSceneObjects()
 			resetAnitionOnObjectList(objList, removedAnimations)
-			
+
 			ModulesAccess.get('BaseObjectsMenu').updateResource(self.__resourceInfo)
+
+	def getResourcePath(self):
+		return self.__resourceInfo.getPath()
+
+	def importTemplate(self, otherPath):
+		if self.__resourceInfo.getPath() == otherPath():
+			Alert(
+				'Warning',
+				'Template file is same as current.',
+				'Ok'
+			).open()
+			return
+
+		templateInfo = SplittedImageImporter().load(otherPath)
+		selectionMap = {}
+		selectionAddedCount, selectionNotAddedCount = 0, 0
+
+		for selection in templateInfo.getSelectionList():
+			searchId = self.__resourceInfo.searchSelection(selection)
+			if (searchId == -1):
+				newId = self.__resourceInfo.addSelection(selection)
+				selectionMap[selection.getId()] = newId
+				selectionAddedCount += 1
+			else:
+				selectionMap[selection.getId()] = searchId
+				selectionNotAddedCount += 1
+
+		animationNames = set(self.__resourceInfo.getAnimationNames())
+		animationAddedCount, animationNotAddedCount = 0, 0
+		animationMap = {}
+		for animationInfo in templateInfo.getAnimationInfoList():
+			newName = animationInfo.getName()
+			if (newName in animationNames):
+				newName = 'Copy_of_' + newName
+				baseNewName = newName
+				i = 0
+				while (newName in animationNames):
+					newName = baseNewName + '_' + str(i)
+					i += 1
+
+			newAnimationInfo = AnimationInfo(newName, animationInfo.getDuration())
+			for frameInfo in animationInfo.getFramesInfo():
+				newAnimationInfo.addFrameInfo(selectionMap[frameInfo.getId()])
+
+			searchId = self.__resourceInfo.searchAnimation(newAnimationInfo)
+			if (searchId == -1):
+				newId = self.__resourceInfo.addAnimationInfo(newAnimationInfo)
+				animationMap[animationInfo.getId()] = newId
+				animationAddedCount += 1
+			else:
+				animationMap[animationInfo.getId()] = searchId
+				animationNotAddedCount += 1
+
+		for link in templateInfo.getLinksList():
+			newLinkInfo = LinkInfo(link.getSourceId(), link.getDestinationId(), link.getPriority(), link.getProperty())
+
 
 class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfirm):
 	# Overloaded method
@@ -616,6 +672,36 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 		self.__selectionTree.save()
 		self.close()
 
+	def __doSetAsTemplate(self):
+		self.__templatePath = self.__selectionTree.getResourcePath()
+
+	def __setAsTemplate(self, *args):
+		if (self.__templatePath == ''):
+			Alert(
+				'Success',
+				'Template path successfully set to:\n' + self.__selectionTree.getResourcePath(),
+				'Ok'
+			).open()
+			self.__doSetAsTemplate()
+		elif (self.__templatePath == self.__selectionTree.getResourcePath()):
+			Alert(
+				'Success',
+				'Template path successfully set to:\n' + self.__selectionTree.getResourcePath(),
+				'Ok'
+			).open()
+		else:
+			Dialog(
+				self.__doSetAsTemplate,
+				'Confirmation',
+				'Are you sure you want to replace\n' + self.__templatePath + '\nby\n' +
+					self.__selectionTree.getResourcePath() + '?',
+				'Yes', 'No'
+			).open()
+
+	def __applyTemplate(self, *args):
+		if (self.__templatePath != ''):
+			self.__selectionTree.importTemplate(self.__templatePath)
+
 	def __createLeftMenuUi(self):
 		# x divisions
 		inputOptions = defaultInputSize.copy()
@@ -640,6 +726,10 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 			**defaultButtonSize)
 		self.__zoomMinusButton = CancelableButton(on_release = self.__display.decreaseZoom, text = 'Zoom - (s)',
 			**defaultButtonSize)
+		self.__setAsTemplateButton = CancelableButton(on_release = self.__setAsTemplate, text = 'Set as template',
+			**defaultButtonSize)
+		self.__applyTemplateButton = CancelableButton(on_release = self.__applyTemplate, text = 'Apply template',
+			**defaultButtonSize)
 
 		multipleLineSize = defaultDoubleLineSize.copy()
 		multipleLineSize['height'] = defaultFontSize * 5
@@ -657,6 +747,8 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 		self.__leftMenu.add_widget(self.__switchButton)
 		self.__leftMenu.add_widget(self.__zoomPlusButton)
 		self.__leftMenu.add_widget(self.__zoomMinusButton)
+		self.__leftMenu.add_widget(self.__setAsTemplateButton)
+		self.__leftMenu.add_widget(self.__applyTemplateButton)
 		self.__leftMenu.add_widget(self.__splitButton)
 		self.__leftMenu.add_widget(self.__doneButton)
 		self.__leftMenu.add_widget(self.__cancelButton)
@@ -676,6 +768,8 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 		self.__leftMenu.add_widget(self.__switchButton)
 		self.__leftMenu.add_widget(self.__zoomPlusButton)
 		self.__leftMenu.add_widget(self.__zoomMinusButton)
+		self.__leftMenu.add_widget(self.__setAsTemplateButton)
+		self.__leftMenu.add_widget(self.__applyTemplateButton)
 		self.__leftMenu.add_widget(self.__splitButton)
 		self.__leftMenu.add_widget(self.__doneButton)
 		self.__leftMenu.add_widget(self.__cancelButton)
@@ -728,7 +822,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 					objAnimation = obj.getAnimation()
 					if (objAnimation is not None and objAnimation in relatedAnimsNames):
 						objCount += 1
-					
+
 				if (linksNumber == 0):
 					message = 'This will remove the selection and\n%d animation%s.\n' % \
 						(animationNumber, 's' if animationNumber > 1 else '')
@@ -775,14 +869,9 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 				'Ok', 'Cancel')
 			dialog.open()
 
-	def __doNothing(self, *args):
-		return
-
 	def __createRightMenuUi(self):
 		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 1.0), showMethod = self.__showSelection)
 
-		self.__addAnimation = CancelableButton(text = 'Set places', on_release = self.__doNothing,
-			**defaultLabelSize)
 		self.__addFullSelection = CancelableButton(text = 'Add as one (o)', on_release = self.__processAddSelection,
 			**defaultLabelSize)
 		self.__addPartSelection = CancelableButton(text = 'Add parts (p)',
@@ -795,7 +884,6 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 			**defaultLabelSize)
 
 		self.__rightMenu.add_widget(self.__selectionTree.getLayout())
-		self.__rightMenu.add_widget(self.__addAnimation)
 		self.__rightMenu.add_widget(self.__addFullSelection)
 		self.__rightMenu.add_widget(self.__addPartSelection)
 		self.__rightMenu.add_widget(self.__showSelection)
@@ -829,6 +917,9 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 		self._layout.add_widget(self.__leftMenu)
 		self._layout.add_widget(self.__middleMenu)
 		self._layout.add_widget(self.__rightMenu)
+
+		self.__templatePath = ''
+		self.__shouldSetTemplate = False
 
 		self.__popup.content = self._layout
 		ModulesAccess.add('ResourceLoader', self)

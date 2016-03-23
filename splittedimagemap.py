@@ -137,10 +137,35 @@ class ResourceInformation:
 		self.__linkDict = {}
 
 	def hasSameSelection(self, otherSelection):
-		for savedSelection in self.__selectionDict.values():
+		for savedSelection in self.__selectionDict.itervalues():
 			if (savedSelection.compare(otherSelection) == True):
 				return True
 		return False
+
+	def searchSelection(self, otherSelection):
+		for savedSelection in self.__selectionDict.itervalues():
+			if (savedSelection.compare(otherSelection) == True):
+				return savedSelection.getId()
+		return -1
+
+	def searchAnimation(self, otherAnimation):
+		originalFrames = otherAnimation.getFramesInfo()
+		originalFramesCount = len(originalFrames)
+		for savedAnimation in self.__animationInfoDict.itervalues():
+			if (len(savedAnimation.getFramesInfo()) != originalFramesCount):
+				continue
+
+			found = True
+			savedAnimationFrames = savedAnimation.getFramesInfo()
+			for i in range(originalFramesCount):
+				if (originalFrames[i].getId() != savedAnimationFrames[i].getId()):
+					found = False
+					break
+
+			if (found == True):
+				return savedAnimation.getId()
+
+		return -1
 
 	def countAnimationInfoAndLinksWithSelectionId(self, selectionId):
 		relatedAnims = set()
