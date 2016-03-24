@@ -167,6 +167,12 @@ class ResourceInformation:
 
 		return -1
 
+	def searchLink(self, otherLink):
+		for savedLink in self.__linkDict.itervalues():
+			if (savedLink.getSourceId() == otherLink.getSourceId() and savedLink.getDestinationId() == otherLink):
+				return savedLink.getId()
+		return -1
+
 	def countAnimationInfoAndLinksWithSelectionId(self, selectionId):
 		relatedAnims = set()
 		for animationInfo in self.__animationInfoDict.itervalues():
