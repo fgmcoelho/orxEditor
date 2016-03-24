@@ -390,6 +390,11 @@ class ResourceLoaderList(LayoutGetter):
 			return self.__resourceInfo.getNumberOfAnimationInfos()
 		return 0
 
+	def getNumberOfLinks(self):
+		if (self.__resourceInfo is not None):
+			return self.__resourceInfo.getNumberOfLinks()
+		return 0
+
 	def getNumberOfRelatedAnimationsAndLinks(self, selection):
 		if (selection is not None and self.__resourceInfo is not None and selection.getId() is not None):
 			return self.__resourceInfo.countAnimationInfoAndLinksWithSelectionId(selection.getId())
@@ -477,7 +482,7 @@ class ResourceLoaderList(LayoutGetter):
 		return self.__resourceInfo.getPath()
 
 	def importTemplate(self, otherPath):
-		if self.__resourceInfo.getPath() == otherPath():
+		if self.__resourceInfo.getPath() == otherPath:
 			Alert(
 				'Warning',
 				'Template file is same as current.',
@@ -525,8 +530,19 @@ class ResourceLoaderList(LayoutGetter):
 				animationMap[animationInfo.getId()] = searchId
 				animationNotAddedCount += 1
 
+		linkAddedCount, linkNotAddedCount = 0, 0
 		for link in templateInfo.getLinksList():
-			newLinkInfo = LinkInfo(link.getSourceId(), link.getDestinationId(), link.getPriority(), link.getProperty())
+			sourceId = animationMap[link.getSourceId()]
+			destinationId = animationMap[link.getDestinationId()]
+			newLinkInfo = LinkInfo(sourceId, destinationId, link.getPriority(), link.getProperty())
+			searchId = self.__resourceInfo.searchLink(newLinkInfo)
+			if (searchId == -1):
+				self.__resourceInfo.addLink(newLinkInfo)
+				linkAddedCount += 1
+			else:
+				linkNotAddedCount += 1
+
+
 
 
 class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfirm):
@@ -679,14 +695,14 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 		if (self.__templatePath == ''):
 			Alert(
 				'Success',
-				'Template path successfully set to:\n' + self.__selectionTree.getResourcePath(),
+				'Template path successfully set to:\n' + basename(self.__selectionTree.getResourcePath()),
 				'Ok'
 			).open()
 			self.__doSetAsTemplate()
 		elif (self.__templatePath == self.__selectionTree.getResourcePath()):
 			Alert(
 				'Success',
-				'Template path successfully set to:\n' + self.__selectionTree.getResourcePath(),
+				'Template path successfully set to:\n' + basename(self.__selectionTree.getResourcePath()),
 				'Ok'
 			).open()
 		else:
@@ -694,7 +710,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 				self.__doSetAsTemplate,
 				'Confirmation',
 				'Are you sure you want to replace\n' + self.__templatePath + '\nby\n' +
-					self.__selectionTree.getResourcePath() + '?',
+					basename(self.__selectionTree.getResourcePath()) + '?',
 				'Yes', 'No'
 			).open()
 
@@ -854,16 +870,34 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 			return
 		else:
 			animationNumber = self.__selectionTree.getNumberOfAnimations()
-			if animationNumber > 0:
-				message = 'This will remove %d selection%s and\n%d animation%s.\nThis operation can\'t be reverted.' %\
-					(numberOfSelections,
-					"s" if numberOfSelections > 1 else "",
-					animationNumber,
-					"s" if animationNumber > 1 else "")
-			else:
-				message = 'This will remove %d selection%s.\nThis operation can\'t be reverted.' %\
-					(numberOfSelections, "s" if numberOfSelections == 0 else "")
+			linksNumber = self.__selectionTree.getNumberOfLinks()
+			objList = ModulesAccess.get('SceneHandler').getCurrentSceneObjects()
+			objCount = 0
+			for obj in objList:
+				if (obj.getAnimation() is not None):
+					objCount += 1
 
+			message = 'This will remove %d selection%s' % (numberOfSelections, "s" if numberOfSelections > 1 else "")
+			if (animationNumber > 0):
+				message += '%s\n%d animation%s' % (
+					',' if linksNumber > 0 or objCount > 0 else ' and',
+					animationNumber,
+					's' if animationNumber > 1 else ''
+				)
+
+			if (linksNumber > 0):
+				message += '%s\n%d animation link%s' % (
+					',' if objCount > 0 else ' and',
+					linksNumber,
+					's' if linksNumber > 1 else ''
+				)
+
+			if (objCount > 0):
+				message += ' and\n%d object%s animation%s' % (
+					objCount, 's' if objCount > 0 else '', 's' if objCount > 0 else ''
+				)
+
+			message += '.\nThis operation can\'t be reverted.'
 			dialog = Dialog(self.__doClearAllItems,
 				'Confirmation', message,
 				'Ok', 'Cancel')
