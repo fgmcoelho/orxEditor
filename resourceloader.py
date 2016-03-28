@@ -18,7 +18,7 @@ from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
 from editorobjects import resetAnitionOnObjectList
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import SplittedImageExporter, SplittedImageImporter
-from spriteinfo import SpriteSelection, AnimationInfo, LinkInfo
+from spriteinfo import SpriteSelection, AnimationInfo, LinkInfo, FrameInfo
 from modulesaccess import ModulesAccess
 
 class GridCell:
@@ -335,6 +335,9 @@ class ResourceLoaderDisplay(LayoutGetter, MouseModifiers):
 	def getSize(self):
 		return self._scrollLayout.size
 
+	def getOriginalSize(self):
+		return tuple(self.__originalSize)
+
 class ResourceLoaderList(LayoutGetter):
 	def __handleScrollAndPassTouchDownToChildren(self, touch):
 		if (self._layout.collide_point(*touch.pos) == False):
@@ -481,7 +484,7 @@ class ResourceLoaderList(LayoutGetter):
 	def getResourcePath(self):
 		return self.__resourceInfo.getPath()
 
-	def importTemplate(self, otherPath):
+	def importTemplate(self, otherPath, currentImageSize):
 		if self.__resourceInfo.getPath() == otherPath:
 			Alert(
 				'Warning',
@@ -494,12 +497,23 @@ class ResourceLoaderList(LayoutGetter):
 		selectionMap = {}
 		selectionAddedCount, selectionNotAddedCount = 0, 0
 
+		maxX, maxY = currentImageSize
 		for selection in templateInfo.getSelectionList():
+			if (selection.getX() + selection.getSizeX() > maxX or
+					selection.getY() + selection.getSizeY() > maxY):
+				selectionNotAddedCount += 1
+				continue
+
 			searchId = self.__resourceInfo.searchSelection(selection)
 			if (searchId == -1):
-				newId = self.__resourceInfo.addSelection(selection)
+				newSelection = SpriteSelection(
+					selection.getX(), selection.getY(),
+					selection.getSizeX(), selection.getSizeY()
+				)
+				newId = self.__resourceInfo.addSelection(newSelection)
 				selectionMap[selection.getId()] = newId
 				selectionAddedCount += 1
+				self.__doAddItemRender(newSelection, newSelection.getId())
 			else:
 				selectionMap[selection.getId()] = searchId
 				selectionNotAddedCount += 1
@@ -518,8 +532,17 @@ class ResourceLoaderList(LayoutGetter):
 					i += 1
 
 			newAnimationInfo = AnimationInfo(newName, animationInfo.getDuration())
+			anyMissing = False
 			for frameInfo in animationInfo.getFramesInfo():
-				newAnimationInfo.addFrameInfo(selectionMap[frameInfo.getId()])
+				if (frameInfo.getId() not in selectionMap):
+					anyMissing = True
+					break
+				newFrameInfo = FrameInfo(selectionMap[frameInfo.getId()])
+				newAnimationInfo.addFrameInfo(newFrameInfo)
+			
+			if (anyMissing == True):
+				animationNotAddedCount += 1
+				continue
 
 			searchId = self.__resourceInfo.searchAnimation(newAnimationInfo)
 			if (searchId == -1):
@@ -532,8 +555,11 @@ class ResourceLoaderList(LayoutGetter):
 
 		linkAddedCount, linkNotAddedCount = 0, 0
 		for link in templateInfo.getLinksList():
-			sourceId = animationMap[link.getSourceId()]
-			destinationId = animationMap[link.getDestinationId()]
+			sourceId = animationMap.get(link.getSourceId(), None)
+			destinationId = animationMap.get(link.getDestinationId(), None)
+			if (sourceId is None or destinationId is None):
+				linkNotAddedCount += 1
+				continue
 			newLinkInfo = LinkInfo(sourceId, destinationId, link.getPriority(), link.getProperty())
 			searchId = self.__resourceInfo.searchLink(newLinkInfo)
 			if (searchId == -1):
@@ -542,8 +568,13 @@ class ResourceLoaderList(LayoutGetter):
 			else:
 				linkNotAddedCount += 1
 
-
-
+		Alert(
+			'Success',
+			'Template applied:\nSelections added: %d (%d skipped)\nAnimations added: %d (%d skipped).\n'\
+			'Animation links added: %d (%d skipped).' % (selectionAddedCount, selectionNotAddedCount,
+				animationAddedCount, animationNotAddedCount, linkAddedCount, linkNotAddedCount),
+			'Ok'
+		).open()
 
 class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfirm):
 	# Overloaded method
@@ -716,7 +747,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 
 	def __applyTemplate(self, *args):
 		if (self.__templatePath != ''):
-			self.__selectionTree.importTemplate(self.__templatePath)
+			self.__selectionTree.importTemplate(self.__templatePath, self.__display.getOriginalSize())
 
 	def __createLeftMenuUi(self):
 		# x divisions
