@@ -169,7 +169,8 @@ class ResourceInformation:
 
 	def searchLink(self, otherLink):
 		for savedLink in self.__linkDict.itervalues():
-			if (savedLink.getSourceId() == otherLink.getSourceId() and savedLink.getDestinationId() == otherLink):
+			if (savedLink.getSourceId() == otherLink.getSourceId() and 
+					savedLink.getDestinationId() == otherLink.getDestinationId()):
 				return savedLink.getId()
 		return -1
 
