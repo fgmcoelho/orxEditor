@@ -1,4 +1,4 @@
-from os.path import join, relpath, split, basename, sep as pathSeparator
+from os.path import join, relpath, split, basename, isfile, sep as pathSeparator
 from os import listdir, getcwd, stat
 from shutil import copy2
 
@@ -358,6 +358,25 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 
 	def _copyDropedFile(self, filepath):
 		if (filepath[-4:] in ['.png', '.opf'] and basename(filepath) not in self._filenameToNode):
+			if (isfile(filepath) == False and '%' in filepath):
+				try:
+					newFilepath = []
+					i = 0
+					while i < len(filepath):
+						if (filepath[i] == '%'):
+							code = int(filepath[i + 1] + filepath[i + 2], 16)
+							newFilepath.append(chr(code))
+							i += 3
+						else:
+							newFilepath.append(filepath[i])
+							i += 1
+
+					filepath = ''.join(newFilepath)
+					assert isfile(filepath) == True, 'Error copying file [' + filepath + '], couldn\'t find it.'
+				except Exception, e:
+					print str(e)
+					return
+
 			copy2(filepath, self._targetDir)
 
 	def __init__(self):
