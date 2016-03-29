@@ -5,10 +5,11 @@ from kivy.uix.popup import Popup
 from kivy.uix.treeview import TreeView, TreeViewLabel
 from kivy.uix.textinput import TextInput
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.label import Label
 from kivy.clock import Clock
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
-from kivy.uix.togglebutton import ToggleButton
 
 from os.path import basename
 
@@ -19,7 +20,7 @@ from editorheritage import LayoutGetter
 from modulesaccess import ModulesAccess
 from splittedimagemap import SplittedImageImporter, SplittedImageExporter
 from uisizes import defaultLabelSize, defaultSmallButtonSize, defaultLineSize, defaultInputSize, animationStatsSize,\
-	defaultLargeButtonSize, animationFrameDurationSize
+	defaultLargeButtonSize, animationFrameDurationSize, defaultFontSize
 from string import letters, digits
 from spriteinfo import SingleIdentifiedObject, AnimationInfo, FrameInfo, LinkInfo
 from editorobjects import resetAnitionOnObjectList
@@ -557,6 +558,7 @@ class AnimationDisplay(LayoutGetter):
 
 	def __tickAnimation(self, *args):
 		self._scrollLayout.clear_widgets()
+		# TODO: Add the limits to canvas here
 		frames = self.__currentAnimation.getFrames()
 		self.__index = (self.__index + 1) % len(frames)
 		self._scrollLayout.add_widget(frames[self.__index].getImage())
@@ -703,7 +705,7 @@ class FrameDisplay(AnimationBaseScroll, SeparatorLabel):
 			self._defaultTouchDown(touch)
 		elif (touch.button == "left"):
 			pos = self._layout.to_local(*touch.pos)
-			for fp in self.__framePreviewDict.values():
+			for fp in self.__framePreviewDict.itervalues():
 				if (fp.getImage().collide_point(*pos) == True):
 					if (self.__frameSelected is not None):
 						self.__frameSelected.unselect()
@@ -779,7 +781,7 @@ class FrameDisplay(AnimationBaseScroll, SeparatorLabel):
 	def __init__(self):
 		super(FrameDisplay, self).__init__(size_hint = (1.0, None), do_scroll = (1, 0), height = 200,
 			effect_cls = EmptyScrollEffect)
-		self._scrollLayout = BoxLayout(orientation = 'horizontal', height = 200, size_hint = (None, None))
+		self._scrollLayout = GridLayout(rows = 2, height = 220, size_hint = (None, None))
 		self._layout.add_widget(self._scrollLayout)
 		ModulesAccess.add('AnimationFrameDisplay', self)
 		self.__currentAnimation = None
@@ -820,6 +822,12 @@ class FrameDisplay(AnimationBaseScroll, SeparatorLabel):
 			self.__frameSelected.unselect()
 
 		self._scrollLayout.clear_widgets()
+		self._scrollLayout.cols = len(frames)
+		for frame in frames:
+			self._scrollLayout.add_widget(Label(
+				text = str(ModulesAccess.get('FrameEditor').getFrameCountById(frame.getSelectionId())),
+				width = 200, height = defaultFontSize, size_hint = (None, None)
+			))
 
 		for frame in frames:
 			if (frame not in self.__framePreviewDict):
@@ -827,7 +835,7 @@ class FrameDisplay(AnimationBaseScroll, SeparatorLabel):
 				self.__framePreviewDict[frame] = fp
 			else:
 				fp = self.__framePreviewDict[frame]
-
+			
 			self._scrollLayout.add_widget(fp.getImage())
 		self._scrollLayout.width = len(self.__framePreviewDict) * 200
 
@@ -933,9 +941,16 @@ class FrameEditor(AnimationBaseScroll):
 			self._defaultTouchDown(touch)
 		elif (touch.button == "left" and touch.is_double_tap == True):
 			pos = self._layout.to_local(*touch.pos)
-			for sf in self.__selectableFrameDict.values():
+			for sf in self.__selectableFrameDict.itervalues():
 				if (sf.getDisplayImage().collide_point(*pos) == True):
 					ModulesAccess.get("AnimationHandler").addFrameToCurrentAnimation(sf)
+					return False
+
+			for lbl in self.__labelList:
+				if (lbl.collide_point(*pos) == True):
+					ModulesAccess.get("AnimationHandler").addFrameToCurrentAnimation(
+						self.__selectableFrameDict[int(lbl.id)]
+					)
 					return False
 
 		return False
@@ -943,21 +958,30 @@ class FrameEditor(AnimationBaseScroll):
 	def __init__(self):
 		super(FrameEditor, self).__init__(do_scroll = (0, 1), effect_cls = EmptyScrollEffect, width = 200,
 			size_hint = (None, 1.0))
-		self._scrollLayout = BoxLayout(orientation = 'vertical', size_hint = (None, None), size = (200, 100))
+		self._scrollLayout = GridLayout(cols = 2, size_hint = (None, None), size = (200, 100))
 		self._layout.add_widget(self._scrollLayout)
+		self._frameCountToSelectionId = {}
 		ModulesAccess.add('FrameEditor', self)
 
 	def load(self, resourceInfo):
 		self.__selectableFrameDict = {}
+		self.__labelList = []
 		im = Image(source = resourceInfo.getPath())
 		self._scrollLayout.clear_widgets()
 		layoutHeight = 0
+		self._scrollLayout.rows = resourceInfo.getNumberOfSelections()
+		i = 0
 		for identifier, selection in resourceInfo.getSelectionItems():
 			pos = (selection.getX(), selection.getY())
 			size = (selection.getSizeX(), selection.getSizeY())
 			sf = SelectableFrame(im, pos, size, identifier)
 			self.__selectableFrameDict[identifier] = sf
+			label = AlignedLabel(text = str(i), size = (64, 64), size_hint = (None, None), id = str(identifier))
+			self.__labelList.append(label)
+			self._scrollLayout.add_widget(label)
 			self._scrollLayout.add_widget(sf.getDisplayImage())
+			self._frameCountToSelectionId[identifier] = i
+			i += 1
 			layoutHeight += 64
 
 		self._scrollLayout.height = layoutHeight
@@ -965,6 +989,9 @@ class FrameEditor(AnimationBaseScroll):
 	def getSelectableFrameBySelectionId(self, identifier):
 		assert identifier in self.__selectableFrameDict
 		return self.__selectableFrameDict[identifier]
+
+	def getFrameCountById(self, identifier):
+		return self._frameCountToSelectionId[identifier]
 
 class AnimationEditor(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfirm):
 	"""Class that implements the popup of the animation editor."""

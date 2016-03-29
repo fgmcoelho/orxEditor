@@ -237,17 +237,17 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			if (self._alignToGrid == True):
 				obj[0].alignToGrid()
 
-	def _updateDesctriptorBySelection(self):
+	def updateDescriptorBySelection(self):
 		newObjects = self._renderGuardian.getSelection()
 		ModulesAccess.get('ObjectDescriptor').set(newObjects)
 
 	def undo(self):
 		self._renderGuardian.undo()
-		self._updateDesctriptorBySelection()
+		self.updateDescriptorBySelection()
 
 	def redo(self):
 		self._renderGuardian.redo()
-		self._updateDesctriptorBySelection()
+		self.updateDescriptorBySelection()
 
 	def clear(self, unusedDt = None):
 		for key in self._objectDict.keys():
@@ -312,7 +312,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 	def unselectAll(self):
 		self._renderGuardian.unsetSelection()
-		ModulesAccess.get('BaseObjectDisplay').setDisplay(None)
+		ModulesAccess.get('ObjectDescriptor').set(None)
 
 	def selectAll(self):
 		self._renderGuardian.unsetSelection()
@@ -778,6 +778,9 @@ class SceneHandler(LayoutGetter, KeyboardModifiers):
 			if (scene.getLastSaveTransaction() != scene.getTransaction()):
 				return True
 		return False
+
+	def updateDescriptorBySelection(self):
+		self.__sceneList[self.__currentIndex].updateDescriptorBySelection()
 
 class SceneSelection:
 	def __init__(self, layout):
