@@ -68,9 +68,18 @@ class OrxEditor(App, KeyboardAccess):
 			else:
 				print "Total time: ", time() - self._timer
 				self._timer = None
-
-		elif(keycode[1] == 'l'):
+		elif (keycode[1] == 'l'):
 			ModulesAccess.get('AnimationSelector').open()
+		elif (keycode[1] == 'tab'):
+			describedObjects = ModulesAccess.get('ObjectDescriptor').getCurrentObject()
+			if (describedObjects is None):
+				ModulesAccess.get('BaseObjectDisplay').updateDescriptor()
+			elif (type(describedObjects) is list):
+				ModulesAccess.get('BaseObjectDisplay').updateDescriptor()
+			elif (isinstance(describedObjects, BaseObject) == True):
+				ModulesAccess.get('SceneHandler').updateDescriptorBySelection()
+			else:
+				ModulesAccess.get('BaseObjectDisplay').updateDescriptor()
 
 	def confirm_exit(self, source=''):
 		if (self.__sceneHandler.hasChanges() == True):
