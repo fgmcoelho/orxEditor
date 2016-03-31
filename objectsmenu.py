@@ -89,17 +89,19 @@ class NewBaseObjectDisplay(LayoutGetter):
 	def _processTouchDown(self, layout, touch):
 		if (self._layout.collide_point(*touch.pos) == True):
 			self._lastTouch = touch
+			return True
 
 	def _processTouchUp(self, layout, touch):
 		if (self._layout.collide_point(*touch.pos) == True):
-			if (self._lastTouch is not None and self._lastTouch.uid == touch.uid): 
+			if (self._lastTouch is not None and self._lastTouch.uid == touch.uid):
 				self.updateDescriptor()
+			return True
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectDisplay', self)
 		self._displaySize = (mainLayoutSize['leftMenuWidth'], mainLayoutSize['leftMenuWidth'])
 		totalSize = (self._displaySize[0], self._displaySize[1] + defaultLabelSize['height'])
-		self._layout = BoxLayout(orientation = 'vertical', size = totalSize, size_hint = (1.0, None), 
+		self._layout = BoxLayout(orientation = 'vertical', size = totalSize, size_hint = (1.0, None),
 			on_touch_down = self._processTouchDown, on_touch_up = self._processTouchUp)
 		self._nameLabel =  AlignedLabel(text = 'Preview', **defaultLabelSize)
 		self._currentObject = None

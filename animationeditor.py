@@ -548,6 +548,7 @@ class AnimationDisplay(LayoutGetter):
 		self._layout.add_widget(self._scrollLayout)
 		self.__currentAnimation = None
 		self.__index = None
+		self.__borderLine = None
 		ModulesAccess.add('AnimationDisplay', self)
 
 	def __scheduleTick(self):
@@ -562,6 +563,20 @@ class AnimationDisplay(LayoutGetter):
 		frames = self.__currentAnimation.getFrames()
 		self.__index = (self.__index + 1) % len(frames)
 		self._scrollLayout.add_widget(frames[self.__index].getImage())
+		if (self.__borderLine is not None):
+			self._scrollLayout.canvas.remove(self.__borderLine)
+
+		from kivy.graphics.vertex_instructions import Line
+		with self._scrollLayout.canvas:
+			px, py = tuple(frames[self.__index].getImage().pos)
+			sx, sy = tuple(frames[self.__index].getImage().size)
+			self.__borderLine = Line(points = [
+				px, py,
+				px + sx, py,
+				px + sx, py + sy,
+				px, py + sy,
+				px, py])
+
 		self.__scheduleTick()
 
 	def setAnimation(self, animation):
@@ -575,6 +590,9 @@ class AnimationDisplay(LayoutGetter):
 		self._scrollLayout.clear_widgets()
 		self.__index = None
 		self.__currentAnimation = None
+		if (self.__borderLine is not None):
+			self._scrollLayout.canvas.remove(self.__borderLine)
+		self.__borderLine = None
 
 	def updateAnimation(self):
 		assert self.__currentAnimation is not None, "Invalid State!"
@@ -835,7 +853,7 @@ class FrameDisplay(AnimationBaseScroll, SeparatorLabel):
 				self.__framePreviewDict[frame] = fp
 			else:
 				fp = self.__framePreviewDict[frame]
-			
+
 			self._scrollLayout.add_widget(fp.getImage())
 		self._scrollLayout.width = len(self.__framePreviewDict) * 200
 
