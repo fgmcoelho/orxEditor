@@ -46,7 +46,7 @@ class OrxEditor(App, KeyboardAccess):
 				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete', 'pageup', 'pagedown']):
 			self.__sceneHandler.processKeyDown(keycode, modifiers)
 		elif (keycode[1] == 'spacebar'):
-			obj = ModulesAccess.get('ObjectDescriptor').getCurrentObject()
+			obj = ModulesAccess.get('BaseObjectDisplay').getCurrentObject()
 			if (isinstance(obj, BaseObject) == True):
 				ModulesAccess.get('SceneHandler').draw(obj)
 		elif (keycode[1] in ['up', 'down', 'left', 'right']):
@@ -54,7 +54,7 @@ class OrxEditor(App, KeyboardAccess):
 				ModulesAccess.get('BaseObjectsMenu').updateSelectedNode(keycode[1])
 		elif (keycode[1] == "f5"):
 			ModulesAccess.get("OrxViewer").open()
-		elif (keycode[1] == 'p'):
+		elif (keycode[1] == 'p' and self._debugTools == True):
 			if (self._profiler is None):
 				self._profiler = Profile()
 				self._profiler.enable()
@@ -62,7 +62,7 @@ class OrxEditor(App, KeyboardAccess):
 				self._profiler.disable()
 				self._profiler.dump_stats('profile_logs/profiler_' + str(time()) + '.stats')
 				self._profiler = None
-		elif (keycode[1] == 'o'):
+		elif (keycode[1] == 'o' and self._debugTools == True):
 			if (self._timer is None):
 				self._timer = time()
 			else:
@@ -101,6 +101,7 @@ class OrxEditor(App, KeyboardAccess):
 		Config.write()
 
 	def build(self):
+		self._debugTools = False
 		self._profiler = None
 		self._timer = None
 		Window.on_request_close = self.confirm_exit

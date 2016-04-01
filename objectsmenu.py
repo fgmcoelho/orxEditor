@@ -130,6 +130,9 @@ class NewBaseObjectDisplay(LayoutGetter):
 		if (self._currentObject is not None):
 			ModulesAccess.get('ObjectDescriptor').set(self._currentObject)
 
+	def getCurrentObject(self):
+		return self._currentObject
+
 class OptionMenuTree(TreeView):
 	def __processTouchDown(self, touch):
 		if (touch.button == 'left'):
