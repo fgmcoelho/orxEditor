@@ -4,15 +4,22 @@ class LayerRegister:
 	def __init__(self, name, priority):
 		self.__name = name
 		self.__priority = priority
+		self.__active = True
 
 	def setPriority(self, newPriority):
 		self.__priority = newPriority
+
+	def setActive(self, newActive):
+		self.__active = newActive
 
 	def getPriority(self):
 		return self.__priority
 
 	def getName(self):
 		return self.__name
+
+	def getActive(self):
+		return self.__active
 
 class LayerGuardian:
 	def __startLayers(self):
@@ -88,10 +95,12 @@ class LayerGuardian:
 
 		return l
 
-	def getNameToPriorityDict(self):
+	def getNameToPriorityDict(self, excludeActive = False):
 		d = {}
 		for key in self.__layersDict:
 			if (self.__layersDict[key] is not None):
+				if (excludeActive == True and self.__layersDict[key].getActive() == False):
+					continue
 				d[self.__layersDict[key].getName()] = self.__layersDict[key].getPriority()
 			else:
 				break

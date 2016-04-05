@@ -45,11 +45,20 @@ defaultDoubleLineSize = {
 }
 
 # Modules specifics:
-mainLayoutSize = {
-	'leftMenuWidth' : 200,
-	'leftMenuSizeHint' : (None, 1.0),
-	'bottomMenuHeight' : 220
+mainLayoutLeftMenuSize = {
+	'width': 200,
+	'size_hint': (None, 1.0),
 }
+
+mainLayoutBottomSize = {
+	'size_hint' : (1.0, None),
+	'height' : 200
+}
+
+objectDisplaySize = {
+	'size':  (200, 200)
+}
+
 
 descriptorSize = {
 	'height' : 200,

@@ -7,7 +7,8 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 from kivy.core.window import Window
 
-from uisizes import mainLayoutSize, defaultLabelSize, sceneMiniMapSize
+from uisizes import mainLayoutLeftMenuSize, defaultLabelSize, sceneMiniMapSize, defaultLineSize, mainLayoutBottomSize,\
+	defaultSmallButtonSize, defaultLargeButtonSize
 from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler, SceneMiniMap
 from tilemapfiles import FilesManager
@@ -16,7 +17,8 @@ from collisionform import CollisionFormEditorPopup
 from collisioninfo import CollisionGuardian
 from resourceloader import ResourceLoaderPopup
 from animationeditor import AnimationEditor
-from editorutils import Dialog
+from editorutils import Dialog, AlignedToggleButton
+from editorheritage import SeparatorLabel
 
 from layer import LayerInformationPopup
 from layerinfo import LayerGuardian
@@ -32,7 +34,30 @@ from animationeditor import AnimationSelector
 from cProfile import Profile
 from time import time
 
-class OrxEditor(App, KeyboardAccess):
+class ModuleControlButton(AlignedToggleButton):
+	def __init__(self, **kwargs):
+		super(ModuleControlButton, self).__init__(**kwargs)
+
+	def on_touch_up(self, touch):
+		if (touch.button == 'right'):
+			return False
+
+		if (self.collide_point(*touch.pos) == True and self._touchUid is not None and touch.uid == self._touchUid):
+			if (self.state == 'normal'):
+				self.state = 'down'
+			else:
+				self.state = 'normal'
+			ModulesAccess.get('Main').updateButtons(self)
+
+	def on_touch_down(self, touch):
+		if (touch.button == 'right'):
+			return False
+
+		if (self.collide_point(*touch.pos) == True):
+			self._touchUid = touch.uid
+
+
+class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 	def _processKeyUp(self, keyboard, keycode):
 		if (keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl']):
 			self.__sceneHandler.processKeyUp(keycode)
@@ -100,34 +125,22 @@ class OrxEditor(App, KeyboardAccess):
 		Config.set('kivy', 'exit_on_escape', 0)
 		Config.write()
 
+	def updateButtons(self, lastPressed):
+		print 'update: ', lastPressed.text, lastPressed.state
+
 	def build(self):
+		super(OrxEditor, self).__init__()
+
+		ModulesAccess.add('Main', self)
+
 		self._debugTools = False
 		self._profiler = None
 		self._timer = None
 		Window.on_request_close = self.confirm_exit
 
-		self.root = BoxLayout(orientation='horizontal', padding = 0, spacing = 0)
-
-		self.leftMenuBase = BoxLayout(
-			orientation='vertical',
-			padding = 0,
-			spacing = 0,
-			size_hint = mainLayoutSize['leftMenuSizeHint'],
-			width = mainLayoutSize['leftMenuWidth'],
-		)
-
-		self.rightScreen = BoxLayout(
-			orientation = 'vertical',
-			padding = 0,
-			spacing = 0,
-			size_hint = (1.0, 1.0),
-		)
-
-		self.root.add_widget(self.leftMenuBase)
-		self.root.add_widget(self.rightScreen)
-
 		#Keyboard handler:
 		KeyboardGuardian.Instance()
+		KeyboardGuardian.Instance().acquireKeyboard(self)
 
 		# Global Guardians
 		LayerGuardian()
@@ -140,6 +153,8 @@ class OrxEditor(App, KeyboardAccess):
 		CollisionFormEditorPopup()
 		ResourceLoaderPopup()
 		AnimationEditor()
+		AnimationSelector()
+		FilesOptionsMenu()
 
 		# Left Menu Handler
 		NewBaseObjectDisplay()
@@ -152,31 +167,58 @@ class OrxEditor(App, KeyboardAccess):
 
 		# Scene Editor handlers:
 		SceneMiniMap()
-
-		FilesOptionsMenu()
-
-		AnimationSelector()
-
 		self.__sceneHandler = SceneHandler()
-		self.rightScreen.add_widget(self.__sceneHandler.getLayout())
-		KeyboardGuardian.Instance().acquireKeyboard(self)
 
-		# Bottom Menu Handler
-		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
-		self.leftMenuBase.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())
-		bottomMenu = BoxLayout(orientation = 'horizontal', height = mainLayoutSize['bottomMenuHeight'],
-			size_hint = (1.0, None))
-		self.rightScreen.add_widget(bottomMenu)
+		# Top part of the screen
+		top = BoxLayout(orientation = 'horizontal')
 
-		leftBottomMenu = BoxLayout(orientation = 'vertical')
-		leftBottomMenu.add_widget(AlignedLabel(text = 'Object descriptor', **defaultLabelSize))
-		leftBottomMenu.add_widget(ModulesAccess.get('ObjectDescriptor').getLayout())
-		bottomMenu.add_widget(leftBottomMenu)
+		leftMenuBase = BoxLayout(
+			orientation='vertical',
+			padding = 0,
+			spacing = 0,
+			**mainLayoutLeftMenuSize
+		)
+		leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
 
-		rightBottomMenu = BoxLayout(orientation = 'vertical', width = sceneMiniMapSize['size'][0], size_hint_x = None)
-		rightBottomMenu.add_widget(AlignedLabel(text = 'MiniMap', **defaultLabelSize))
-		rightBottomMenu.add_widget(ModulesAccess.get('MiniMap').getLayout())
-		bottomMenu.add_widget(rightBottomMenu)
+		rightScreen = BoxLayout(
+			orientation = 'vertical',
+			padding = 0,
+			spacing = 0,
+			size_hint = (1.0, 1.0),
+		)
+		rightScreen.add_widget(self.__sceneHandler.getLayout())
+
+		top.add_widget(leftMenuBase)
+		top.add_widget(rightScreen)
+
+		# Bottom part of the screen
+		bottom = BoxLayout(orientation = 'vertical', height = 220, size_hint = (1.0, None))
+
+		self._buttonsLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+		self._showBaseObjectDisplay = ModuleControlButton(text = 'Preview Display', **defaultLargeButtonSize)
+		self._showDescriptor = ModuleControlButton(text = 'Object Descriptor', **defaultLargeButtonSize)
+		self._showMiniMap = ModuleControlButton(text = 'MiniMap', **defaultSmallButtonSize)
+		self._showLabels = ModuleControlButton(text = 'Labels', **defaultSmallButtonSize)
+
+		self._buttonsLine.add_widget(self._showBaseObjectDisplay)
+		self._buttonsLine.add_widget(self._showDescriptor)
+		self._buttonsLine.add_widget(self._showMiniMap)
+		self._buttonsLine.add_widget(self._showLabels)
+		self._buttonsLine.add_widget(self.getSeparator())
+
+		self._bottomModulesLine = BoxLayout(orientation = 'horizontal', **mainLayoutBottomSize)
+
+		self._bottomModulesLine.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())
+		self._bottomModulesLine.add_widget(ModulesAccess.get('ObjectDescriptor').getLayout())
+		self._bottomModulesLine.add_widget(self.getSeparator())
+		self._bottomModulesLine.add_widget(ModulesAccess.get('MiniMap').getLayout())
+
+		bottom.add_widget(self._buttonsLine)
+		bottom.add_widget(self._bottomModulesLine)
+
+		self.root = BoxLayout(orientation='vertical')
+		self.root.add_widget(top)
+		self.root.add_widget(bottom)
 
 		return self.root
 

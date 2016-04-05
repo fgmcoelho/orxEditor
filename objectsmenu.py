@@ -14,7 +14,7 @@ from editorobjects import BaseObject
 from editorutils import EmptyScrollEffect, createSpriteImage, AlignedLabel
 from splittedimagemap import SplittedImageImporter
 from modulesaccess import ModulesAccess
-from uisizes import mainLayoutSize, defaultLabelSize
+from uisizes import mainLayoutLeftMenuSize, defaultLabelSize, objectDisplaySize
 from editorheritage import IgnoreTouch, LayoutGetter
 
 class TempScrollView(ScrollView):
@@ -99,13 +99,11 @@ class NewBaseObjectDisplay(LayoutGetter):
 
 	def __init__(self):
 		ModulesAccess.add('BaseObjectDisplay', self)
-		self._displaySize = (mainLayoutSize['leftMenuWidth'], mainLayoutSize['leftMenuWidth'])
-		totalSize = (self._displaySize[0], self._displaySize[1] + defaultLabelSize['height'])
-		self._layout = BoxLayout(orientation = 'vertical', size = totalSize, size_hint = (1.0, None),
+		self._displaySize = tuple(objectDisplaySize['size'])
+		totalSize = (self._displaySize[0], self._displaySize[1])
+		self._layout = BoxLayout(orientation = 'vertical', size = totalSize, size_hint = (None, None),
 			on_touch_down = self._processTouchDown, on_touch_up = self._processTouchUp)
-		self._nameLabel =  AlignedLabel(text = 'Preview', **defaultLabelSize)
 		self._currentObject = None
-		self._layout.add_widget(self._nameLabel)
 		self._layout.add_widget(Image(size = self._displaySize, color = (0, 0, 0, 0)))
 		self._lastTouch = None
 
@@ -114,7 +112,6 @@ class NewBaseObjectDisplay(LayoutGetter):
 		if (self._currentObject != obj or obj is None):
 			if (obj is not None):
 				self._layout.clear_widgets()
-				self._layout.add_widget(self._nameLabel)
 				self._layout.add_widget(
 					Image(texture = obj.getBaseImage().texture, size = self._displaySize, size_hint = (None, None))
 				)
@@ -408,7 +405,7 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		self._filenameToNode = {}
 		self._filesWaitingFinish = {}
 		self._loadItems(listdir(self._targetDir))
-		self._scrollLayout = RelativeLayout(width = mainLayoutSize['leftMenuWidth'], size_hint = (1.0, None))
+		self._scrollLayout = RelativeLayout(**mainLayoutLeftMenuSize)
 		self._scrollLayout.add_widget(self._tree)
 		self._layout.add_widget(self._scrollLayout)
 		self._tree.bind(minimum_height=self._adjustTreeSize)
