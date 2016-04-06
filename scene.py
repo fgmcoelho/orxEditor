@@ -89,15 +89,11 @@ class SceneMiniMap(LayoutGetter):
 class OrderSceneObjects(object):
 	def _order_objects(self, objectDict):
 		objectsList = []
-		nameToPriorityDict = ModulesAccess.get('LayerGuardian').getNameToPriorityDict()
-		for key in objectDict.keys():
-			objectsList.append(
-				(
-					objectDict[key],
-					nameToPriorityDict[objectDict[key].getLayer()],
-					objectDict[key].getIdentifier()
-				)
-			)
+		nameToPriorityDict = ModulesAccess.get('LayerGuardian').getNameToPriorityDict(excludeNotActive = True)
+		for obj in objectDict.itervalues():
+			layer = obj.getLayer()
+			if (layer in nameToPriorityDict):
+				objectsList.append((obj, nameToPriorityDict[layer], obj.getIdentifier()))
 
 		objectsOrderedList = sorted(objectsList, key=itemgetter(1, 2))
 		return objectsOrderedList
@@ -108,9 +104,9 @@ class OrderSceneObjects(object):
 class SceneAttributes:
 	def __init__(self, tileSize, numberOfTilesX, numberOfTilesY):
 		self.__valuesDict = {
-			'TilesMaxX'  : numberOfTilesX,
-			'TilesMaxY'  : numberOfTilesY,
-			'TilesSize'  : tileSize,
+			'TilesMaxX': numberOfTilesX,
+			'TilesMaxY': numberOfTilesY,
+			'TilesSize': tileSize,
 		}
 
 	def getValue(self, name):

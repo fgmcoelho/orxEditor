@@ -358,6 +358,34 @@ class FileSelectionPopup:
 	def dismiss(self, *args):
 		self.__contentPopup.dismiss()
 
+class CancelableToggleButton(AlignedToggleButton):
+	def _defaultMethod(self, *args):
+		if (self.state == 'normal'):
+			self.state = 'down'
+		else:
+			self.state = 'normal'
+
+	def __init__(self, **kwargs):
+		super(CancelableToggleButton, self).__init__(**kwargs)
+		print kwargs
+		if ('method' in kwargs):
+			self._method = kwargs['method']
+		else:
+			self._method = self._defaultMethod
+
+	def on_touch_up(self, touch):
+		if (touch.button == 'right'):
+			return False
+
+		if (self.collide_point(*touch.pos) == True and self._touchUid is not None and touch.uid == self._touchUid):
+			self._method(self, touch)
+
+	def on_touch_down(self, touch):
+		if (touch.button == 'right'):
+			return False
+
+		if (self.collide_point(*touch.pos) == True):
+			self._touchUid = touch.uid
 
 class AutoReloadTexture:
 	def _reloadTexture(self, textureToReload):
@@ -475,4 +503,5 @@ def isConvexPolygon(points):
 		return True
 	else:
 		return False
+
 
