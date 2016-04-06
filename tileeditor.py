@@ -17,10 +17,9 @@ from collisionform import CollisionFormEditorPopup
 from collisioninfo import CollisionGuardian
 from resourceloader import ResourceLoaderPopup
 from animationeditor import AnimationEditor
-from editorutils import Dialog, AlignedToggleButton
+from editorutils import Dialog, CancelableToggleButton
 from editorheritage import SeparatorLabel
-
-from layer import LayerInformationPopup
+from layer import LayerInformationPopup, LayerSelector
 from layerinfo import LayerGuardian
 from editorobjects import BaseObject
 from orxviewer import OrxViewer
@@ -33,29 +32,6 @@ from animationeditor import AnimationSelector
 
 from cProfile import Profile
 from time import time
-
-class ModuleControlButton(AlignedToggleButton):
-	def __init__(self, **kwargs):
-		super(ModuleControlButton, self).__init__(**kwargs)
-
-	def on_touch_up(self, touch):
-		if (touch.button == 'right'):
-			return False
-
-		if (self.collide_point(*touch.pos) == True and self._touchUid is not None and touch.uid == self._touchUid):
-			if (self.state == 'normal'):
-				self.state = 'down'
-			else:
-				self.state = 'normal'
-			ModulesAccess.get('Main').updateButtons(self)
-
-	def on_touch_down(self, touch):
-		if (touch.button == 'right'):
-			return False
-
-		if (self.collide_point(*touch.pos) == True):
-			self._touchUid = touch.uid
-
 
 class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 	def _processKeyUp(self, keyboard, keycode):
@@ -125,6 +101,13 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 		Config.set('kivy', 'exit_on_escape', 0)
 		Config.write()
 
+	def moduleButtonMethod(self, button, touch):
+		if (button.state == 'normal'):
+			button.state = 'down'
+		else:
+			button.state = 'normal'
+		self.updateButtons(button)
+
 	def updateButtons(self, lastPressed):
 		print 'update: ', lastPressed.text, lastPressed.state
 
@@ -160,6 +143,7 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 		NewBaseObjectDisplay()
 		NewBaseObjectsMenu()
 		ObjectDescriptor()
+		LayerSelector()
 
 		# Files handlers
 		FilesManager()
@@ -195,10 +179,10 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 		bottom = BoxLayout(orientation = 'vertical', height = 220, size_hint = (1.0, None))
 
 		self._buttonsLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
-		self._showBaseObjectDisplay = ModuleControlButton(text = 'Preview Display', **defaultLargeButtonSize)
-		self._showDescriptor = ModuleControlButton(text = 'Object Descriptor', **defaultLargeButtonSize)
-		self._showMiniMap = ModuleControlButton(text = 'MiniMap', **defaultSmallButtonSize)
-		self._showLabels = ModuleControlButton(text = 'Labels', **defaultSmallButtonSize)
+		self._showBaseObjectDisplay = CancelableToggleButton(text = 'Preview Display', **defaultLargeButtonSize)
+		self._showDescriptor = CancelableToggleButton(text = 'Object Descriptor', **defaultLargeButtonSize)
+		self._showMiniMap = CancelableToggleButton(text = 'MiniMap', **defaultSmallButtonSize)
+		self._showLabels = CancelableToggleButton(text = 'Labels', **defaultSmallButtonSize)
 
 		self._buttonsLine.add_widget(self._showBaseObjectDisplay)
 		self._buttonsLine.add_widget(self._showDescriptor)
@@ -210,6 +194,7 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 
 		self._bottomModulesLine.add_widget(ModulesAccess.get('BaseObjectDisplay').getLayout())
 		self._bottomModulesLine.add_widget(ModulesAccess.get('ObjectDescriptor').getLayout())
+		self._bottomModulesLine.add_widget(ModulesAccess.get('LayerSelector').getLayout())
 		self._bottomModulesLine.add_widget(self.getSeparator())
 		self._bottomModulesLine.add_widget(ModulesAccess.get('MiniMap').getLayout())
 

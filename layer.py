@@ -1,9 +1,11 @@
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.popup import Popup
 from kivy.clock import Clock
 
-from editorutils import CancelableButton, Alert, Dialog, AlignedLabel, AlignedToggleButton, ChangesConfirm
-from editorheritage import SeparatorLabel, AutoFocusInputUser
+from editorutils import CancelableButton, Alert, Dialog, AlignedLabel, AlignedToggleButton, ChangesConfirm,\
+	CancelableToggleButton
+from editorheritage import SeparatorLabel, AutoFocusInputUser, LayoutGetter
 from keyboard import KeyboardAccess, KeyboardGuardian
 from uisizes import defaultLabelSize, defaultLineSize, defaultSmallButtonSize, defaultInputSize, defaultDoubleLineSize
 from modulesaccess import ModulesAccess
@@ -133,7 +135,7 @@ class LayerEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAccess):
 		self.__closeLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
 		self.__closeLine.add_widget(
 			AlignedLabel(
-				text =  'Hint: Lower priority (closer to the top of the window) are drawn\n'\
+				text = 'Hint: Lower priority (closer to the top of the window) are drawn\n'\
 				'first, hence they will be drawn under the ones with higher priority.',
 				**defaultDoubleLineSize
 			)
@@ -158,7 +160,6 @@ class LayerEditorPopup(AutoFocusInputUser, SeparatorLabel, KeyboardAccess):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		ModulesAccess.get('LayerInformation').update()
 		self.__popup.dismiss()
-
 
 class LayerInformationPopup(KeyboardAccess, SeparatorLabel, ChangesConfirm):
 	def _processKeyUp(self, keyboard, keycode):
@@ -208,6 +209,7 @@ class LayerInformationPopup(KeyboardAccess, SeparatorLabel, ChangesConfirm):
 
 			ModulesAccess.get('SceneHandler').redraw()
 			ModulesAccess.get('ObjectDescriptor').update()
+			ModulesAccess.get('LayerSelector').update()
 			self.close()
 
 	def __getLayerNameIfAllEqual(self):
@@ -285,4 +287,57 @@ class LayerInformationPopup(KeyboardAccess, SeparatorLabel, ChangesConfirm):
 	def close(self, *args):
 		KeyboardGuardian.Instance().dropKeyboard(self)
 		self.__popup.dismiss()
+
+class LayerSelector(LayoutGetter, SeparatorLabel):
+	def __init__(self):
+		super(LayerSelector, self).__init__()
+		ModulesAccess.add('LayerSelector', self)
+		self._layout = BoxLayout(orientation = 'vertical')
+		self._description = AlignedLabel(
+			text = 'Click on the labels to hide/show them.',
+			**defaultLabelSize
+		)
+		self._grid = GridLayout(cols = 2, rows = 8, width = 400, height = 160, size_hint = (None, None))
+		self.update()
+
+	def updateButtonsState(self, button, touch):
+		if (button.state == 'down'):
+			button.state = 'normal'
+			active = False
+		else:
+			button.state = 'down'
+			active = True
+
+		layerList = ModulesAccess.get('LayerGuardian').getLayerList()
+		for layer in layerList:
+			if (button.text == layer.getName()):
+				print "Setting ", layer.getName(), ' to ', active
+				layer.setActive(active)
+
+		ModulesAccess.get('SceneHandler').redraw()
+
+	def update(self):
+		self._layout.clear_widgets()
+		self._grid.clear_widgets()
+		layerList = ModulesAccess.get('LayerGuardian').getLayerList()
+		for layer in layerList:
+			if (layer.getActive() == True):
+				state = 'down'
+			else:
+				state = 'normal'
+			self._grid.add_widget(
+				CancelableToggleButton(
+					text = layer.getName(), method = self.updateButtonsState, state = state,
+					**defaultLabelSize
+				)
+			)
+
+		count = len(layerList)
+		for i in range(count, 16):
+			self._grid.add_widget(self.getSeparator())
+
+		self._layout.add_widget(self._description)
+		self._layout.add_widget(self.getSeparator())
+		self._layout.add_widget(self._grid)
+
 
