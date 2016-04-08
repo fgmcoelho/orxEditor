@@ -576,6 +576,19 @@ class RenderObjectGuardian:
 	def getSelection(self):
 		return self.__multiSelectionObjects[:]
 
+	def updateSelectionLayers(self, disabledLayers):
+		layerSet = set(disabledLayers)
+		newSelection = []
+		for obj in self.__multiSelectionObjects:
+			if (obj.getLayer() in layerSet):
+				if (obj.getParent() is None and obj.getChildren() == []):
+					obj.unsetMarked()
+					continue
+			newSelection.append(obj)
+
+		self.__multiSelectionObjects = newSelection
+		return newSelection
+
 	def createNewObject(self, idToUse, obj, pos, tileSize, maxX, maxY, autoSelect = True):
 		renderedObject = RenderedObject(idToUse, obj, pos, tileSize, maxX, maxY, self)
 		if (autoSelect == True):

@@ -87,7 +87,7 @@ class SceneMiniMap(LayoutGetter):
 			self.updateQuad()
 
 class OrderSceneObjects(object):
-	def _order_objects(self, objectDict):
+	def _orderObjects(self, objectDict):
 		objectsList = []
 		nameToPriorityDict = ModulesAccess.get('LayerGuardian').getNameToPriorityDict(excludeNotActive = True)
 		for obj in objectDict.itervalues():
@@ -116,7 +116,7 @@ class SceneAttributes:
 			return None
 
 	def setValues(self, name, value):
-		self.__valuesDict[name] = value
+		elf.__valuesDict[name] = value
 
 class Scene(OrderSceneObjects, LayoutGetter):
 	def __stopTouches(self, *args):
@@ -225,7 +225,7 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		self.showGrid()
 
 	def redraw(self):
-		objectsOrderedList = self._order_objects(self._objectDict)
+		objectsOrderedList = self._orderObjects(self._objectDict)
 		self._layout.clear_widgets()
 		for obj in objectsOrderedList:
 			if (obj[0].getMerged() == False):
@@ -435,6 +435,21 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		self.__lastSaveTransaction = 0
 		self._renderGuardian.reset()
 
+	def updateSceneForLayers(self):
+		activeLayers = ModulesAccess.get('LayerGuardian').getNameToActiveStatusDict()
+		disabledLayers = []
+		for key, value in activeLayers.iteritems():
+			if (value == False):
+				disabledLayers.append(key)
+
+		if (disabledLayers):
+			selection = self._renderGuardian.updateSelectionLayers(disabledLayers)
+			ModulesAccess.get('ObjectDescriptor').set(selection)
+
+		self.redraw()
+		ModulesAccess.get('MiniMap').updateMinimap(self.getMiniMapTexture())
+
+
 class SceneHandler(LayoutGetter, KeyboardModifiers):
 	def processKeyUp(self, keycode):
 		if (keycode[1] == 'shift'):
@@ -517,10 +532,13 @@ class SceneHandler(LayoutGetter, KeyboardModifiers):
 	def __getSelectedObjectByClick(self, touch):
 		clickedObjectsList = []
 		childDict = self.__sceneList[self.__currentIndex].getObjectsDict()
-		for key in childDict.keys():
-			if (childDict[key].collide_point(*self.__sceneList[self.__currentIndex].getLayout().to_widget(*touch.pos,
-					relative = False)) == True and childDict[key].getHidden() == False):
-				clickedObjectsList.append(childDict[key])
+		activeLayers = ModulesAccess.get('LayerGuardian').getNameToActiveStatusDict()
+		for obj in childDict.itervalues():
+			if (obj.getHidden() == False and activeLayers[obj.getLayer()] == True and
+					obj.collide_point(
+						*self.__sceneList[self.__currentIndex].getLayout().to_widget(*touch.pos,relative = False)
+					) == True):
+				clickedObjectsList.append(obj)
 
 		first = True
 		selectedObject = None
@@ -572,7 +590,9 @@ class SceneHandler(LayoutGetter, KeyboardModifiers):
 
 			for obj in objectsToSelect:
 				self.__sceneList[self.__currentIndex].getRenderGuardian().addObjectToSelection(obj)
-			ModulesAccess.get('ObjectDescriptor').set(objectsToSelect)
+			ModulesAccess.get('ObjectDescriptor').set(
+				self.__sceneList[self.__currentIndex].getRenderGuardian().getSelection()
+			)
 
 			return True
 
@@ -778,6 +798,9 @@ class SceneHandler(LayoutGetter, KeyboardModifiers):
 	def updateDescriptorBySelection(self):
 		self.__sceneList[self.__currentIndex].updateDescriptorBySelection()
 
+	def updateSceneForLayers(self):
+		self.__sceneList[self.__currentIndex].updateSceneForLayers()
+
 class SceneSelection:
 	def __init__(self, layout):
 		self.__startPoint = None
@@ -833,13 +856,15 @@ class SceneSelection:
 			top = self.__startingPoint[1]
 
 		selectedObjects = []
+		activeLayers = ModulesAccess.get('LayerGuardian').getNameToActiveStatusDict()
 		for obj in objList:
 			pos = obj.getPos()
 			size = obj.getSize()
 			objLeft, objBottom = pos
 			objRight = pos[0] + size[0]
 			objTop = pos[1] + size[1]
-			if not(left > objRight or right < objLeft or top < objBottom or bottom > objTop):
+			if (not(left > objRight or right < objLeft or top < objBottom or bottom > objTop) and
+					activeLayers[obj.getLayer()] == True):
 				selectedObjects.append(obj)
 
 		return selectedObjects

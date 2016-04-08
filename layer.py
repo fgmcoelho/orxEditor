@@ -292,12 +292,12 @@ class LayerSelector(LayoutGetter, SeparatorLabel):
 	def __init__(self):
 		super(LayerSelector, self).__init__()
 		ModulesAccess.add('LayerSelector', self)
-		self._layout = BoxLayout(orientation = 'vertical')
+		self._layout = BoxLayout(orientation = 'vertical', width = 400, height = 220, size_hint = (None, None))
 		self._description = AlignedLabel(
 			text = 'Click on the labels to hide/show them.',
 			**defaultLabelSize
 		)
-		self._grid = GridLayout(cols = 2, rows = 8, width = 400, height = 160, size_hint = (None, None))
+		self._grid = GridLayout(cols = 2, rows = 8, height = 160, size_hint = (1.0, None))
 		self.update()
 
 	def updateButtonsState(self, button, touch):
@@ -311,10 +311,9 @@ class LayerSelector(LayoutGetter, SeparatorLabel):
 		layerList = ModulesAccess.get('LayerGuardian').getLayerList()
 		for layer in layerList:
 			if (button.text == layer.getName()):
-				print "Setting ", layer.getName(), ' to ', active
 				layer.setActive(active)
 
-		ModulesAccess.get('SceneHandler').redraw()
+		ModulesAccess.get('SceneHandler').updateSceneForLayers()
 
 	def update(self):
 		self._layout.clear_widgets()

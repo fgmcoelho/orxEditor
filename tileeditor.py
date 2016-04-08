@@ -201,7 +201,7 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 		bottom.add_widget(self._buttonsLine)
 		bottom.add_widget(self._bottomModulesLine)
 
-		self.root = BoxLayout(orientation='vertical')
+		self.root = BoxLayout(orientation = 'vertical')
 		self.root.add_widget(top)
 		self.root.add_widget(bottom)
 

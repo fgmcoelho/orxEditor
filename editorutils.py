@@ -367,7 +367,6 @@ class CancelableToggleButton(AlignedToggleButton):
 
 	def __init__(self, **kwargs):
 		super(CancelableToggleButton, self).__init__(**kwargs)
-		print kwargs
 		if ('method' in kwargs):
 			self._method = kwargs['method']
 		else:
