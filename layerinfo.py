@@ -97,12 +97,20 @@ class LayerGuardian:
 
 	def getNameToPriorityDict(self, excludeNotActive = False):
 		d = {}
-		for key in self.__layersDict:
+		for key in self.__layersDict.iterkeys():
 			if (self.__layersDict[key] is not None):
-				print self.__layersDict[key].getActive()
 				if (excludeNotActive == True and self.__layersDict[key].getActive() == False):
 					continue
 				d[self.__layersDict[key].getName()] = self.__layersDict[key].getPriority()
+			else:
+				break
+		return d
+
+	def getNameToActiveStatusDict(self):
+		d = {}
+		for key in self.__layersDict.iterkeys():
+			if (self.__layersDict[key] is not None):
+				d[self.__layersDict[key].getName()] = self.__layersDict[key].getActive()
 			else:
 				break
 		return d
