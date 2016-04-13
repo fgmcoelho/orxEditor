@@ -188,7 +188,10 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 		self._showLayers = CancelableToggleButton(text = 'Layers', state = 'down', method = self.moduleButtonMethod,
 			**defaultSmallButtonSize)
 
-		self._buttonsLine.add_widget(AlignedLabel(text= 'Loaded tools:', **defaultLargeButtonSize))
+		toolsSize = defaultLabelSize.copy()
+		toolsSize['width'] = 200
+		toolsSize['size_hint'] = (None, None)
+		self._buttonsLine.add_widget(AlignedLabel(text= 'Loaded tools:', **toolsSize))
 		self._buttonsLine.add_widget(self._showBaseObjectDisplay)
 		self._buttonsLine.add_widget(self._showDescriptor)
 		self._buttonsLine.add_widget(self._showLayers)

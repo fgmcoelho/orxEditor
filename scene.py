@@ -116,7 +116,7 @@ class SceneAttributes:
 			return None
 
 	def setValues(self, name, value):
-		elf.__valuesDict[name] = value
+		self.__valuesDict[name] = value
 
 class Scene(OrderSceneObjects, LayoutGetter):
 	def __stopTouches(self, *args):
@@ -298,8 +298,10 @@ class Scene(OrderSceneObjects, LayoutGetter):
 
 	def copyObject(self, direction):
 		newObjects = self._renderGuardian.copySelection(direction, self._id, self._tileSize, self._maxX, self._maxY)
+		activeLayers = ModulesAccess.get('LayerGuardian').getNameToActiveStatusDict()
 		for renderedObject in newObjects:
-			self._layout.add_widget(renderedObject)
+			if (activeLayers[renderedObject.getLayer()] == True):
+				self._layout.add_widget(renderedObject)
 			self._objectDict[self._id] = renderedObject
 			self._id += 1
 
@@ -359,14 +361,16 @@ class Scene(OrderSceneObjects, LayoutGetter):
 		else:
 			finalY = pos[1]
 
+		activeLayers = ModulesAccess.get('LayerGuardian').getNameToActiveStatusDict()
 		newRenderedObject = self._renderGuardian.createNewObject(self._id, obj, (finalX, finalY),
-			self._tileSize, self._maxX, self._maxY)
-
-		self._layout.add_widget(newRenderedObject)
+			self._tileSize, self._maxX, self._maxY, autoSelect = activeLayers['default'])
 		self._objectDict[self._id] = newRenderedObject
 		self._id += 1
 
-		ModulesAccess.get('ObjectDescriptor').set(newRenderedObject)
+		if (activeLayers[newRenderedObject.getLayer()] == True):
+			self._layout.add_widget(newRenderedObject)
+			ModulesAccess.get('ObjectDescriptor').set(newRenderedObject)
+
 
 	def addObjectByInfo(self, baseObject, identifier, pos, scale, flipOnX, flipOnY, layer, collisionInfo, animation):
 
@@ -389,7 +393,9 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			newRenderedObject.setAnimation(animation)
 
 		newRenderedObject.setLayer(layer)
-		self._layout.add_widget(newRenderedObject)
+		activeLayers = ModulesAccess.get('LayerGuardian').getNameToActiveStatusDict()
+		if (activeLayers[newRenderedObject.getLayer()] == True):
+			self._layout.add_widget(newRenderedObject)
 		self._objectDict[identifier] = newRenderedObject
 
 	def registerSave(self):
