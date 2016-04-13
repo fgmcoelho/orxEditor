@@ -294,7 +294,7 @@ class LayerSelector(LayoutGetter, SeparatorLabel):
 		ModulesAccess.add('LayerSelector', self)
 		self._layout = BoxLayout(orientation = 'vertical', width = 400, height = 200, size_hint = (None, None))
 		self._description = AlignedLabel(
-			text = 'Click on the labels to hide/show them.',
+			text = 'Click on the layers to hide/show them.',
 			**defaultLabelSize
 		)
 		self._grid = GridLayout(cols = 2, rows = 8, height = 160, size_hint = (1.0, None))
