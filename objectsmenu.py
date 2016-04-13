@@ -248,7 +248,7 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		self._layout.scroll_to(self._tree.selected_node, animate = False)
 
 	def _adjustTreeSize(self, *args):
-		self._scrollLayout.size[1] = self._tree.minimum_height
+		self._scrollLayout.height = self._tree.minimum_height
 		if (self._tree.selected_node is not None):
 			Clock.schedule_once(self.__scrollUpdate, 0)
 
@@ -398,14 +398,15 @@ class NewBaseObjectsMenu(LayoutGetter, IgnoreTouch):
 		ModulesAccess.add('BaseObjectsMenu', self)
 		self._lastUpdate = None
 		self._targetDir = join(getcwd(), 'tiles')
-		self._tree = OptionMenuTree(root_options = { 'text' : 'Resources'})
-		self._layout = TempScrollView(size_hint = (1.0, 1.0), do_scroll = (0, 1), effect_cls = EmptyScrollEffect)
+		self._tree = OptionMenuTree(root_options = { 'text' : 'Resources'}, size_hint = (None, 1.0), width = 200)
+		self._layout = TempScrollView(width = 200, size_hint = (None, 1.0), do_scroll = (0, 1),
+			effect_cls = EmptyScrollEffect)
 		self._baseObjectsList = []
 		self._baseObjectId = 0
 		self._filenameToNode = {}
 		self._filesWaitingFinish = {}
 		self._loadItems(listdir(self._targetDir))
-		self._scrollLayout = RelativeLayout(**mainLayoutLeftMenuSize)
+		self._scrollLayout = RelativeLayout(width = 200, size_hint = (None, None))
 		self._scrollLayout.add_widget(self._tree)
 		self._layout.add_widget(self._scrollLayout)
 		self._tree.bind(minimum_height=self._adjustTreeSize)

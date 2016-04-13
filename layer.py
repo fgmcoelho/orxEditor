@@ -292,7 +292,7 @@ class LayerSelector(LayoutGetter, SeparatorLabel):
 	def __init__(self):
 		super(LayerSelector, self).__init__()
 		ModulesAccess.add('LayerSelector', self)
-		self._layout = BoxLayout(orientation = 'vertical', width = 400, height = 220, size_hint = (None, None))
+		self._layout = BoxLayout(orientation = 'vertical', width = 400, height = 200, size_hint = (None, None))
 		self._description = AlignedLabel(
 			text = 'Click on the labels to hide/show them.',
 			**defaultLabelSize

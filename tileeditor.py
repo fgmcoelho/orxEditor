@@ -109,7 +109,12 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 		self.updateButtons(button)
 
 	def updateButtons(self, lastPressed):
-		print 'update: ', lastPressed.text, lastPressed.state
+		self._bottomModulesLine.clear_widgets()
+		for register in self.__buttonsPriorityList:
+			if register['order'] == len(self.__buttonsPriorityList):
+				self._bottomModulesLine.add_widget(self.getSeparator())
+			if register['button'].state == 'down':
+				self._bottomModulesLine.add_widget(ModulesAccess.get(register['module']).getLayout())
 
 	def build(self):
 		super(OrxEditor, self).__init__()
@@ -157,17 +162,12 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 		top = BoxLayout(orientation = 'horizontal')
 
 		leftMenuBase = BoxLayout(
-			orientation='vertical',
-			padding = 0,
-			spacing = 0,
-			**mainLayoutLeftMenuSize
+			orientation = 'vertical', size_hint = (None, 1), width = 200
 		)
 		leftMenuBase.add_widget(ModulesAccess.get('BaseObjectsMenu').getLayout())
 
 		rightScreen = BoxLayout(
 			orientation = 'vertical',
-			padding = 0,
-			spacing = 0,
 			size_hint = (1.0, 1.0),
 		)
 		rightScreen.add_widget(self.__sceneHandler.getLayout())
@@ -179,15 +179,20 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 		bottom = BoxLayout(orientation = 'vertical', height = 220, size_hint = (1.0, None))
 
 		self._buttonsLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
-		self._showBaseObjectDisplay = CancelableToggleButton(text = 'Preview Display', **defaultLargeButtonSize)
-		self._showDescriptor = CancelableToggleButton(text = 'Object Descriptor', **defaultLargeButtonSize)
-		self._showMiniMap = CancelableToggleButton(text = 'MiniMap', **defaultSmallButtonSize)
-		self._showLabels = CancelableToggleButton(text = 'Labels', **defaultSmallButtonSize)
+		self._showBaseObjectDisplay = CancelableToggleButton(text = 'Preview Display', state = 'down',
+			method = self.moduleButtonMethod, **defaultLargeButtonSize)
+		self._showDescriptor = CancelableToggleButton(text = 'Object Descriptor', state = 'down',
+			method = self.moduleButtonMethod, **defaultLargeButtonSize)
+		self._showMiniMap = CancelableToggleButton(text = 'MiniMap', state = 'down', method = self.moduleButtonMethod,
+			**defaultSmallButtonSize)
+		self._showLayers = CancelableToggleButton(text = 'Layers', state = 'down', method = self.moduleButtonMethod,
+			**defaultSmallButtonSize)
 
+		self._buttonsLine.add_widget(AlignedLabel(text= 'Loaded tools:', **defaultLargeButtonSize))
 		self._buttonsLine.add_widget(self._showBaseObjectDisplay)
 		self._buttonsLine.add_widget(self._showDescriptor)
+		self._buttonsLine.add_widget(self._showLayers)
 		self._buttonsLine.add_widget(self._showMiniMap)
-		self._buttonsLine.add_widget(self._showLabels)
 		self._buttonsLine.add_widget(self.getSeparator())
 
 		self._bottomModulesLine = BoxLayout(orientation = 'horizontal', **mainLayoutBottomSize)
@@ -197,6 +202,29 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 		self._bottomModulesLine.add_widget(ModulesAccess.get('LayerSelector').getLayout())
 		self._bottomModulesLine.add_widget(self.getSeparator())
 		self._bottomModulesLine.add_widget(ModulesAccess.get('MiniMap').getLayout())
+
+		self.__buttonsPriorityList = [
+			{
+				'button': self._showBaseObjectDisplay,
+				'module': 'BaseObjectDisplay',
+				'order': 1
+			},
+			{
+				'button': self._showDescriptor,
+				'module': 'ObjectDescriptor',
+				'order': 2
+			},
+			{
+				'button': self._showLayers,
+				'module': 'LayerSelector',
+				'order': 3
+			},
+			{
+				'button': self._showMiniMap,
+				'module': 'MiniMap',
+				'order': 4
+			}
+		]
 
 		bottom.add_widget(self._buttonsLine)
 		bottom.add_widget(self._bottomModulesLine)
