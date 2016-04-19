@@ -460,8 +460,9 @@ class FilesManager:
 				posAdjust = (0, 0)
 				scale = (obj.getScale(), obj.getScale())
 
+			zPos = 1.0 - (0.00001 * obj.getIdentifier())
 			parser.set(newSectionName, 'Position',
-				vector2ToVector3String(self.__convertObjectPosition(obj, sceneMaxY, posAdjust), 1.0))
+				vector2ToVector3String(self.__convertObjectPosition(obj, sceneMaxY, posAdjust), zPos))
 
 			if (float(scale[0]) != 1.0 or float(scale[1]) != 1.0):
 				parser.set(newSectionName, 'Scale', vector2ToVector3String(scale, 1))
@@ -564,6 +565,10 @@ class FilesManager:
 				parser.add_section(animationTimeTrackSessionName)
 				animationName = textureName.split('.')[0] + '_' + str(animation)
 				parser.set(animationTimeTrackSessionName, '0', 'Object.setAnim ^ ' + animationName + ' True')
+
+		allObjectsSection = 'Scene_' + basename(filename).split('.')[0].replace(' ', '_') + '_MainObject'
+		parser.add_section(allObjectsSection)
+		parser.set(allObjectsSection, 'ChildList', '#'.join(objectsInScene))
 
 		f = open(filename, 'w')
 		parser.write(f)

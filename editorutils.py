@@ -426,7 +426,10 @@ def strToDoubleIntTuple(s):
 	return (x, y)
 
 def vector2ToVector3String(v, default = 0):
-	return '(' + str(v[0]) + ', ' + str(v[1]) + ', ' + str (default) + ')'
+	if (type(default) is int):
+		return '(%f, %f, 0.0)' % (v[0], v[1])
+	else:
+		return '(%f, %f, %5f)' % (v[0], v[1], default)
 
 def vector2Multiply(v, x):
 	assert(type(v) is tuple or type(v) is list)
