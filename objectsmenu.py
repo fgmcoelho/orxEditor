@@ -143,6 +143,22 @@ class OptionMenuTree(TreeView):
 		if (touch.button == 'left'):
 			self.__defaultTouchMove(touch)
 
+	def __toggleNode(self, method, node):
+		postSelect = False
+		if self.selected_node in node.nodes:
+			postSelect = True
+		
+		method(node)
+		if (postSelect == True):
+			self.select_node(node)
+			node.setDisplay(draw = False)
+
+	def on_node_expand(self, node):
+		self.__toggleNode(super(OptionMenuTree, self).on_node_expand, node)
+
+	def on_node_collapse(self, node):
+		self.__toggleNode(super(OptionMenuTree, self).on_node_collapse, node)
+
 	def __init__(self, **kwargs):
 		super(OptionMenuTree, self).__init__(**kwargs)
 		self.__defaultTouchDown = self.on_touch_down
