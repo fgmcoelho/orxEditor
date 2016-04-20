@@ -1,4 +1,39 @@
 #/usr/bin/python
+
+# HOTFIX FOR KIVY 1.9.1, Windows version!
+from platform import system
+from sys import executable, exit, argv
+from os.path import dirname, join, exists
+from os import environ, execvpe, getcwd
+import kivy
+
+def exit_known_bug():
+	print environ['path']
+	print 'You ran into a known Kivy issue, I tried automatically fixing it for you but I failed.'
+	print 'Stupid me! =('
+	print 'Please check the solution here:'
+	print 'https://github.com/kivy/kivy/issues/3957'
+	exit()
+
+if (kivy.__version__ == '1.9.1' and system().lower() == 'windows'):
+	try:
+		from kivy.uix.label import Label
+	except:
+		if (environ.get('BUG_FIX_1.9.1') == '1'):
+			exit_known_bug()
+
+		pythonPath = dirname(executable)
+		fullPath = join(pythonPath, 'share', 'gstreamer', 'bin')
+		print fullPath
+		if (exists(fullPath) == True):
+			environ['path'] =  fullPath + ';' + environ['path']
+			environ['BUG_FIX_1.9.1'] = '1'
+			print ' '.join(argv)
+			execvpe('python', ['-i', 'tileeditor.py'], environ)
+		else:
+			exit_known_bug()
+
+# END OF HOTFIX 1.9.1 Windows
 from kivy import require
 require('1.8.0')
 
