@@ -10,7 +10,7 @@ from kivy.clock import Clock
 from operator import itemgetter
 
 from editorheritage import LayoutGetter, KeyboardModifiers
-from editorobjects import RenderObjectGuardian
+from editorobjects import RenderObjectGuardian, BaseObject
 from editorutils import Alert, EmptyScrollEffect
 from modulesaccess import ModulesAccess
 from uisizes import sceneMiniMapSize
@@ -448,7 +448,8 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			if (value == False):
 				disabledLayers.append(key)
 
-		if (disabledLayers):
+		if (disabledLayers and 
+				isinstance(ModulesAccess.get('ObjectDescriptor').getCurrentObject(), BaseObject) == False):
 			selection = self._renderGuardian.updateSelectionLayers(disabledLayers)
 			ModulesAccess.get('ObjectDescriptor').set(selection)
 
