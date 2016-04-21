@@ -319,6 +319,7 @@ class FilesManager:
 			raise Exception('Error loading the objecs to the list:' + str(e))
 
 		ModulesAccess.get('SceneHandler').setSceneObjectId(int(parser.get(self.__objectListName, 'LastId')))
+		ModulesAccess.get('LayerSelector').update()
 		ModulesAccess.get('SceneHandler').registerLoad()
 
 	def exportScene(self, filename, assetsPath, shouldSmooth, defaults = None):
