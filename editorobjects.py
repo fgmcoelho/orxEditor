@@ -537,28 +537,28 @@ class RenderObjectGuardian:
 					and newPos[0] + size[0] <= maxX and newPos[1] + size[1] <= maxY)):
 				return []
 
-		objectsToCreate = []
-		for obj in self.__multiSelectionObjects:
-			if (obj.getParent() is None):
-				objectsToCreate.append(obj)
+		f = lambda x: x.getIdentifier()
 
-		newSelection = []
+		objectsToCreate = sorted(self.__multiSelectionObjects, key = f)
+
+		mirrorObjects = {}
+		parentObjects = []
 		for obj in objectsToCreate:
 			pos = obj.getPos()
 			newPos = (pos[0] + xAdjust, pos[1] + yAdjust)
 			size = obj.getSize()
 			newObj = RenderedObject(newId, obj, newPos, tileSize, maxX, maxY, self)
 			newId += 1
-			newSelection.append(newObj)
-			for childObj in obj.getChildren():
-				pos = childObj.getPos()
-				newPos = (pos[0] + xAdjust, pos[1] + yAdjust)
-				size = childObj.getSize()
-				newChildObj = RenderedObject(newId, childObj, newPos, tileSize, maxX, maxY, self)
-				newObj.addChild(newChildObj)
-				newId += 1
-				newSelection.append(newChildObj)
+			mirrorObjects[obj] = newObj
+			if (obj.getChildren() != []):
+				parentObjects.append(obj)
 
+		for obj in parentObjects:
+			parent = mirrorObjects[obj]
+			for childObj in obj.getChildren():
+				parent.addChild(mirrorObjects[childObj])
+		
+		newSelection = mirrorObjects.values()
 		if (newSelection != []):
 			for obj in self.__multiSelectionObjects:
 				obj.unsetMarked()
@@ -708,6 +708,30 @@ class RenderObjectGuardian:
 	def unmergeObjects(self):
 		if (len(self.__multiSelectionObjects) >= 2):
 			self.__checkMergingColliders('unmerging', self.__doUnmergeObjects)
+
+	def randomizeSwap(self):
+		swapableObjects = []
+		for obj in self.__multiSelectionObjects:
+			if (obj.getParent() == None):
+				swapableObjects.append(obj)
+
+		times = len(swapableObjects):
+		if (times == 1):
+			return
+
+		from random import choice
+		while times > 0:
+			obj1 = choice(swapableObjects)
+			obj2 = choice(swapableObjects)
+			if obj1 == obj2:
+				continue
+
+			pos1 = obj1.getPos()
+			pos2 = obj2.getPos()
+			dist1 = (pos1[0] - pos2[0], pos1[1] - pos2[1])
+			dist2 = (pos2[0] - pos1[0], pos2[1] - pos1[1])
+			
+
 
 	def reset(self):
 		self.__history.reset()
