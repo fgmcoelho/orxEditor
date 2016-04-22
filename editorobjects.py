@@ -709,6 +709,16 @@ class RenderObjectGuardian:
 		if (len(self.__multiSelectionObjects) >= 2):
 			self.__checkMergingColliders('unmerging', self.__doUnmergeObjects)
 
+
+
+	def __doMoveSwapObjects(self, obj, dist, actionList):
+		obj.moveAbsolute(dist)
+		objectsList = [obj]
+		for childObj in obj.getChildren():
+			childObj.moveAbsolute(dist)
+			objectsList.append(childObj)
+		actionList.addAction(SceneAction("move", objectsList, [dist] * len(objectsList)))
+	
 	def randomizeSwap(self):
 		swapableObjects = []
 		for obj in self.__multiSelectionObjects:
@@ -719,19 +729,35 @@ class RenderObjectGuardian:
 		if (times == 1):
 			return
 
+		# if there is only two objects, force them to swap once, otherwise the code will loop
+		if (times == 2):
+			times = 1
+
 		from random import choice
+		actionList = SceneActionList()
+		last1, last2 = None, None
 		while times > 0:
 			obj1 = choice(swapableObjects)
 			obj2 = choice(swapableObjects)
-			if obj1 == obj2:
+
+			# Don't swap the same object or redo the last swap.
+			if obj1 == obj2 or (last1 == obj1 and last2 == obj2) or (last1 == obj2 and last2 == obj1):
 				continue
 
 			pos1 = obj1.getPos()
 			pos2 = obj2.getPos()
-			dist1 = (pos1[0] - pos2[0], pos1[1] - pos2[1])
-			dist2 = (pos2[0] - pos1[0], pos2[1] - pos1[1])
-			
+			dist1 = (pos2[0] - pos1[0], pos2[1] - pos1[1])
+			dist2 = (pos1[0] - pos2[0], pos1[1] - pos2[1])
 
+			self.__doMoveSwapObjects(obj1, dist1, actionList)
+			self.__doMoveSwapObjects(obj2, dist2, actionList)
+
+			last1 = obj1
+			last2 = obj2
+
+			times -= 1
+
+		self.__history.registerAction(actionList)
 
 	def reset(self):
 		self.__history.reset()

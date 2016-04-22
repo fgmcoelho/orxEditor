@@ -398,6 +398,9 @@ class Scene(OrderSceneObjects, LayoutGetter):
 			self._layout.add_widget(newRenderedObject)
 		self._objectDict[identifier] = newRenderedObject
 
+	def randomizeObjects(self):
+		self._renderGuardian.randomizeSwap()
+
 	def registerSave(self):
 		self.__lastSaveTransaction = self.getTransaction()
 
@@ -528,6 +531,9 @@ class SceneHandler(LayoutGetter, KeyboardModifiers):
 
 		elif (keycode[1] == 'n'):
 			self.__sceneList[self.__currentIndex].unmergeObjects()
+
+		elif (keycode[1] == 'p'):
+			self.__sceneList[self.__currentIndex].randomizeObjects()
 
 		if (keycode[1] not in ['ctrl', 'lctrl', 'rctrl'] and keycode[1] != 'shift'):
 			Clock.unschedule(self.__scheduleTextureUpdate)

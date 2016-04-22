@@ -78,7 +78,7 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 
 	# Overloaded method
 	def _processKeyDown(self, keyboard, keycode, text, modifiers):
-		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcvmn') or
+		if ((len(keycode[1]) == 1 and keycode[1] in 'qwertasdfg\\z\'`xcvmnp') or
 				keycode[1] in ['shift', 'ctrl', 'lctrl', 'rctrl', 'delete', 'pageup', 'pagedown']):
 			self.__sceneHandler.processKeyDown(keycode, modifiers)
 		elif (keycode[1] == 'spacebar'):
