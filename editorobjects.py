@@ -715,7 +715,11 @@ class RenderObjectGuardian:
 			if (obj.getParent() == None):
 				swapableObjects.append(obj)
 
+<<<<<<< HEAD
 		times = len(swapableObjects)
+=======
+		times = len(swapableObjects):
+>>>>>>> 5826784d61b8056e7524496a0e4b322529384023
 		if (times == 1):
 			return
 
