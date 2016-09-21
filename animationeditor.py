@@ -358,7 +358,8 @@ class SelectableFrame:
 	It holds a smaller version of the frame (used by the left menu) and a copy of the original message, that is used
 	in the animation display."""
 	def __init__(self, base, pos, size, id):
-		self.__texture = base.texture.get_region(pos[0], pos[1], size[0], size[1])
+		# TODO: confirm if this is right
+		self.__texture = base.texture.get_region(pos[0], pos[1], size[0] - 1, size[1] - 1)
 		self.__size = size
 		self.__displayImage = Image(texture = self.__texture, size = (64, 64))
 		self.__id = id
@@ -620,11 +621,11 @@ class FramePreview:
 			sx, sy = self.__image.size
 			px, py = self.__image.pos
 			self.__operation = Line(points = [
-				px, py,
-				px + sx, py,
+				px, py + defaultFontSize,
+				px + sx, py + defaultFontSize,
 				px + sx, py + sy - 1,
 				px, py + sy - 1,
-				px, py])
+				px, py + defaultFontSize])
 		ModulesAccess.get("AnimationAndFrameEditor").setDuration(self.__frameRef.getDuration())
 
 	def unselect(self, *args):

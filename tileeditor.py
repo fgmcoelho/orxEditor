@@ -67,6 +67,7 @@ from animationeditor import AnimationSelector
 
 from cProfile import Profile
 from time import time
+from ConfigParser import ConfigParser
 
 class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 	def _processKeyUp(self, keyboard, keycode):
@@ -150,6 +151,27 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 				self._bottomModulesLine.add_widget(self.getSeparator())
 			if register['button'].state == 'down':
 				self._bottomModulesLine.add_widget(ModulesAccess.get(register['module']).getLayout())
+
+	def __loadDefaultFlagList(self, parser, session, option, method):
+		if (parser.has_option(session, option) == True):
+			currentFlags = parser.get(session, option).split(',')
+			for flag in currentFlags:
+				flag = flag.strip()
+				method(flag)
+
+	def loadDefaults(self):
+		if (exists('default_settings.ini') == True):
+			parser = ConfigParser()
+			parser.read('default_settings.ini')
+			self.__loadDefaultFlagList(
+				parser, 'AutoCreate', 'AutoPhysicsFlags',
+				ModulesAccess.get('CollisionGuardian').addNewFlag
+			)
+			self.__loadDefaultFlagList(
+				parser, 'AutoCreate', 'AutoLayerFlags',
+				ModulesAccess.get('LayerGuardian').addNewLayer
+			)
+			ModulesAccess.get('LayerSelector').update()
 
 	def build(self):
 		super(OrxEditor, self).__init__()
@@ -270,6 +292,8 @@ class OrxEditor(App, KeyboardAccess, SeparatorLabel):
 		self.root = BoxLayout(orientation = 'vertical')
 		self.root.add_widget(top)
 		self.root.add_widget(bottom)
+
+		self.loadDefaults()
 
 		return self.root
 
