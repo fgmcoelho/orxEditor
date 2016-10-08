@@ -567,6 +567,10 @@ class FilesManager:
 				animationName = textureName.split('.')[0] + '_' + str(animation)
 				parser.set(animationTimeTrackSessionName, '0', 'Object.setAnim ^ ' + animationName + ' True')
 
+		objectsInScene = []
+		for obj in renderedObjectsList:
+			objectsInScene.append(obj.getName())
+
 		allObjectsSection = 'Scene_' + basename(filename).split('.')[0].replace(' ', '_') + '_MainObject'
 		parser.add_section(allObjectsSection)
 		parser.set(allObjectsSection, 'ChildList', '#'.join(objectsInScene))
