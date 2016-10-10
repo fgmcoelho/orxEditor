@@ -5,16 +5,20 @@ from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
 from kivy.uix.treeview import TreeView, TreeViewLabel
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.textinput import TextInput
+
 from kivy.graphics.vertex_instructions import Line
 from kivy.graphics import Color
 
 from os.path import basename
+from ConfigParser import ConfigParser
+from StringIO import StringIO
 
 from uisizes import resourceLoderSize, defaultLabelSize, defaultButtonSize, defaultInputSize, defaultFontSize,\
-	defaultDoubleLineSize
+	defaultDoubleLineSize, defaultLineSize, defaultSmallButtonSize, defaultLargeButtonSize
 from editorheritage import SeparatorLabel, LayoutGetter, MouseModifiers
 from editorutils import CancelableButton, AutoReloadTexture, Alert, Dialog, convertKivyCoordToOrxCoord, ChangesConfirm
-from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect
+from editorutils import NumberInput, AlignedLabel, EmptyScrollEffect, OrxIniCodeViewer
 from editorobjects import resetAnitionOnObjectList
 from keyboard import KeyboardAccess, KeyboardGuardian
 from splittedimagemap import SplittedImageExporter, SplittedImageImporter
@@ -468,6 +472,7 @@ class ResourceLoaderList(LayoutGetter):
 		self.__defaultTouchDown = self._layout.on_touch_down
 		self._layout.on_touch_down = self.__handleScrollAndPassTouchDownToChildren
 		self.__tree.bind(minimum_height=self._adjustTreeSize)
+		self.__orxGraphicPopup = OrxGraphicIniViewer()
 
 	def save(self):
 		if (self.__resourceInfo is not None):
@@ -575,6 +580,98 @@ class ResourceLoaderList(LayoutGetter):
 				animationAddedCount, animationNotAddedCount, linkAddedCount, linkNotAddedCount),
 			'Ok'
 		).open()
+
+	def showIniCode(self):
+		self.__orxGraphicPopup.open(self.__resourceInfo, self.__maxY)
+
+class OrxGraphicIniViewer(OrxIniCodeViewer):
+	def __getIniCodeString(self):
+		parser = ConfigParser()
+		parser.optionxform = str
+		textureName = basename(self.__resourceInfo.getPath())
+		if (self._baseNameInput.text == ''):
+			self._baseNameInput.text = 'Base' + textureName + '_'
+
+		if (self._startIndexInput.text == ''):
+			self._startIndexInput.text = '0'
+	
+		baseSection = self._baseNameInput.text.strip()
+		startIndex = int(self._startIndexInput.text)
+		
+		parser.add_section(baseSection.rstrip('_'))
+		parser.set(baseSection.rstrip('_'), 'Texture', textureName.rstrip('_'))
+
+		for i, selection in enumerate(self.__resourceInfo.getSelectionList(), startIndex):
+			currentSection = baseSection + str(i) + '@' + baseSection.rstrip('_')
+			parser.add_section(currentSection)
+			pos = convertKivyCoordToOrxCoord((selection.getX(), selection.getY() + selection.getSizeY()), self.__maxY)
+			parser.set(currentSection, 'TextureCorner', '(' + str(pos[0]) + ', ' + str(pos[1]) + ')')
+			parser.set(currentSection, 'TextureSize', '(' + str(selection.getSizeX()) + ', ' + 
+				str(selection.getSizeY()) + ')')
+
+		result = StringIO('')
+		parser.write(result)
+
+		return result
+
+	def _getCodeString(self):
+		res = self.__getIniCodeString()
+		code = res.getvalue()
+		res.close()
+
+		return code
+
+	def _copyToClipboard(self, *args):
+		self._codeInput.copy(self._codeInput.text)
+
+	def _updateCodeInput(self, *args):
+		self._codeInput.text = self._getCodeString()
+
+	def __init__(self):
+		super(OrxGraphicIniViewer, self).__init__()
+		self._copyButton = CancelableButton(text='Copy to clipboard', on_release = self._copyToClipboard,
+			**defaultLargeButtonSize)
+
+		customLineSize = defaultLineSize.copy()
+		customLineSize['height'] *= 2
+		self._extraOptionsLayout = BoxLayout(orientation = 'vertical', **customLineSize)
+		customSmallButton = defaultSmallButtonSize.copy()
+		customSmallButton['height'] = defaultInputSize['height']
+
+		self._optionsLine = BoxLayout(orientation = 'horizontal', **defaultInputSize)
+		self._baseNameLabel = AlignedLabel(text='Base name:', **customSmallButton)
+		self._baseNameInput = TextInput(text='', **defaultInputSize)
+		self._startIndexLabel = AlignedLabel(text='Index:', **customSmallButton)
+		self._startIndexInput = NumberInput(text='0', **customSmallButton)
+		self._applyButton = CancelableButton(text='Apply', on_release = self._updateCodeInput,
+			**customSmallButton)
+
+		self._optionsLine.add_widget(self._baseNameLabel)
+		self._optionsLine.add_widget(self._baseNameInput)
+		self._optionsLine.add_widget(self._startIndexLabel)
+		self._optionsLine.add_widget(self._startIndexInput)
+		self._optionsLine.add_widget(self._applyButton)
+
+		self._extraOptionsLayout.add_widget(self._optionsLine)
+		self._extraOptionsLayout.add_widget(self.getSeparator())
+		
+		self.__resourceInfo = None
+
+		self._extraButtons.append(self._copyButton)
+
+	def open(self, resourceInfo, maxY):
+		if self.__resourceInfo != resourceInfo:
+			self.__resourceInfo = resourceInfo
+			self._startIndexInput.text = '0'
+			textureName = basename(self.__resourceInfo.getPath())
+			if (textureName[-4:] == '.png'):
+				self._baseNameInput.text = textureName[0:-4] + '_'
+			else:
+				self._baseNameInput.text = 'Base' + textureName + '_'
+
+		self.__maxY = maxY
+		super(OrxGraphicIniViewer, self).open()
+
 
 class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesConfirm):
 	# Overloaded method
@@ -846,7 +943,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 
 			self.__selectionTree.addItemList(l)
 
-	def __showSelection(self, *args):
+	def __processShowSelection(self, *args):
 		selection = self.__selectionTree.getSelection()
 		if (selection is not None):
 			self.__display.previewSelection(selection)
@@ -934,14 +1031,19 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 				'Ok', 'Cancel')
 			dialog.open()
 
+	def __processExportSheet(self, *args):
+		self.__selectionTree.showIniCode()
+
 	def __createRightMenuUi(self):
-		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 1.0), showMethod = self.__showSelection)
+		self.__selectionTree = ResourceLoaderList(size_hint = (1.0, 1.0), showMethod = self.__processShowSelection)
 
 		self.__addFullSelection = CancelableButton(text = 'Add as one (o)', on_release = self.__processAddSelection,
 			**defaultLabelSize)
 		self.__addPartSelection = CancelableButton(text = 'Add parts (p)',
 			on_release = self.__processAddPartsSelection, **defaultLabelSize)
-		self.__showSelection = CancelableButton(text = 'Show', on_release = self.__showSelection,
+		self.__showSelection = CancelableButton(text = 'Show', on_release = self.__processShowSelection,
+			**defaultLabelSize)
+		self.__exportSheet = CancelableButton(text = 'Show ORX ini', on_release = self.__processExportSheet,
 			**defaultLabelSize)
 		self.__removeCurrent = CancelableButton(text = 'Remove (del)', on_release = self.__processRemoveFromSelection,
 			**defaultLabelSize)
@@ -952,6 +1054,7 @@ class ResourceLoaderPopup(KeyboardAccess, SeparatorLabel, LayoutGetter, ChangesC
 		self.__rightMenu.add_widget(self.__addFullSelection)
 		self.__rightMenu.add_widget(self.__addPartSelection)
 		self.__rightMenu.add_widget(self.__showSelection)
+		self.__rightMenu.add_widget(self.__exportSheet)
 		self.__rightMenu.add_widget(self.__removeCurrent)
 		self.__rightMenu.add_widget(self.__clearSelection)
 
