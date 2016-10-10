@@ -11,10 +11,10 @@ from kivy.clock import Clock
 from kivy.core.window import Window
 
 from editorobjects import BaseObject
-from editorutils import EmptyScrollEffect, createSpriteImage, AlignedLabel
+from editorutils import EmptyScrollEffect, createSpriteImage
 from splittedimagemap import SplittedImageImporter
 from modulesaccess import ModulesAccess
-from uisizes import mainLayoutLeftMenuSize, defaultLabelSize, objectDisplaySize
+from uisizes import objectDisplaySize
 from editorheritage import IgnoreTouch, LayoutGetter
 
 class TempScrollView(ScrollView):

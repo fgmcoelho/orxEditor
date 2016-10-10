@@ -4,7 +4,7 @@
 from platform import system
 from sys import executable, exit, argv
 from os.path import dirname, join, exists
-from os import environ, execvpe, getcwd
+from os import environ, execvpe
 import kivy
 
 def exit_known_bug():
@@ -42,8 +42,8 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.config import Config
 from kivy.core.window import Window
 
-from uisizes import mainLayoutLeftMenuSize, defaultLabelSize, sceneMiniMapSize, defaultLineSize, mainLayoutBottomSize,\
-	defaultSmallButtonSize, defaultLargeButtonSize
+from uisizes import defaultLabelSize, defaultLineSize, mainLayoutBottomSize, defaultSmallButtonSize, \
+	defaultLargeButtonSize
 from keyboard import KeyboardGuardian, KeyboardAccess
 from scene import SceneHandler, SceneMiniMap
 from tilemapfiles import FilesManager

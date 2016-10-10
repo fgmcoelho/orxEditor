@@ -8,15 +8,16 @@ from kivy.uix.textinput import TextInput
 from kivy.graphics.texture import Texture
 from kivy.uix.image import Image
 from kivy.effects.scroll import ScrollEffect
+from kivy.uix.codeinput import CodeInput
 
-from keyboard import KeyboardAccess, KeyboardGuardian
-from editorheritage import SeparatorLabel
-
+from pygments.lexers import IniLexer
 from os.path import sep as pathSeparator
 from os import getcwd
 from math import sqrt
 
-from uisizes import defaultButtonSize, defaultFontSize, warningSize, defaultLineSize
+from uisizes import defaultButtonSize, defaultFontSize, warningSize, defaultLineSize, defaultSmallButtonSize
+from keyboard import KeyboardAccess, KeyboardGuardian
+from editorheritage import SeparatorLabel
 
 class ChangesConfirm(object):
 	def __init__(self, **kwargs):
@@ -506,4 +507,45 @@ def isConvexPolygon(points):
 	else:
 		return False
 
+class OrxIniCodeViewer(KeyboardAccess, SeparatorLabel):
+	def _processKeyUp(self, keyboard, keycode):
+		if (keycode[1] == 'escape'):
+			self.close()
 
+	def __init__(self, title='Resulting ORX Ini'):
+		super(OrxIniCodeViewer, self).__init__()
+
+		self._popup = Popup(auto_dismiss = False, title=title)
+		self._layout = BoxLayout(orientation = 'vertical')
+		self._codeInput = CodeInput(lexer = IniLexer(), readonly = True)
+
+		self._bottomLine = BoxLayout(orientation = 'horizontal', **defaultLineSize)
+
+		self._closeButton = CancelableButton(text='Close', on_release = self.close, **defaultSmallButtonSize)
+		self._extraOptionsLayout = None
+
+		self._extraButtons = []
+
+		self._popup.content = self._layout
+
+	def open(self, *args):
+		KeyboardGuardian.Instance().acquireKeyboard(self)
+		self._layout.clear_widgets()
+		self._codeInput.text = self._getCodeString()
+		self._layout.add_widget(self._codeInput)
+		if self._extraOptionsLayout is not None:
+			self._layout.add_widget(self._extraOptionsLayout)
+
+		self._bottomLine.clear_widgets()
+		for button in self._extraButtons:
+			self._bottomLine.add_widget(button)
+		self._bottomLine.add_widget(self.getSeparator())
+		self._bottomLine.add_widget(self._closeButton)
+
+		self._layout.add_widget(self._bottomLine)
+		self._popup.open()
+
+	def close(self, *args):
+		self._codeInput.focus = False
+		KeyboardGuardian.Instance().dropKeyboard(self)
+		self._popup.dismiss()
